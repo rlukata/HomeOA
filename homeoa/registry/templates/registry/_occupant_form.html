@@ -1,0 +1,9 @@
+{% load i18n %}
+<form method="post" action="{% url 'registry:occupant_add' unit.number %}" enctype="multipart/form-data" class="form-grid" id="occupant-panel">
+  {% csrf_token %}
+  {% include "ui/components/form.html" %}
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">{% translate "Add occupant" %}</button>
+    <a class="btn btn-ghost" href="{% url 'registry:unit' unit.number %}">{% translate "Cancel" %}</a>
+  </div>
+</form>

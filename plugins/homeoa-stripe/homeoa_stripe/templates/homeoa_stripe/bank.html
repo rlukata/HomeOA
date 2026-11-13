@@ -1,0 +1,71 @@
+{% extends "portal/base.html" %}
+{% load i18n static homeoa_ui %}
+{% block title %}{% translate "Bank accounts" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+{% include "portal/_pay_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Bank accounts" %}</h1>
+<p class="muted m-0">{% blocktranslate with n=unit.number %}For paying unit {{ n }} by bank transfer (ACH). No fee.{% endblocktranslate %}</p>
+
+{% if waiting %}
+<div class="sec-t">{% translate "Waiting for verification" %}</div>
+<section class="card" data-testid="bank-waiting">
+  {% for m in waiting %}
+  <form method="post" action="{% url 'homeoa_stripe:bank_verify' m.pk %}" class="li wrap-ok">{% csrf_token %}
+    {% icon "bank" %}<div class="grow"><div>{{ m.bank_name|default:_("Bank account") }} ···{{ m.bank_last4 }}</div>
+      <div class="s">{% translate "Enter the two small deposits (in cents), or the 6-character code from the statement line." %}</div></div>
+    <input class="input w-xs" name="amount1" inputmode="numeric" aria-label="{% translate 'First deposit in cents' %}" placeholder="32">
+    <input class="input w-xs" name="amount2" inputmode="numeric" aria-label="{% translate 'Second deposit in cents' %}" placeholder="45">
+    <input class="input w-sm" name="descriptor_code" aria-label="{% translate 'Statement code' %}" placeholder="SM11AA">
+    <button class="btn btn-sm btn-primary" type="submit">{% translate "Verify" %}</button>
+  </form>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if linked %}
+<div class="sec-t">{% translate "Linked" %}</div>
+<section class="card" data-testid="bank-linked">
+  {% for m in linked %}
+  <form method="post" action="{% url 'homeoa_stripe:bank_remove' m.pk %}" class="li">{% csrf_token %}
+    {% icon "bank" %}<div class="grow"><div>{{ m.bank_name|default:_("Bank account") }} ···{{ m.bank_last4 }}</div><div class="s">{% blocktranslate with date=m.accepted_at|date:"M j, Y" %}Authorized {{ date }}{% endblocktranslate %}</div></div>
+    <button class="btn btn-sm btn-ghost" type="submit">{% translate "Remove" %}</button>
+  </form>
+  {% endfor %}
+</section>
+{% endif %}
+
+<div class="sec-t">{% translate "Link a bank account" %}</div>
+{% if not account %}
+<section class="card" data-testid="bank-collect">
+  <div class="li auth">{% translate "Sign in to your bank to link the account instantly. If your bank isn't listed, enter the routing and account numbers instead; we then send two small deposits to verify it." %}</div>
+  {% if fake %}
+  <form method="post" action="{% url 'homeoa_stripe:bank_collect' %}">{% csrf_token %}
+    <input type="hidden" name="unit" value="{{ unit.number }}">
+    <div class="li"><div class="grow muted">{% translate "Test mode: no real bank is contacted." %}</div></div>
+    <div class="li"><button class="btn btn-primary" type="submit" name="mode" value="instant">{% translate "Sign in to my bank (instant)" %}</button>
+      <button class="btn btn-ghost" type="submit" name="mode" value="manual">{% translate "Enter account numbers instead" %}</button></div>
+  </form>
+  {% elif publishable_key %}
+  <div class="li"><button class="btn btn-primary" type="button" id="collect-bank" data-publishable-key="{{ publishable_key }}" data-client-secret="{{ setup.client_secret }}" data-billing-name="{{ billing_name }}" data-billing-email="{{ billing_email }}" data-error-text="{% translate "Bank linking didn't work. Check your connection and try again." %}">{% translate "Link my bank" %}</button></div>
+  <p class="callout danger" id="collect-bank-error" role="alert" data-testid="bank-collect-error" hidden></p>
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="{% static 'homeoa_stripe/bank.js' %}" defer></script>
+  {% else %}
+  <div class="li"><div class="grow muted">{% translate "Bank linking is not configured." %}</div></div>
+  {% endif %}
+</section>
+{% else %}
+<form method="post" action="{% url 'homeoa_stripe:bank_confirm' %}" class="card" data-testid="bank-authorize">{% csrf_token %}
+  <input type="hidden" name="unit" value="{{ unit.number }}">
+  <div class="li">{% icon "bank" %}<div class="grow"><div>{{ account.bank_name|default:_("Bank account") }} ···{{ account.last4 }}</div></div>
+    <a href="?unit={{ unit.number }}&amp;restart=1">{% translate "Use another account" %}</a></div>
+  <div class="li auth" data-testid="authorization-text">{{ authorization }}</div>
+  <label class="choice"><input type="checkbox" name="accept" value="yes" required> {% translate "I agree to this authorization" %}</label>
+  <div class="li"><div class="grow"></div><button class="btn btn-primary" type="submit">{% translate "Authorize and link" %}</button></div>
+</form>
+{% endif %}
+<p><a href="{% url 'portal:pay' %}?unit={{ unit.number }}">{% translate "Back to Pay" %}</a></p>
+</div>
+{% endblock %}

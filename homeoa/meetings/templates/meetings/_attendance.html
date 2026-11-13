@@ -1,0 +1,59 @@
+{% load i18n rule_tags %}
+<div id="attendance-panel" class="g">
+  {% if request.htmx %}{% include "ui/components/messages.html" with oob=True %}{% endif %}
+  <section class="card span2" aria-labelledby="roster-h">
+    <div class="card-h"><h2 id="roster-h">{% if meeting.is_owner_meeting %}{% translate "Attendance by unit" %}{% else %}{% translate "Attendance by board member" %}{% endif %}</h2></div>
+    {% if roster %}
+    <div class="table-wrap">
+      <table class="t" data-testid="attendance">
+        <thead><tr>
+          <th scope="col">{% if meeting.is_owner_meeting %}{% translate "Unit" %}{% else %}{% translate "Board member" %}{% endif %}</th>
+          <th scope="col">{% translate "Attended" %}</th>
+        </tr></thead>
+        <tbody>
+          {% for r in roster %}
+          <tr>
+            <td>{{ r.label }}</td>
+            <td>
+              {% if can_manage and meeting.status != 'cancelled' %}
+              <form method="post" action="{% url 'meetings:attendance_set' meeting.pk %}"
+                    hx-post="{% url 'meetings:attendance_set' meeting.pk %}" hx-target="#attendance-panel" hx-swap="outerHTML" hx-trigger="change" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="who" value="{{ r.pk }}">
+                <select name="mode" aria-label="{% blocktranslate with who=r.label %}How {{ who }} attended{% endblocktranslate %}">
+                  <option value="">{% if r.proxy %}{% translate "By proxy" %}{% else %}{% translate "Absent" %}{% endif %}</option>
+                  {% for v, label in modes %}<option value="{{ v }}"{% if v == r.mode %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <noscript><button type="submit" class="btn sm">{% translate "Save" %}</button></noscript>
+              </form>
+              {% else %}
+              {% if r.mode %}{% for v, label in modes %}{% if v == r.mode %}{{ label }}{% endif %}{% endfor %}{% elif r.proxy %}{% translate "By proxy" %}{% else %}{% translate "Absent" %}{% endif %}
+              {% endif %}
+              {% if r.proxy and r.mode %}<span class="muted small">{% translate "(proxy not counted: present)" %}</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card-b"><p class="muted">{% translate "No board members on the roster for this date." %}</p></div>
+    {% endif %}
+  </section>
+
+  <section class="card" aria-labelledby="quorum-h">
+    <div class="card-h"><h2 id="quorum-h">{% translate "Quorum" %}</h2></div>
+    <div class="card-b" data-testid="quorum">
+      <p><span class="badge {% if q.met %}ok{% else %}danger{% endif %}" data-testid="quorum-status">{% if not q.requirement.is_set %}{% translate "No quorum required" %}{% elif q.met %}{% translate "Quorum met" %}{% else %}{% translate "Quorum not met" %}{% endif %}</span></p>
+      <p>{% blocktranslate with n=q.present_count total=q.total_count %}{{ n }} of {{ total }} present{% endblocktranslate %}
+        ({% blocktranslate with a=q.in_person b=q.remote c=q.by_proxy %}{{ a }} in person, {{ b }} remote, {{ c }} by proxy{% endblocktranslate %})</p>
+      {% if meeting.is_owner_meeting %}
+      <p>{% blocktranslate with w=q.present_weight total=q.total_weight pct=q.percent %}Votes present: {{ w }} of {{ total }} ({{ pct }}%){% endblocktranslate %}</p>
+      {% endif %}
+      {% if q.requirement.is_set %}
+      <p class="muted">{% if q.requirement.basis == 'count' %}{% blocktranslate with v=q.requirement.value %}Needs {{ v }} present.{% endblocktranslate %}{% else %}{% blocktranslate with v=q.requirement.value %}Needs {{ v }}% of all votes.{% endblocktranslate %}{% endif %}
+        {% if q.requirement.source == 'pack' %}{% rule_badge q.requirement.rule %}{% else %}{% translate "(bylaws setting)" %}{% endif %}</p>
+      {% endif %}
+    </div>
+  </section>
+</div>

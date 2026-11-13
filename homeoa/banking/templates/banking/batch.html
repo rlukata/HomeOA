@@ -1,0 +1,48 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Bank import" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% blocktranslate with n=batch.pk %}Bank import #{{ n }}{% endblocktranslate %}</h1>
+  <p class="muted">{{ batch.bank_account }} · {{ batch.get_source_display }} {{ batch.filename }} · {{ batch.created_at|date:"M j, Y g:i a" }}</p>
+  <p class="muted">{% blocktranslate with r=batch.total_rows n=batch.imported_count d=batch.duplicate_count %}{{ r }} rows read, {{ n }} imported, {{ d }} duplicates skipped.{% endblocktranslate %}</p>
+  {% if batch.is_undone %}<p>{% translate "Undone" as undone %}{% badge "danger" undone %} {{ batch.undone_at|date:"M j, Y" }}{% if batch.undone_by %} · {{ batch.undone_by.email }}{% endif %} · {{ batch.undo_reason }}</p>{% endif %}
+</div></div>
+{% include "banking/_overlaps.html" %}
+{% if not batch.is_undone %}
+<section class="card card-pad" aria-labelledby="undo-h">
+  <h2 id="undo-h">{% translate "Undo this import" %}</h2>
+  {% if error %}<p class="callout danger" role="alert">{{ error }}</p>{% endif %}
+  {% if can_undo %}
+  <form method="post" class="form-stack">
+    {% csrf_token %}
+    <label for="id_reason">{% translate "Reason" %} <span aria-hidden="true">*</span><span class="sr">{% translate "(required)" %}</span></label>
+    <input class="input" id="id_reason" name="reason" required maxlength="255">
+    <div class="form-actions"><button type="submit" class="btn btn-danger">{% translate "Undo import" %}</button></div>
+  </form>
+  {% else %}
+  <p class="muted">{% translate "Some transactions in this import are already matched or categorized, so it can't be undone." %}</p>
+  {% endif %}
+</section>
+{% endif %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Transactions in this import" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Date" %}</th>
+        <th scope="col">{% translate "Description" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+        <th scope="col" class="num">{% translate "Amount" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for t in txns %}
+        <tr data-testid="bank-txn"><td class="nowrap">{{ t.date|date:"M j, Y" }}</td><td>{{ t.description }}</td><td>{{ t.get_status_display }}</td><td class="num">{{ t.amount|money }}</td></tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty-row">{% translate "No transactions." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

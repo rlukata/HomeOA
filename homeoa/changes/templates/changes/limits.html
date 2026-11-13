@@ -1,0 +1,15 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Approval limits" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Approval limits" %}</h1>
+  <p class="muted">{% blocktranslate with limit=current %}The one-off maintenance limit is ${{ limit }} today. Changing it takes effect once another board member approves.{% endblocktranslate %}</p></div></div>
+<section class="card">
+  <form method="post" class="card-b form-grid" data-testid="limits-form">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Send for approval" %}</button>
+      <a class="btn btn-ghost" href="{% url 'ui:settings' %}">{% translate "Cancel" %}</a></div>
+  </form>
+</section>
+{% endblock %}

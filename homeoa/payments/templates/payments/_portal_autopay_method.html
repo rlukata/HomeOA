@@ -1,0 +1,2 @@
+{% load i18n homeoa_ui %}<a class="li" href="{% url 'portal:autopay' %}?unit={{ pay.unit.number }}">{% icon "zap" %}<div class="grow"><div>{% translate "Autopay" %}</div><div class="s">{% if enrollment %}{{ enrollment.get_rule_display }} · {{ enrollment.mandate_label }}{% else %}{% translate "Pays dues each month after they post" %}{% endif %}</div></div>
+      <span class="toggle{% if enrollment %} on{% endif %}" role="switch" aria-checked="{% if enrollment %}true{% else %}false{% endif %}" aria-label="{% translate 'Autopay' %}"></span></a>

@@ -1,0 +1,32 @@
+{% load i18n ledger_tags %}<div id="payment-slot">
+<section class="card" aria-labelledby="alloc-h" data-testid="allocation">
+  <div class="card-h"><h2 id="alloc-h">{% blocktranslate with a=receipt.amount|money n=receipt.unit.number %}{{ a }} from Unit {{ n }} applied{% endblocktranslate %}</h2>
+    {% if receipt.status == "void" %}<span class="badge">{% translate "Void" %}</span>{% endif %}
+  </div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "How the payment was applied" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Charge" %}</th>
+        <th scope="col">{% translate "Type" %}</th>
+        <th scope="col" class="num">{% translate "Applied" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for a in allocations %}
+        <tr><td>{{ a.charge.description }}</td><td>{{ a.charge.get_kind_display }}</td><td class="num">{{ a.amount|money }}</td>
+          <td>{% if a.released_entry_id %}{% translate "Released" %}{% else %}{% translate "Applied" %}{% endif %}</td></tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty-row">{% translate "Not applied to any charge." %}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><th scope="row" colspan="2">{% translate "Unapplied credit" %}</th><td class="num">{{ unapplied|money }}</td><td></td></tr>
+      </tfoot>
+    </table>
+  </div>
+  <p class="card-f">{% blocktranslate with n=receipt.unit.number %}Unit {{ n }} balance now{% endblocktranslate %}: <strong data-testid="unit-balance">{{ balance|money }}</strong>
+    {% if balance < 0 %}<span class="muted">{% translate "(credit)" %}</span>{% endif %}</p>
+  <p class="card-f"><a href="{% url 'payments:detail' receipt.pk %}">{% translate "Open payment" %}</a> · <a href="{% url 'payments:new' %}">{% translate "Record another payment" %}</a></p>
+</section>
+</div>

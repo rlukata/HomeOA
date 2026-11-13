@@ -1,0 +1,40 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Vendors" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Vendors" %}</h1>
+    <p class="muted">{% translate "Contractors, utilities and insurers · contact, tax and payment details" %}</p>
+  </div>
+  {% if can_propose %}<div class="row wrap-ok"><a class="btn btn-primary" href="{% url 'vendors:add' %}">{% translate "Add vendor" %}</a></div>{% endif %}
+</div>
+<form method="get" class="row wrap-ok mb" role="search" aria-label="{% translate 'Filter vendors' %}"
+      hx-get="{% url 'vendors:index' %}" hx-target="#vendor-rows" hx-swap="outerHTML" hx-trigger="input changed delay:300ms from:#vendor-q, change">
+  <label class="sr" for="vendor-q">{% translate "Search vendors" %}</label>
+  <input class="search" type="search" id="vendor-q" name="q" value="{{ q }}" placeholder="{% translate 'Search name, service or contact' %}" data-testid="vendor-search">
+  <div class="chips" role="radiogroup" aria-label="{% translate 'Status' %}">
+    {% for value, label in statuses %}
+    <label class="chip{% if value == status %} on{% endif %}"><input class="sr" type="radio" name="status" value="{{ value }}"{% if value == status %} checked{% endif %}>{{ label }}</label>
+    {% endfor %}
+  </div>
+  <noscript><button type="submit" class="btn">{% translate "Filter" %}</button></noscript>
+</form>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "All vendors" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Vendor" %}</th>
+        <th scope="col">{% translate "Service" %}</th>
+        <th scope="col">{% translate "Contract" %}</th>
+        <th scope="col">{% translate "Insurance certificate" %}</th>
+        <th scope="col" class="num">{% translate "Paid this year" %}</th>
+        <th scope="col">{% translate "W-9" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      {% include "vendors/_rows.html" %}
+    </table>
+  </div>
+</section>
+{% endblock %}

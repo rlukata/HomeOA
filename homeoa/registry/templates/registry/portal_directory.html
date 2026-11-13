@@ -1,0 +1,11 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Resident directory" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page stack">
+<h1 class="h-page">{% translate "Resident directory" %}</h1>
+<p class="muted">{% translate "Owners and residents of each unit. To keep your phone or email out of it, change your contact details in Profile." %}</p>
+{% include "registry/_directory.html" %}
+</div>
+{% endblock %}

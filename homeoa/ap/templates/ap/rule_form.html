@@ -1,0 +1,14 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<a href="{% url 'ap:rules' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Approval rules" %}</a>
+<section class="card card-pad" aria-labelledby="rule-h">
+  <h1 id="rule-h">{{ title }}</h1>
+  <form method="post" class="form-grid mt">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary" data-testid="rule-save">{% translate "Save rule" %}</button></div>
+  </form>
+</section>
+{% endblock %}

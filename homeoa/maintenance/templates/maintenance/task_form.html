@@ -1,0 +1,24 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Preventive task" %}{% endblock %}
+{% block content %}
+<a href="{% url 'maintenance:tasks' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Preventive maintenance" %}</a>
+<div class="hero"><div><h1>{% if task %}{{ task.title }}{% else %}{% translate "Add a preventive task" %}{% endif %}</h1></div></div>
+<div class="g">
+<section class="card span2"><form method="post" class="card-b card-pad-t form-grid" data-testid="task-form">{% csrf_token %}
+  {% include "ui/components/form.html" with form=form %}
+  <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save task" %}</button></div>
+</form></section>
+{% if task %}
+<div class="stack">
+  <section class="card"><div class="card-h"><h2>{% translate "Done without a work order?" %}</h2></div>
+    <form method="post" class="card-b">{% csrf_token %}<input type="hidden" name="action" value="done">
+      <p class="small muted">{% translate "For example, a volunteer did it. The next date moves on by the repeat interval." %}</p>
+      <button type="submit" class="btn" data-testid="task-done">{% translate "Mark done" %}</button></form></section>
+  <section class="card"><div class="card-h"><h2>{% translate "Work orders" %}</h2></div>
+    <ul class="rows card-b">{% for wo in work_orders %}<li><a href="{% url 'maintenance:work_order' wo.pk %}">#{{ wo.pk }}</a> · {{ wo.vendor }} · {{ wo.get_status_display }}{% if wo.scheduled_for %} · {{ wo.scheduled_for|date:"M j, Y" }}{% endif %}</li>
+    {% empty %}<li class="muted">{% translate "None yet." %}</li>{% endfor %}</ul></section>
+</div>
+{% endif %}
+</div>
+{% endblock %}

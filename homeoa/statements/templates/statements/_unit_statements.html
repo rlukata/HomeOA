@@ -1,0 +1,21 @@
+{% load i18n homeoa_access ui ledger_tags statement_tags %}{% has_perm "finance.read" as can_read %}{% if can_read %}{% has_perm "finance.manage" as can_manage %}{% unit_statements unit as info %}
+<section class="card card-pad" aria-labelledby="unitstmt-h" data-testid="unit-statements">
+  <div class="card-h"><h2 id="unitstmt-h">{% translate "Statements" %}</h2>
+    <a class="btn btn-sm" href="{% url 'statements:index' %}">{% translate "All statements" %}</a></div>
+  {% for s in info.items %}
+  <p data-statement="{{ s.pk }}">
+    <strong>{{ s.run.period_start|date:"F Y" }}</strong> · {{ s.closing|money }} ·
+    {% if s.status == "sent" %}{% badge "ok" s.get_status_display %}{% else %}{% badge "" s.get_status_display %}{% endif %}
+    · <a href="{% url 'statements:pdf' s.pk %}" target="_blank" rel="noopener">{% translate "PDF" %}</a>
+    {% if can_manage and s.status != "sent" %}
+    <form class="inline-form" method="post" action="{% url 'statements:send' s.pk %}">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+      <button type="submit" class="btn btn-sm" data-testid="send-statement"{% if not info.residents_on %} disabled title="{% translate 'Residents are not switched on yet.' %}"{% endif %}>{% translate "Send statement" %}</button>
+    </form>
+    {% endif %}
+  </p>
+  {% empty %}
+  <p class="muted">{% translate "No statements generated for this unit yet." %}</p>
+  {% endfor %}
+</section>
+{% endif %}

@@ -1,0 +1,9 @@
+{% load i18n %}{% for a in announcements %}
+<div class="li" data-testid="announcement"><div class="grow">
+  <div><b>{% if a.pinned %}<span class="sr">{% translate "Pinned:" %} </span>{% endif %}{{ a.title }}</b></div>
+  {% if full %}<div class="small">{{ a.body|linebreaksbr }}</div>{% else %}<div class="s">{{ a.body|truncatechars:140 }}</div>{% endif %}
+  <div class="s">{{ a.publish_on|date:"M j, Y" }}</div>
+</div></div>
+{% empty %}
+<div class="li"><div class="grow muted">{% translate "No announcements right now." %}</div></div>
+{% endfor %}

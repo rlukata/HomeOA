@@ -1,0 +1,23 @@
+{% load i18n ui ledger_tags %}
+<div class="table-wrap">
+<table class="t" data-testid="autopay-history">
+  <thead><tr>{% if show_unit %}<th scope="col">{% translate "Unit" %}</th>{% endif %}<th scope="col">{% translate "Month" %}</th><th scope="col">{% translate "Debit date" %}</th><th scope="col" class="num">{% translate "Amount" %}</th><th scope="col">{% translate "Status" %}</th>{% if show_actions %}<th scope="col"><span class="sr">{% translate "Actions" %}</span></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for c in charges %}
+    <tr id="autopay-charge-{{ c.pk }}" data-testid="autopay-charge-{{ c.pk }}">
+      {% if show_unit %}<td>{{ c.unit.number }}</td>{% endif %}
+      <td>{{ c.period|date:"F Y" }}</td>
+      <td>{{ c.debit_on|date:"M j, Y"|default:"—" }}</td>
+      <td class="num">{% if c.status == "scheduled" or c.status == "skipped_notice_failed" %}{{ c.noticed_amount|money }}{% else %}{{ c.amount|money }}{% endif %}</td>
+      <td>{% if c.status == "failed" or c.status == "skipped_notice_failed" %}{% badge "danger" c.get_status_display %}{% elif c.status == "pending" %}{% badge "ok" c.get_status_display %}{% else %}{% badge "" c.get_status_display %}{% endif %}{% if c.status == "skipped_notice_failed" %}<div class="faint">{% translate "We could not send the notice before this debit, so it was not made. No late fee for this month." %}</div>{% endif %}{% if c.notice_resends and c.status == "scheduled" %}<div class="faint">{% blocktranslate with d=c.noticed_on|date:"M j, Y" %}Notice resent {{ d }}.{% endblocktranslate %}</div>{% endif %}</td>
+      {% if show_actions %}<td>{% if c.status == "skipped_notice_failed" and not c.acknowledged_at %}
+        <form method="post" action="{% url 'payments:autopay_resend' c.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="next" value="settings"><button type="submit" class="btn btn-sm" data-testid="autopay-resend-{{ c.pk }}">{% translate "Resend notice" %}</button></form>
+        <form method="post" action="{% url 'payments:autopay_ack' c.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="next" value="settings"><button type="submit" class="btn btn-sm btn-ghost">{% translate "Collected manually" %}</button></form>
+      {% endif %}</td>{% endif %}
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="muted">{% translate "No autopay debits yet." %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>

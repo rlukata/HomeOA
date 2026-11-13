@@ -1,0 +1,26 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ heading }}</h1>
+    <p class="muted">{% translate "This page is not built yet." %}</p>
+  </div>
+</div>
+{% if subtabs %}
+<section class="card" aria-labelledby="sections-h">
+  <div class="card-h"><h2 id="sections-h">{% translate "Sections" %}</h2></div>
+  <ul class="list placeholder-list">
+    {% for tab in subtabs %}{% if tab.url not in nav_hidden_urls %}
+      <li class="att"><a class="att-main att-t" href="{{ tab.url }}">{{ tab.label }}</a><span class="badge">{% translate "Coming soon" %}</span></li>
+    {% endif %}{% endfor %}
+  </ul>
+</section>
+{% elif current_hub.id == "home" %}
+<section class="card">
+  <div class="card-b card-pad-t">
+    <p class="muted">{% translate "Your to-do list will appear here." %}</p>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

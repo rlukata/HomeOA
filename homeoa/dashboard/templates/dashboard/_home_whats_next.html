@@ -1,0 +1,15 @@
+{% load i18n ui %}{% if whats_next %}
+    <section class="card" aria-labelledby="whats-next-h" data-testid="whats-next">
+      <div class="card-h"><h2 id="whats-next-h">{% translate "What's next" %}</h2></div>
+      <ol class="list">
+        {% for step in whats_next %}
+        <li class="att"{% if step.next %} aria-current="step"{% endif %}>
+          <div class="att-main"><div class="att-t">{% if step.next %}<strong>{{ step.label }}</strong>{% else %}{{ step.label }}{% endif %}</div>{% if step.note and not step.done %}<div class="att-s">{{ step.note }}</div>{% endif %}</div>
+          {% if step.done %}{% translate "Done" as state %}{% badge "ok" state %}{% elif step.next %}{% translate "Next" as state %}{% badge "accent" state %}{% else %}{% translate "To do" as state %}{% badge "" state %}{% endif %}
+          {% if step.url and not step.done %}<a class="btn btn-sm{% if not step.next %} btn-ghost{% endif %}" href="{{ step.url }}">{% translate "Open" %}<span class="sr"> · {{ step.label }}</span></a>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+      <div class="card-gap"></div>
+    </section>
+{% endif %}

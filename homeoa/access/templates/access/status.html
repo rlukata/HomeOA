@@ -1,0 +1,35 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Association status" %}{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+  .acc-form { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; max-width: 560px; }
+  .acc-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .acc-form textarea { padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; }
+  .acc-form .acc-check { flex-direction: row; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text); font-weight: 500; }
+  .acc-form .errorlist { margin: 2px 0 0; padding: 0; list-style: none; color: var(--danger); font-size: 12px; font-weight: 500; }
+  .st-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; margin: 0; }
+</style>
+<div class="hero"><div><h1>{% translate "Association status" %}</h1>
+  <p class="muted">{% translate "Residents get access from the go-live date. The System admin can pause resident access in an emergency." %}</p></div></div>
+<section class="card" aria-labelledby="st-h" data-testid="association-status">
+  <div class="card-h"><h2 id="st-h">{% translate "Status" %}: <span data-testid="status-label">{{ status_label }}</span></h2></div>
+  <div class="st-list">
+    <p data-testid="go-live">{% if not go_live_date %}{% translate "Not live yet." %} <a href="{% url 'access:go_live' %}">{% translate "The System admin goes live on the Go live page." %}</a>{% elif go_live_future %}{% blocktranslate with date=go_live_date|date:"M j, Y" %}Goes live on {{ date }}.{% endblocktranslate %}{% else %}{% blocktranslate with date=go_live_date|date:"M j, Y" %}Live since {{ date }}.{% endblocktranslate %}{% endif %}</p>
+    <p data-testid="resident-access">{% if residents_open %}{% translate "Resident access is open. Owners and tenants can sign in and use their pages." %}{% elif paused %}{% translate "Resident access is paused. Owners and tenants who sign in see a “not open yet” page, and sign-in links are not sent to them." %}{% else %}{% translate "Resident access is waiting for go-live. Owners and tenants get access on the go-live date." %}{% endif %}</p>
+    {% if paused %}<p class="muted" data-testid="pause-details">{% if status_row.paused_by %}{% blocktranslate with reason=status_row.pause_reason who=status_row.paused_by when=status_row.paused_at|date:"M j, Y" %}Paused by {{ who }} on {{ when }}. Reason: {{ reason }}{% endblocktranslate %}{% elif status_row.paused_at %}{% blocktranslate with reason=status_row.pause_reason when=status_row.paused_at|date:"M j, Y" %}Paused on {{ when }}. Reason: {{ reason }}{% endblocktranslate %}{% else %}{% blocktranslate with reason=status_row.pause_reason %}Reason: {{ reason }}{% endblocktranslate %}{% endif %}</p>{% endif %}
+  </div>
+</section>
+<section class="card" aria-labelledby="pause-h">
+  <div class="card-h"><h2 id="pause-h">{% if paused %}{% translate "Lift the pause" %}{% else %}{% translate "Pause resident access" %}{% endif %}</h2></div>
+  <form method="post" class="acc-form" data-testid="pause-form">
+    {% csrf_token %}
+    <p class="callout warn">{% if paused %}{% if live %}{% translate "Owners and tenants will get their pages back right away." %}{% else %}{% translate "The association is not live yet: residents get access only from the go-live date." %}{% endif %}{% else %}{% if live %}{% translate "Owners and tenants will lose access to their pages right away. Board members are not affected." %}{% else %}{% translate "The association is not live yet: residents have no access now. The pause keeps access closed after the go-live date until it is lifted." %}{% endif %}{% endif %}</p>
+    {{ form.non_field_errors }}
+    <label>{{ form.reason.label }}{{ form.reason }}<span class="muted">{{ form.reason.help_text }}</span>{{ form.reason.errors }}</label>
+    <label class="acc-check">{{ form.confirm }} {{ form.confirm.label }}</label>{{ form.confirm.errors }}
+    <div><button type="submit" class="btn btn-primary">{% if paused %}{% translate "Lift the pause" %}{% else %}{% translate "Pause resident access" %}{% endif %}</button>
+      <a class="btn btn-ghost" href="{% url 'ui:settings' %}">{% translate "Cancel" %}</a></div>
+  </form>
+</section>
+{% endblock %}

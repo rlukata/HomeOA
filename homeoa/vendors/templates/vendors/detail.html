@@ -1,0 +1,100 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{{ vendor.name }}{% endblock %}
+{% block content %}
+<a href="{% url 'vendors:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "All vendors" %}</a>
+<div class="stack">
+  <section class="card card-pad" aria-labelledby="vendor-h">
+    <div class="between wrap-ok">
+      <div><h1 id="vendor-h">{{ vendor.name }}</h1>
+        <div class="muted">{{ vendor.category|default:"" }}
+          {% if vendor.is_active %}{% badge "ok" vendor.get_status_display %}{% else %}{% badge "" vendor.get_status_display %}{% endif %}</div></div>
+      {% if can_manage or can_propose %}<a class="btn" href="{% url 'vendors:edit' vendor.slug %}">{% translate "Edit" %}</a>{% endif %}
+    </div>
+    <dl class="kv mt">
+      <dt class="muted">{% translate "Default expense account" %}</dt><dd>{% if vendor.default_expense_account %}{{ vendor.default_expense_account.code }} · {{ vendor.default_expense_account.name }}{% else %}—{% endif %}</dd>
+      {% if vendor.notes %}<dt class="muted">{% translate "Notes" %}</dt><dd>{{ vendor.notes|linebreaksbr }}</dd>{% endif %}
+    </dl>
+  </section>
+
+  <section class="card" aria-labelledby="contacts-h">
+    <div class="card-h"><h2 id="contacts-h">{% translate "Contacts" %}</h2>
+      {% if can_manage %}<a class="btn btn-sm" href="{% url 'vendors:contact_add' vendor.slug %}">{% translate "Add contact" %}</a>{% endif %}</div>
+    <ul class="rows">
+      {% for c in vendor.contacts.all %}
+      <li data-testid="vendor-contact">
+        <b>{{ c.name }}</b>{% if c.role %} <span class="muted">· {{ c.role }}</span>{% endif %}{% if c.is_primary %} {% badge "accent" _("Primary") %}{% endif %}
+        <div class="muted">{% if c.email %}<a href="mailto:{{ c.email }}">{{ c.email }}</a>{% endif %}{% if c.email and c.phone %} · {% endif %}{% if c.phone %}<a href="tel:{{ c.phone }}">{{ c.phone }}</a>{% endif %}</div>
+        {% if can_manage %}<div class="row">
+          <a class="btn btn-sm btn-ghost" href="{% url 'vendors:contact_edit' vendor.slug c.pk %}">{% translate "Edit" %}</a>
+          <form method="post" action="{% url 'vendors:contact_delete' vendor.slug c.pk %}">{% csrf_token %}<button type="submit" class="btn btn-sm btn-ghost">{% translate "Remove" %}</button></form>
+        </div>{% endif %}
+      </li>
+      {% empty %}
+      <li class="muted">{% translate "No contacts yet." %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="certs-h">
+    <div class="card-h"><h2 id="certs-h">{% translate "Insurance and licenses" %}</h2>
+      {% if can_manage %}<a class="btn btn-sm" href="{% url 'vendors:document_add' vendor.slug %}">{% translate "Add certificate" %}</a>{% endif %}</div>
+    <ul class="rows">
+      {% for d in documents %}
+      <li data-testid="vendor-doc-{{ d.pk }}">
+        <b>{{ d.get_kind_display }}</b>{% if d.issuer %} <span class="muted">· {{ d.issuer }}</span>{% endif %}{% if d.number %} <span class="faint">#{{ d.number }}</span>{% endif %}
+        {% if not d.current %}{% badge "" _("Replaced") %}{% elif d.expired %}{% badge "danger" _("Expired") %}{% else %}{% badge "ok" _("Current") %}{% endif %}
+        <div class="muted">{% if d.effective_date %}{{ d.effective_date|date:"Y-m-d" }} – {% endif %}{% blocktranslate with e=d.expiry_date|date:"Y-m-d" %}expires {{ e }}{% endblocktranslate %}
+          {% if d.file_key %} · <a href="{% url 'vendors:document_file' d.pk %}">{% translate "View file" %}</a>{% endif %}
+          {% if d.last_request %} · {% blocktranslate with t=d.last_request.sent_at|date:"Y-m-d" e=d.last_request.email %}requested {{ t }} from {{ e }}{% endblocktranslate %}{% endif %}</div>
+        {% if can_manage and d.current %}<form method="post" action="{% url 'vendors:document_request' d.pk %}">{% csrf_token %}<button type="submit" class="btn btn-sm btn-ghost" data-testid="vendor-doc-request-{{ d.pk }}">{% translate "Send request" %}</button></form>{% endif %}
+      </li>
+      {% empty %}
+      <li class="muted">{% translate "No certificates or licenses on file." %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="contracts-h">
+    <div class="card-h"><h2 id="contracts-h">{% translate "Contracts" %}</h2>
+      {% if can_manage %}<a class="btn btn-sm" href="{% url 'vendors:contract_add' vendor.slug %}">{% translate "Add contract" %}</a>{% endif %}</div>
+    <ul class="rows">
+      {% for c in contracts %}
+      <li data-testid="vendor-contract-{{ c.pk }}">
+        <b>{{ c.title }}</b>{% if c.amount is not None %} <span class="muted">· {{ c.amount|money }}</span>{% endif %}
+        {% if c.auto_renew %}{% badge "info" _("Auto-renews") %}{% endif %}{% if c.end_date < today %}{% badge "" _("Ended") %}{% endif %}
+        <div class="muted">{{ c.start_date|date:"Y-m-d" }} – {{ c.end_date|date:"Y-m-d" }}{% if c.auto_renew %} · {% blocktranslate with d=c.notice_date|date:"Y-m-d" %}cancel by {{ d }}{% endblocktranslate %}{% endif %}
+          {% if c.file_key %} · <a href="{% url 'vendors:contract_file' c.pk %}">{% translate "View file" %}</a>{% endif %}</div>
+        {% if can_manage %}<div class="row">
+          <a class="btn btn-sm btn-ghost" href="{% url 'vendors:contract_edit' vendor.slug c.pk %}">{% translate "Edit" %}</a>
+          {% if c.open_alert %}<form method="post" action="{% url 'vendors:alert_resolve' c.open_alert.pk %}">{% csrf_token %}<button type="submit" class="btn btn-sm">{% translate "Mark renewal decided" %}</button></form>{% endif %}
+        </div>{% endif %}
+      </li>
+      {% empty %}
+      <li class="muted">{% translate "No contracts on file." %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="card card-pad" aria-labelledby="w9-h">
+    <h2 id="w9-h">{% translate "Tax information (W-9)" %}</h2>
+    <dl class="kv mt">
+      <dt class="muted">{% translate "Legal name" %}</dt><dd>{{ vendor.legal_name|default:"—" }}</dd>
+      <dt class="muted">{% translate "Tax classification" %}</dt><dd>{{ vendor.get_tax_classification_display }}</dd>
+      <dt class="muted">{% blocktranslate with t=vendor.get_tin_type_display %}Taxpayer ID ({{ t }}){% endblocktranslate %}</dt>
+      <dd>{% if vendor.tin %}{% include "vendors/_tin.html" with clear="" %}{% else %}<span class="faint">{% translate "Not recorded" %}</span>{% endif %}</dd>
+      <dt class="muted">{% translate "W-9 form" %}</dt>
+      <dd>{% if vendor.w9_file_key %}{% if can_reveal %}<a href="{% url 'vendors:w9' vendor.slug %}" data-testid="vendor-w9">{% translate "View W-9" %}</a>{% else %}{% translate "On file" %}{% endif %}{% if vendor.w9_received %} <span class="muted">· {% blocktranslate with d=vendor.w9_received|date:"Y-m-d" %}received {{ d }}{% endblocktranslate %}</span>{% endif %}{% else %}<span class="faint">{% translate "Not on file" %}</span>{% endif %}</dd>
+      <dt class="muted">{% translate "1099 eligible" %}</dt><dd>{% if vendor.is_1099_eligible %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</dd>
+    </dl>
+  </section>
+
+  <section class="card card-pad" aria-labelledby="remit-h">
+    <h2 id="remit-h">{% translate "Payment details (bank bill pay)" %}</h2>
+    <dl class="kv mt">
+      <dt class="muted">{% translate "Pay to" %}</dt><dd data-testid="vendor-remit">{% for line in vendor.remit_lines %}{{ line }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</dd>
+      <dt class="muted">{% translate "Our account number" %}</dt><dd>{{ vendor.account_number_masked|default:"—" }}</dd>
+    </dl>
+  </section>
+</div>
+{% endblock %}

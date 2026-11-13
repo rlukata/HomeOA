@@ -1,0 +1,109 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags banking_tags %}
+{% block title %}{{ heading }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ heading }}</h1>
+    <p class="muted">{% translate "Bank transactions and balances arrive automatically through SimpleFIN Bridge. Syncing never posts to the books." %}</p>
+  </div>
+  <div class="form-actions">
+    {% if connected and can_manage %}
+    <form method="post" action="{% url 'banking:sync' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary">{% translate "Sync now" %}</button>
+    </form>
+    {% endif %}
+    <a class="btn" href="{% url 'banking:index' %}">{% translate "Back to bank" %}</a>
+  </div>
+</div>
+
+{% if fake %}
+<div class="callout info" role="note">{% translate "Demo mode: this feed uses a built-in fake bank. No real bank data." %}</div>
+{% endif %}
+
+{% if conn.error_kind %}
+<div class="callout warn" role="alert" data-testid="simplefin-error">
+  <div>
+    <strong>{{ conn.get_error_kind_display }}.</strong>
+    {% if conn.error_kind == "auth" %}{% translate "Get a new setup token from SimpleFIN Bridge and connect again below." %}{% elif conn.error_kind == "payment" %}{% translate "Renew the SimpleFIN Bridge subscription, then sync again." %}{% elif conn.error_kind == "quota" %}{% translate "SimpleFIN allows 24 requests a day. The next daily sync will catch up." %}{% else %}{% translate "We'll try again at the next sync." %}{% endif %}
+    {% if conn.error_at %}<span class="muted">{% blocktranslate with t=conn.error_at|date:"M j, g:i a" %}Last failed {{ t }}.{% endblocktranslate %}</span>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% for m in conn.bank_errors %}
+<div class="callout warn" role="alert" data-testid="simplefin-bank-error">{% blocktranslate with msg=m %}Problem reported by SimpleFIN: {{ msg }}{% endblocktranslate %}</div>
+{% endfor %}
+{% for m in conn.bank_messages %}
+<div class="callout" role="status" data-testid="simplefin-bank-warning">{% blocktranslate with msg=m %}From the bank: {{ msg }}{% endblocktranslate %}</div>
+{% endfor %}
+
+<section class="card card-pad" aria-labelledby="status-h">
+  <h2 id="status-h">{% translate "Status" %}</h2>
+  {% if connected %}
+  <p data-testid="simplefin-status">{% translate "Connected." %}
+    {% if conn.last_synced_at %}{% translate "Last synced" %} {% synced_at conn.last_synced_at %}.{% else %}{% translate "Not synced yet." %}{% endif %}
+    {% translate "Syncs automatically once a day." %}
+  </p>
+  {% elif enabled %}
+  <p data-testid="simplefin-status">{% translate "Turned on but not connected. Paste a setup token below." %}</p>
+  {% else %}
+  <p data-testid="simplefin-status">{% translate "Not connected." %}</p>
+  {% endif %}
+</section>
+
+{% if can_connect %}
+<section class="card card-pad" aria-labelledby="connect-h">
+  <h2 id="connect-h">{% if connected %}{% translate "Reconnect" %}{% else %}{% translate "Connect" %}{% endif %}</h2>
+  <form method="post" action="{% url 'homeoa_simplefin:connect' %}" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% if connected %}{% translate "Reconnect" %}{% else %}{% translate "Connect" %}{% endif %}</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="links-h">
+  <div class="card-h"><h2 id="links-h">{% translate "Accounts" %}</h2></div>
+  <form method="post" action="{% url 'homeoa_simplefin:link' %}">
+    {% csrf_token %}
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Accounts SimpleFIN reports and the bank accounts they import into" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "SimpleFIN account" %}</th>
+          <th scope="col" class="num">{% translate "Balance" %}</th>
+          <th scope="col">{% translate "Imports into" %}</th>
+        </tr></thead>
+        <tbody>
+          {% for link in links %}
+          <tr data-testid="simplefin-account">
+            <td>{{ link.name }} <span class="muted">{{ link.org_name }}</span></td>
+            <td class="num">{{ link.balance|money_or_blank }}{% if link.balance_date %} <span class="muted">{{ link.balance_date|date:"M j" }}</span>{% endif %}</td>
+            <td>
+              {% if can_manage %}
+              <label class="sr" for="link-{{ link.pk }}">{% blocktranslate with n=link.name %}Bank account for {{ n }}{% endblocktranslate %}</label>
+              <select id="link-{{ link.pk }}" name="link-{{ link.pk }}">
+                <option value="">{% translate "Not linked yet" %}</option>
+                <option value="{{ ignore }}"{% if link.ignored %} selected{% endif %}>{% translate "Don't import" %}</option>
+                {% for a in bank_accounts %}
+                <option value="{{ a.pk }}"{% if a.pk == link.bank_account_id %} selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+              </select>
+              {% elif link.bank_account %}{{ link.bank_account }}{% elif link.ignored %}{% translate "Don't import" %}{% else %}{% translate "Not linked yet" as nl %}{% badge "warn" nl %}{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="empty-row">{% translate "No accounts yet. Connect, then sync." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if links and can_manage %}
+    <div class="card-b form-actions"><button type="submit" class="btn">{% translate "Save links" %}</button></div>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}

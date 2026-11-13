@@ -1,0 +1,96 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags rule_tags homeoa_access %}
+{% block title %}{% translate "Late fees" %}{% endblock %}
+{% block content %}{% has_perm "finance.manage" as can_manage %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Late fees" %}</h1>
+    <p class="muted">{% translate "Fees and interest post automatically each day under the policy below. Each charge gets at most one late fee." %}</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn" href="{% url 'billing:index' %}">{% translate "Assessments" %}</a>
+    <a class="btn" href="{% url 'billing:specials' %}">{% translate "Special assessments" %}</a>
+  </div>
+</div>
+
+<section class="card" aria-labelledby="pol-h">
+  <div class="card-h">
+    <h2 id="pol-h">{% translate "Policy" %}</h2>
+    <a class="btn btn-sm" href="{% url 'billing:policy_new' %}">{% translate "New policy" %}</a>
+  </div>
+  <p class="card-pad">{% translate "Late fee cap from the rule pack:" %} <strong>{{ cap|rule_display }}</strong> {% rule_badge cap %}</p>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Late fee policies" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Name" %}</th>
+          <th scope="col" class="num">{% translate "Grace days" %}</th>
+          <th scope="col" class="num">{% translate "Flat fee" %}</th>
+          <th scope="col" class="num">{% translate "Percent" %}</th>
+          <th scope="col" class="num">{% translate "Interest" %}</th>
+          <th scope="col">{% translate "Effective" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in policies %}
+        <tr>
+          <td><a href="{% url 'billing:policy_edit' p.pk %}">{{ p.name }}</a></td>
+          <td class="num">{{ p.grace_days }}</td>
+          <td class="num">{{ p.flat_amount|money }}</td>
+          <td class="num">{{ p.percent|floatformat:"-3" }}%</td>
+          <td class="num">{{ p.interest_apr|floatformat:"-3" }}%</td>
+          <td>{{ p.effective_start|date:"M j, Y" }}</td>
+          <td>{% if p.active %}{% badge "ok" _("Active") %}{% else %}{% badge "" _("Inactive") %}{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty-row">{% translate "No late fee policy yet. Without one, no fees are charged." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="fees-h">
+  <div class="card-h"><h2 id="fees-h">{% translate "Assessed fees" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Assessed late fees and interest" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Date" %}</th>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Description" %}</th>
+          <th scope="col" class="num">{% translate "Amount" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in fees %}
+        <tr>
+          <td>{{ f.charge.charge_date|date:"M j, Y" }}</td>
+          <td>{{ f.charge.unit.number }}</td>
+          <td>{{ f.charge.description }}{% if f.capped %} {% badge "warn" _("Capped") %}{% endif %}</td>
+          <td class="num">{{ f.charge.amount|money }}</td>
+          <td>
+            {% if f.waived %}
+              {% badge "" _("Waived") %} <span class="muted">{{ f.waive_reason }}</span>
+            {% elif can_manage %}
+              <form method="post" action="{% url 'billing:late_fee_waive' f.pk %}" class="inline-form">
+                {% csrf_token %}
+                <label class="sr" for="reason-{{ f.pk }}">{% translate "Waiver reason" %}</label>
+                <input id="reason-{{ f.pk }}" name="reason" required maxlength="300" placeholder="{% translate 'Reason' %}">
+                <button type="submit" class="btn btn-sm">{% translate "Waive" %}</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "No late fees assessed." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

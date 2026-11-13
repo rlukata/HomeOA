@@ -1,0 +1,6 @@
+{% load i18n %}
+<nav class="tabs" aria-label="{% translate 'Money pages' %}">
+  <a href="{% url 'portal:pay' %}"{% if current == "pay" %} class="on" aria-current="page"{% endif %}>{% translate "Pay" %}</a>
+  <a href="{% url 'portal:payments' %}"{% if current == "payments" %} class="on" aria-current="page"{% endif %}>{% translate "History" %}</a>
+  <a href="{% url 'portal:statements' %}"{% if current == "statements" %} class="on" aria-current="page"{% endif %}>{% translate "Statements" %}</a>
+</nav>

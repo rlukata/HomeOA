@@ -1,0 +1,26 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Component" %}{% endblock %}
+{% block content %}
+<a href="{% url 'maintenance:components' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Components" %}</a>
+<div class="hero"><div><h1>{% if component %}{{ component.name }}{% else %}{% translate "Add a component" %}{% endif %}</h1></div></div>
+<div class="g">
+<section class="card span2"><form method="post" class="card-b card-pad-t form-grid" data-testid="component-form">{% csrf_token %}
+  {% include "ui/components/form.html" with form=form %}
+  <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save component" %}</button></div>
+</form></section>
+{% if component %}
+<div class="stack">
+  <section class="card"><div class="card-h"><h2>{% translate "Photos" %}</h2></div><div class="card-b">
+    <ul class="row wrap-ok" data-testid="component-photos">{% for p in photos %}<li><a href="{% url 'maintenance:component_photo' component.pk p.pk %}"><img src="{% url 'maintenance:component_photo' component.pk p.pk %}" alt="{% blocktranslate with n=forloop.counter %}Photo {{ n }}{% endblocktranslate %}" width="120"></a></li>{% endfor %}</ul>
+    <form method="post" action="{% url 'maintenance:component_photos' component.pk %}" enctype="multipart/form-data" class="row">{% csrf_token %}
+      <label>{% translate "Add photos" %} <input type="file" name="photos" accept="image/png,image/jpeg" multiple required></label>
+      <button type="submit" class="btn btn-sm">{% translate "Upload" %}</button></form></div></section>
+  <section class="card"><div class="card-h"><h2>{% translate "Preventive tasks" %}</h2></div>
+    <ul class="rows card-b">{% for t in tasks %}<li><a href="{% url 'maintenance:task_edit' t.pk %}">{{ t.title }}</a> · {{ t.next_due|date:"M j, Y" }}</li>{% empty %}<li class="muted">{% translate "None." %}</li>{% endfor %}</ul></section>
+  <section class="card"><div class="card-h"><h2>{% translate "Work orders" %}</h2></div>
+    <ul class="rows card-b">{% for wo in work_orders %}<li><a href="{% url 'maintenance:work_order' wo.pk %}">#{{ wo.pk }}</a> · {{ wo.vendor }} · {{ wo.get_status_display }}</li>{% empty %}<li class="muted">{% translate "None yet." %}</li>{% endfor %}</ul></section>
+</div>
+{% endif %}
+</div>
+{% endblock %}

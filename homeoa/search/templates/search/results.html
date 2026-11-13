@@ -1,0 +1,34 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Search" %}{% if association %} · {{ association.name }}{% endif %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Search" %}</h1>
+  <div class="muted">{% translate "Units, people, vendors, bills, requests, meetings and documents, including the text inside files." %}</div></div></div>
+<form method="get" action="{% url 'search:results' %}" class="row wrap-ok mb" role="search" aria-label="{% translate 'Search everything' %}">
+  <label class="sr" for="search-q">{% translate "Search for" %}</label>
+  <input class="search grow" type="search" id="search-q" name="q" value="{{ q }}" autofocus data-testid="search-q">
+  <button type="submit" class="btn btn-primary">{% translate "Search" %}</button>
+</form>
+{% if searched %}
+  {% for group in groups %}
+  <section class="card mt-16" aria-labelledby="sg-{{ forloop.counter }}" data-testid="search-group">
+    <div class="card-h"><h2 id="sg-{{ forloop.counter }}">{{ group.label }}</h2><span class="count">{{ group.hits|length }}</span></div>
+    <ul class="list" role="list">
+      {% for hit in group.hits %}
+      <li class="att" data-testid="search-hit">
+        <div class="att-main">
+          <div class="att-t"><a href="{{ hit.url }}">{{ hit.title }}</a></div>
+          {% if hit.detail %}<div class="att-s">{{ hit.detail }}</div>{% endif %}
+          {% if hit.snippet %}<div class="att-s" data-testid="search-snippet">{{ hit.snippet }}</div>{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% empty %}
+  <p class="muted mt-16" data-testid="search-empty">{% blocktranslate %}Nothing found for “{{ q }}”.{% endblocktranslate %}</p>
+  {% endfor %}
+{% elif q %}
+  <p class="muted">{% blocktranslate count n=min_length %}Type at least {{ n }} character.{% plural %}Type at least {{ n }} characters.{% endblocktranslate %}</p>
+{% endif %}
+{% endblock %}

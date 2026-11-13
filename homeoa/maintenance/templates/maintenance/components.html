@@ -1,0 +1,22 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Components" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Components" %}</h1>
+  <p class="muted">{% translate "What the association maintains and will one day replace, with its age, useful life and cost estimate: the starting point for a reserve study." %}</p></div>
+  <div class="row wrap-ok"><a class="btn btn-primary" href="{% url 'maintenance:component_add' %}" data-testid="component-add">{% translate "Add component" %}</a></div></div>
+<section class="card"><div class="table-wrap"><table class="t" data-testid="components">
+  <caption class="sr">{% translate "Components" %}</caption>
+  <thead><tr><th scope="col">{% translate "Component" %}</th><th scope="col">{% translate "Condition" %}</th><th scope="col">{% translate "Replace around" %}</th><th scope="col" class="num">{% translate "Years left" %}</th><th scope="col" class="num">{% translate "Replacement cost" %}</th></tr></thead>
+  <tbody>
+  {% for c in components %}<tr{% if not c.active %} class="muted"{% endif %}>
+    <td><a href="{% url 'maintenance:component_edit' c.pk %}">{{ c.name }}</a><div class="small muted">{{ c.get_category_display }}{% if c.location %} · {{ c.location }}{% endif %}</div></td>
+    <td>{{ c.get_condition_display }}</td>
+    <td>{{ c.replace_year|default:"—" }}</td>
+    <td class="num">{% if c.remaining is None %}—{% else %}<span{% if c.remaining <= 2 %} class="badge warn"{% endif %}>{{ c.remaining }}</span>{% endif %}</td>
+    <td class="num">{{ c.replacement_cost|money|default:"—" }}</td>
+  </tr>{% empty %}<tr><td colspan="5" class="muted">{% translate "No components yet." %}</td></tr>{% endfor %}
+  </tbody>
+  {% if components %}<tfoot><tr><th scope="row" colspan="4">{% translate "In service, total" %}</th><td class="num" data-testid="components-total">{{ total|money }}</td></tr></tfoot>{% endif %}
+</table></div></section>
+{% endblock %}

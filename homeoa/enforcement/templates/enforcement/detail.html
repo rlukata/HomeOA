@@ -1,0 +1,202 @@
+{% extends "ui/base.html" %}
+{% load i18n rule_tags %}
+{% block title %}{% translate "Violation" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ v.category }}: {{ v.unit }}</h1>
+    <p class="muted">{% blocktranslate with date=v.observed_on|date:"M j, Y" %}Observed {{ date }}{% endblocktranslate %} · <span class="badge {% if v.status == 'open' %}warn{% else %}ok{% endif %}" data-testid="status">{{ v.get_status_display }}</span></p>
+  </div>
+</div>
+<p><a href="{% url 'enforcement:index' %}">{% translate "Back to violations" %}</a></p>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="d-h">
+      <div class="card-h"><h2 id="d-h">{% translate "Details" %}</h2></div>
+      <div class="card-b">
+        <dl>
+          <dt>{% translate "Rule citation" %}</dt><dd>{{ v.category.rule_citation }}</dd>
+          <dt>{% translate "Description" %}</dt><dd>{{ v.description|linebreaksbr }}</dd>
+          <dt>{% translate "Reported by" %}</dt><dd>{{ v.reported_by|default:"—" }}</dd>
+          {% if v.status_note %}<dt>{% translate "Status note" %}</dt><dd>{{ v.status_note }}</dd>{% endif %}
+          <dt>{% translate "Fine schedule in force" %}</dt>
+          <dd>
+            {% if schedule %}<a href="{% url 'enforcement:schedule' schedule.pk %}">{{ schedule }}</a>
+              {% if line %} · {% blocktranslate with first=line.first_amount repeat=line.repeat_amount %}first ${{ first }}, repeat ${{ repeat }}{% endblocktranslate %}{% endif %}
+              {% if not furnished_in_time %}<p class="callout warn" role="alert" data-testid="unfurnished-banner">{% translate "Not yet furnished to owners: fines cannot be imposed" %}</p>{% endif %}
+            {% else %}{% translate "None" %}{% endif %}
+          </dd>
+        </dl>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="e-h">
+      <div class="card-h"><h2 id="e-h">{% translate "Escalation" %}</h2></div>
+      <div class="card-b">
+        {% if cure_passed %}<p class="callout warn" role="alert" data-testid="cure-passed">{% translate "Cure deadline passed: schedule hearing" %}</p>{% endif %}
+        {% if steps %}
+        <table class="table" data-testid="steps">
+          <thead><tr><th scope="col">{% translate "Step" %}</th><th scope="col">{% translate "Sent" %}</th><th scope="col">{% translate "Cure by" %}</th><th scope="col">{% translate "Delivery" %}</th><th scope="col">{% translate "Letter" %}</th></tr></thead>
+          <tbody>
+          {% for s in steps %}
+          <tr data-kind="{{ s.kind }}">
+            <td>{{ s.get_kind_display }}</td>
+            <td>{{ s.sent_on|date:"M j, Y" }}</td>
+            <td>{% if s.cure_by %}{{ s.cure_by|date:"M j, Y" }}{% else %}—{% endif %}</td>
+            <td>{{ s.get_delivery_display }}{% if s.batch %} · <a href="{% url 'letters:batch' s.batch.pk %}">{% translate "mail batch" %}</a>{% endif %}{% if s.emailed and s.delivery == "letter" %} · {% blocktranslate count n=s.emailed %}{{ n }} email copy{% plural %}{{ n }} email copies{% endblocktranslate %}{% endif %}</td>
+            <td>{% if s.letter %}<a href="{% url 'letters:download' s.letter.pk %}">{% translate "PDF" %}</a>{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}<p class="muted">{% translate "No notices sent yet." %}</p>{% endif %}
+        <p class="muted">{% translate "Cure period" %}: {% if cure_rule.value is None %}{% translate "not set" %}{% else %}{% blocktranslate count days=cure_rule.value %}{{ days }} day{% plural %}{{ days }} days{% endblocktranslate %}{% endif %} {% rule_badge cure_rule %}</p>
+        {% if v.cured_on %}<p>{% blocktranslate with date=v.cured_on|date:"M j, Y" %}Cured on {{ date }}{% endblocktranslate %}</p>{% endif %}
+        {% if v.status == "open" %}
+        <div class="row">
+          {% for n in notices %}
+          <form method="post" action="{% url 'enforcement:notice' v.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="kind" value="{{ n.kind }}">
+            <button type="submit" class="btn btn-sm"{% if n.problem %} disabled aria-describedby="np-{{ n.kind }}"{% endif %} data-testid="send-{{ n.kind }}">{% blocktranslate with label=n.label %}Send {{ label }}{% endblocktranslate %}</button>
+            {% if n.problem %}<span class="muted" id="np-{{ n.kind }}">{{ n.problem }}</span>{% endif %}
+          </form>
+          {% endfor %}
+        </div>
+        <form method="post" action="{% url 'enforcement:cured' v.pk %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Cured on" %} <input type="date" name="cured_on" value="{{ today|date:'Y-m-d' }}" required></label>
+          <label>{% translate "Note" %} <input type="text" name="note" maxlength="300"></label>
+          <div class="form-actions"><button type="submit" class="btn" data-testid="mark-cured">{% translate "Mark cured" %}</button></div>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+    <section class="card" aria-labelledby="h-h" data-testid="hearings">
+      <div class="card-h"><h2 id="h-h">{% translate "Hearing and decision" %}</h2></div>
+      <div class="card-b">
+        {% for h in hearings %}
+        <dl data-testid="hearing-{{ h.pk }}">
+          <dt>{% translate "Hearing" %}</dt>
+          <dd>{{ h.hearing_on|date:"M j, Y" }}{% if h.hearing_time %}, {{ h.hearing_time|time }}{% endif %} · {% if h.online %}{% translate "Online" %}: {% endif %}{{ h.place }}{% if h.notice_step.letter %} · <a href="{% url 'letters:download' h.notice_step.letter.pk %}">{% translate "Notice PDF" %}</a>{% endif %}{% if h.cancelled %} · <span class="badge" data-testid="hearing-cancelled">{% translate "Cancelled" %}</span>{% if h.cancel_reason %} {{ h.cancel_reason }}{% endif %}{% endif %}</dd>
+          {% if h.outcome %}
+          <dt>{% translate "Owner attended" %}</dt><dd>{% if h.attended is None %}—{% elif h.attended %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</dd>
+          {% if h.owner_statement %}<dt>{% translate "Owner statement" %}</dt><dd>{{ h.owner_statement|linebreaksbr }}</dd>{% endif %}
+          <dt>{% translate "Decision" %}</dt>
+          <dd><span class="badge" data-testid="outcome">{{ h.get_outcome_display }}</span> · {{ h.decided_on|date:"M j, Y" }}{% if h.decision_step.letter %} · <a href="{% url 'letters:download' h.decision_step.letter.pk %}">{% translate "Decision letter PDF" %}</a>{% endif %}</dd>
+          {% if h.decision_note %}<dt>{% translate "Decision note" %}</dt><dd>{{ h.decision_note|linebreaksbr }}</dd>{% endif %}
+          {% if h.charge %}
+          <dt>{% translate "Fine" %}</dt>
+          <dd data-testid="fine">${{ h.fine_amount }}{% if h.amount_reason %} ({% blocktranslate with amt=h.schedule_amount %}schedule ${{ amt }}{% endblocktranslate %}: {{ h.amount_reason }}){% endif %}
+            {% if h.fine_void %} · <span class="badge" data-testid="fine-void">{% translate "Void" %}</span>{% endif %}
+            <span class="muted">· {% translate "No late fees or interest accrue on fines." %}</span>
+          </dd>
+          {% endif %}
+          {% endif %}
+        </dl>
+        {% if h.charge and not h.fine_void and can_fine %}
+        <form method="post" action="{% url 'enforcement:fine_void' h.pk %}" class="row">
+          {% csrf_token %}
+          <label>{% translate "Reason" %} <input type="text" name="reason" maxlength="300" required></label>
+          <button type="submit" class="btn btn-sm" data-testid="void-fine">{% translate "Void fine" %}</button>
+        </form>
+        {% endif %}
+        {% endfor %}
+        <p class="muted">{% translate "Hearing notice period" %}: {% if hearing_rule.value is None %}{% translate "not set" %}{% else %}{% blocktranslate count days=hearing_rule.value %}at least {{ days }} day{% plural %}at least {{ days }} days{% endblocktranslate %}{% endif %} {% rule_badge hearing_rule %}</p>
+        {% if pending %}
+        <details data-testid="hearing-change">
+          <summary>{% translate "Reschedule or cancel the hearing" %}</summary>
+          <form method="post" action="{% url 'enforcement:reschedule' pending.pk %}" class="form-grid" data-testid="reschedule-form">
+            {% csrf_token %}
+            <label>{% translate "New hearing date" %} <input type="date" name="hearing_on" min="{{ earliest_hearing|date:'Y-m-d' }}" value="{{ earliest_hearing|date:'Y-m-d' }}" required></label>
+            <label>{% translate "Time" %} <input type="time" name="hearing_time" value="{{ pending.hearing_time|time:'H:i' }}"></label>
+            <label>{% translate "Place or online link" %} <input type="text" name="place" maxlength="300" value="{{ pending.place }}" required></label>
+            <label><input type="checkbox" name="online"{% if pending.online %} checked{% endif %}> {% translate "Online hearing" %}</label>
+            <div class="form-actions"><button type="submit" class="btn" data-testid="reschedule-hearing">{% translate "Reschedule and send updated notice" %}</button></div>
+          </form>
+          <form method="post" action="{% url 'enforcement:hearing_cancel' pending.pk %}" class="row" data-testid="cancel-form">
+            {% csrf_token %}
+            <label>{% translate "Reason" %} <input type="text" name="reason" maxlength="300"></label>
+            <button type="submit" class="btn btn-sm" data-testid="cancel-hearing">{% translate "Cancel hearing" %}</button>
+          </form>
+        </details>
+        {% endif %}
+        {% if pending and pending.hearing_on > today %}
+        <p class="muted" data-testid="decision-wait">{% blocktranslate with date=pending.hearing_on|date:"M j, Y" %}Record the decision after the hearing on {{ date }}.{% endblocktranslate %}</p>
+        {% elif pending %}
+        <form method="post" action="{% url 'enforcement:decision' pending.pk %}" class="form-grid" data-testid="decision-form">
+          {% csrf_token %}
+          <fieldset>
+            <legend>{% translate "Owner attended" %}</legend>
+            <label><input type="radio" name="attended" value="yes"> {% translate "Yes" %}</label>
+            <label><input type="radio" name="attended" value="no"> {% translate "No" %}</label>
+          </fieldset>
+          <label>{% translate "Owner statement" %} <textarea name="owner_statement" rows="3"></textarea></label>
+          <label>{% translate "Decision" %}
+            <select name="outcome" required>{% for value, label in outcomes %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+          </label>
+          {% if fine_problem %}<p class="callout warn" role="alert" data-testid="fine-blocked">{{ fine_problem }}</p>
+          {% elif not can_fine %}<p class="muted">{% translate "Imposing a fine needs the finance permission (manage finances)." %}</p>
+          {% else %}
+          <label>{% translate "Fine amount" %} <input type="text" name="fine_amount" inputmode="decimal" value="{{ default_fine }}"></label>
+          <p class="muted">{% if repeat %}{% translate "Repeat offense amount from the fine schedule." %}{% else %}{% translate "First offense amount from the fine schedule." %}{% endif %}</p>
+          <label>{% translate "Reason for a different amount" %} <input type="text" name="amount_reason" maxlength="300"></label>
+          {% endif %}
+          <label>{% translate "Decision note" %} <textarea name="note" rows="2"></textarea></label>
+          <div class="form-actions"><button type="submit" class="btn" data-testid="record-decision">{% translate "Record decision" %}</button></div>
+        </form>
+        {% elif v.status == "open" %}
+        {% if hearing_problem %}<p class="muted" data-testid="hearing-blocked">{{ hearing_problem }}</p>
+        {% else %}
+        <form method="post" action="{% url 'enforcement:hearing' v.pk %}" class="form-grid" data-testid="hearing-form">
+          {% csrf_token %}
+          <label>{% translate "Hearing date" %} <input type="date" name="hearing_on" min="{{ earliest_hearing|date:'Y-m-d' }}" value="{{ earliest_hearing|date:'Y-m-d' }}" required></label>
+          <label>{% translate "Time" %} <input type="time" name="hearing_time"></label>
+          <label>{% translate "Place or online link" %} <input type="text" name="place" maxlength="300" required></label>
+          <label><input type="checkbox" name="online"> {% translate "Online hearing" %}</label>
+          <div class="form-actions"><button type="submit" class="btn" data-testid="schedule-hearing">{% translate "Schedule hearing and send notice" %}</button></div>
+        </form>
+        {% endif %}
+        {% endif %}
+      </div>
+    </section>
+    <section class="card" aria-labelledby="resp-h" data-testid="responses">
+      <div class="card-h"><h2 id="resp-h">{% translate "Responses from the unit" %}</h2></div>
+      <ul class="list card-b">
+      {% for r in responses %}<li><b>{{ r.get_kind_display }}</b> <span class="muted">{{ r.person.full_name|default:"" }} · {{ r.created_at|date:"M j, Y" }}</span><div>{{ r.message|linebreaksbr }}</div>
+        {% for p in r.photos.all %}<a href="{% url 'documents:download' p.document.public_id %}">{% blocktranslate with n=forloop.counter %}Photo {{ n }}{% endblocktranslate %}</a> {% endfor %}</li>
+      {% empty %}<li class="muted">{% translate "The owner and tenants see this violation once a notice is sent, and can answer here." %}</li>{% endfor %}
+      </ul>
+    </section>
+    <section class="card" aria-labelledby="p-h">
+      <div class="card-h"><h2 id="p-h">{% translate "Photos" %}</h2></div>
+      <div class="card-b">
+        <ul class="row" data-testid="photos">
+          {% for p in photos %}
+          <li><a href="{% url 'documents:download' p.document.public_id %}"><img src="{% url 'documents:download' p.document.public_id %}" alt="{{ p.document.current_version.file_name }}" width="160"></a></li>
+          {% endfor %}
+        </ul>
+        <form method="post" action="{% url 'enforcement:photo_add' v.pk %}" enctype="multipart/form-data" class="row">
+          {% csrf_token %}
+          <label>{% translate "Add photos" %} <input type="file" name="photos" accept="image/png,image/jpeg" multiple required></label>
+          <button type="submit" class="btn btn-sm">{% translate "Upload" %}</button>
+        </form>
+      </div>
+    </section>
+  </div>
+  <div class="stack">
+    <section class="card" aria-labelledby="s-h">
+      <div class="card-h"><h2 id="s-h">{% translate "Change status" %}</h2></div>
+      <div class="card-b">
+        <form method="post" action="{% url 'enforcement:status' v.pk %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Status" %}
+            <select name="status">{% for value, label in statuses %}<option value="{{ value }}"{% if value == v.status %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Note" %} <input type="text" name="note" maxlength="300"></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Save status" %}</button></div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% load i18n %}
+<tr id="action-{{ i.pk }}">
+  <td class="nowrap">{{ i.due_date|date:"M j, Y"|default:"—" }}</td>
+  <td>{{ i.title }}{% if i.resolution %} <a class="muted" href="{% url 'governance:resolution' i.resolution.pk %}">{{ i.resolution.number }}</a>{% endif %}</td>
+  <td>{{ i.owner }}</td>
+  <td>
+    {% if i.status == "open" %}
+    {% if can_manage or i.owner.user_id == request.user.pk %}
+    <form method="post" action="{% url 'governance:action_status' i.pk %}" class="row">
+      {% csrf_token %}
+      <button type="submit" name="status" value="done" class="btn btn-sm">{% translate "Mark done" %}</button>
+      {% if can_manage %}<button type="submit" name="status" value="cancelled" class="btn btn-sm btn-ghost">{% translate "Cancel" %}</button>{% endif %}
+    </form>
+    {% else %}<span class="badge warn">{{ i.get_status_display }}</span>{% endif %}
+    {% else %}<span class="badge {% if i.status == 'done' %}ok{% endif %}">{{ i.get_status_display }}</span>{% endif %}
+  </td>
+</tr>

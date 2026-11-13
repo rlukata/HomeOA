@@ -1,0 +1,10 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Resident directory" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Resident directory" %}</h1>
+  <p class="muted">{% translate "What owners see under More > Resident directory. Tenants don't see it. Full contact details are under Units > Owners & tenants." %}</p></div></div>
+<div class="stack">
+{% include "registry/_directory.html" %}
+</div>
+{% endblock %}

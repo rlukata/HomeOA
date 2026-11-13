@@ -1,0 +1,56 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Fine schedule" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Fine schedule" %}</h1>
+    <p class="muted">{% translate "Each version records when the board adopted it and when it was furnished to owners. A fine can only be imposed under a schedule furnished on or before the violation date." %}</p>
+  </div>
+</div>
+{% include "enforcement/_subnav.html" %}
+<section class="card" aria-labelledby="v-h">
+  <div class="card-h"><h2 id="v-h">{% translate "Versions" %}</h2></div>
+  {% if schedules %}
+  <div class="table-wrap">
+    <table class="t" data-testid="schedules">
+      <thead><tr>
+        <th scope="col">{% translate "Version" %}</th>
+        <th scope="col">{% translate "Effective" %}</th>
+        <th scope="col">{% translate "Adopted" %}</th>
+        <th scope="col">{% translate "Furnished to owners" %}</th>
+        <th scope="col">{% translate "Resolution" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for s in schedules %}
+        <tr>
+          <td><a href="{% url 'enforcement:schedule' s.pk %}"><strong>v{{ s.version }}</strong></a>{% if s == current %} <span class="badge ok">{% translate "In force" %}</span>{% endif %}</td>
+          <td class="nowrap">{{ s.effective_on|date:"M j, Y" }}</td>
+          <td class="nowrap">{{ s.adopted_on|date:"M j, Y" }}</td>
+          <td class="nowrap">{% if s.furnished_on %}{{ s.furnished_on|date:"M j, Y" }}{% else %}<span class="badge warn">{% translate "Not furnished" %}</span>{% endif %}</td>
+          <td>{{ s.resolution.number|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-b"><p class="muted">{% translate "No fine schedule yet." %}</p></div>
+  {% endif %}
+  <div class="card-b">
+    <h3>{% translate "New version" %}</h3>
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+      <label>{% translate "Adopted on" %} <input type="date" name="adopted_on" required></label>
+      <label>{% translate "Effective date" %} <input type="date" name="effective_on" required></label>
+      <label>{% translate "Furnished to owners on" %} <input type="date" name="furnished_on"></label>
+      <label>{% translate "Resolution" %}
+        <select name="resolution"><option value="">—</option>{% for r in resolutions %}<option value="{{ r.pk }}">{{ r.number }} {{ r.title }}</option>{% endfor %}</select>
+      </label>
+      <label>{% translate "Note" %} <input type="text" name="note" maxlength="300"></label>
+      <label><input type="checkbox" name="copy_lines" checked> {% translate "Copy the fine lines of the version in force on the effective date" %}</label>
+      <div class="form-actions"><button type="submit" class="btn">{% translate "Add version" %}</button></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Violation categories" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Violation categories" %}</h1>
+    <p class="muted">{% translate "Each category cites the rule it enforces, optionally linked to a governing document version." %}</p>
+  </div>
+</div>
+{% include "enforcement/_subnav.html" %}
+<section class="card" aria-labelledby="c-h">
+  <div class="card-h"><h2 id="c-h">{% translate "Categories" %}</h2></div>
+  {% if categories %}
+  <div class="table-wrap">
+    <table class="t" data-testid="categories">
+      <thead><tr>
+        <th scope="col">{% translate "Name" %}</th>
+        <th scope="col">{% translate "Rule citation" %}</th>
+        <th scope="col">{% translate "Governing document" %}</th>
+        <th scope="col">{% translate "Active" %}</th>
+        <th scope="col"><span class="sr-only">{% translate "Edit" %}</span></th>
+      </tr></thead>
+      <tbody>
+        {% for c in categories %}
+        <tr>
+          <td colspan="5">
+            <form method="post" action="{% url 'enforcement:category_edit' c.pk %}" class="row">
+              {% csrf_token %}
+              <label><span class="sr-only">{% translate "Name" %}</span><input type="text" name="name" value="{{ c.name }}" maxlength="120" required></label>
+              <label><span class="sr-only">{% translate "Rule citation" %}</span><input type="text" name="rule_citation" value="{{ c.rule_citation }}" maxlength="300" required></label>
+              <label><span class="sr-only">{% translate "Governing document" %}</span>
+                <select name="governing_version"><option value="">—</option>
+                  {% for gv in governing_versions %}<option value="{{ gv.pk }}"{% if gv.pk == c.governing_version_id %} selected{% endif %}>{{ gv }}</option>{% endfor %}
+                </select>
+              </label>
+              <label><input type="hidden" name="active" value="off"><input type="checkbox" name="active" value="on"{% if c.active %} checked{% endif %}> {% translate "Active" %}</label>
+              <button type="submit" class="btn btn-sm">{% translate "Save" %}</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-b"><p class="muted">{% translate "No categories yet." %}</p></div>
+  {% endif %}
+  <div class="card-b">
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+      <label>{% translate "Name" %} <input type="text" name="name" maxlength="120" required></label>
+      <label>{% translate "Rule citation" %} <input type="text" name="rule_citation" maxlength="300" required placeholder="{% translate 'e.g. Rules §4.2 (Pets)' %}"></label>
+      <label>{% translate "Governing document version" %}
+        <select name="governing_version"><option value="">—</option>
+          {% for gv in governing_versions %}<option value="{{ gv.pk }}">{{ gv }}</option>{% endfor %}
+        </select>
+      </label>
+      <div class="form-actions"><button type="submit" class="btn">{% translate "Add category" %}</button></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

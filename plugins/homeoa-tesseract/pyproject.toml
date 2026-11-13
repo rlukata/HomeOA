@@ -1,0 +1,17 @@
+[project]
+name = "homeoa-tesseract"
+version = "0.1.0"
+description = "HomeOA: read scanned documents and photos with Tesseract OCR on the server"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.14"
+dependencies = ["pypdfium2==5.13.0"]
+
+[project.entry-points."homeoa.plugins"]
+tesseract = "homeoa_tesseract.manifest:manifest"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["homeoa_tesseract"]

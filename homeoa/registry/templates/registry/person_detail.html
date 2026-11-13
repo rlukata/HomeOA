@@ -1,0 +1,65 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{{ person.full_name }}{% endblock %}
+{% block content %}
+<a href="{% url 'registry:people' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Owners & tenants" %}</a>
+<div class="stack">
+  <section class="card card-pad" aria-labelledby="person-h">
+    <div class="between wrap-ok">
+      <div class="row gap-12"><span class="av lg" aria-hidden="true">{{ person.initials }}</span>
+        <div><h1 id="person-h">{{ person.full_name }}</h1>
+          <div class="muted">{{ person.email|default:"" }}{% if person.email and person.phone %} · {% endif %}{{ person.phone|default:"" }}</div></div></div>
+      <a class="btn" href="{% url 'registry:person_edit' person.pk %}">{% translate "Edit" %}</a>
+    </div>
+    <dl class="kv mt">
+      <dt class="muted">{% translate "Mailing address" %}</dt><dd>{% for line in person.address_lines %}{{ line }}<br>{% empty %}—{% endfor %}</dd>
+      {% if person.alt_email %}<dt class="muted">{% translate "Other email" %}</dt><dd>{{ person.alt_email }}</dd>{% endif %}
+      {% if person.alt_phone %}<dt class="muted">{% translate "Other phone" %}</dt><dd>{{ person.alt_phone }}</dd>{% endif %}
+      <dt class="muted">{% translate "Preferred language" %}</dt><dd>{{ person.get_preferred_language_display }}</dd>
+      <dt class="muted">{% translate "Records privacy" %}</dt><dd data-testid="records-privacy">{% if person.phone_unlisted %}{% badge "" _("Unlisted phone") %} {% endif %}{% if person.email_confidential %}{% badge "" _("Email confidential") %} {% endif %}{% if person.acp_participant %}{% badge "warn" _("ACP participant") %}{% endif %}{% if not person.phone_unlisted and not person.email_confidential and not person.acp_participant %}—{% endif %}</dd>
+      <dt class="muted">{% translate "Login" %}</dt><dd>{% if person.user %}{% translate "Linked" %}{% else %}{% translate "None" %}{% endif %}</dd>
+    </dl>
+  </section>
+
+  <section class="card" aria-labelledby="units-h">
+    <div class="card-h"><h2 id="units-h">{% translate "Units" %}</h2></div>
+    <ul class="rows">
+      {% for s in shares %}
+        <li><a class="inline-link" href="{% url 'registry:unit' s.period.unit.number %}">{{ s.period.unit }}</a> <span class="muted">· {% translate "Owner" %} · {{ s.period.start|date:"Y-m-d" }} – {% if s.period.end %}{{ s.period.end|date:"Y-m-d" }}{% else %}{% translate "present" %}{% endif %}</span></li>
+      {% endfor %}
+      {% for o in occupancies %}
+        <li><a class="inline-link" href="{% url 'registry:unit' o.unit.number %}">{{ o.unit }}</a> <span class="muted">· {{ o.get_kind_display }} · {{ o.start|date:"Y-m-d" }} – {% if o.end %}{{ o.end|date:"Y-m-d" }}{% else %}{% translate "present" %}{% endif %}</span></li>
+      {% endfor %}
+      {% if not shares and not occupancies %}<li class="muted">{% translate "Not linked to any unit." %}</li>{% endif %}
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="notices-h">
+    <div class="card-h"><h2 id="notices-h">{% translate "Notice delivery and consent" %}</h2>
+      {% if pref %}{% if pref.delivery == "email" %}{% badge "accent" pref.get_delivery_display %}{% else %}{% badge "" pref.get_delivery_display %}{% endif %}{% endif %}</div>
+    <p class="callout small">{% translate "Email notices need the owner's own consent: given in the resident site, or a signed paper form you upload here. Imported e-delivery flags are not consent." %}</p>
+    <form method="post" action="{% url 'registry:person_notices' person.pk %}" class="form-grid" enctype="multipart/form-data" data-testid="paper-consent">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=notice_form %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Record preference" %}</button></div>
+    </form>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Consent history" %}</caption>
+        <thead><tr><th scope="col">{% translate "Recorded" %}</th><th scope="col">{% translate "Notices by" %}</th><th scope="col">{% translate "Electronic delivery consent" %}</th><th scope="col">{% translate "Source" %}</th><th scope="col">{% translate "Note" %}</th></tr></thead>
+        <tbody>
+        {% for p in preferences %}
+          <tr><td class="nowrap"><time datetime="{{ p.recorded_at|date:'c' }}">{{ p.recorded_at|date:"Y-m-d H:i" }}</time></td>
+            <td>{{ p.get_delivery_display }}</td>
+            <td>{% if p.e_delivery_consent %}{% translate "Yes" %}{% if p.email %} <span class="faint">· {{ p.email }}</span>{% endif %}{% else %}{% translate "No" %}{% endif %}</td>
+            <td>{{ p.get_source_display }}{% if p.evidence_key %} · <a class="inline-link" href="{% url 'registry:person_consent_evidence' person.pk p.pk %}">{% translate "signed form" %}</a>{% endif %}</td>
+            <td>{{ p.note|default:"" }}{% if p.revoke_reason %} <span class="faint">· {{ p.get_revoke_reason_display }}</span>{% endif %}</td></tr>
+        {% empty %}
+          <tr><td colspan="5" class="muted">{% translate "No preference recorded yet." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

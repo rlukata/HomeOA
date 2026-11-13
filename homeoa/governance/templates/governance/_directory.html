@@ -1,0 +1,17 @@
+{% load i18n %}
+<section class="card" aria-labelledby="dir-board-h" data-testid="contact-board">
+  <div class="card-h"><h2 id="dir-board-h">{% translate "The board" %}</h2></div>
+  <ul class="rows card-b">
+  {% for t in board %}<li><strong>{{ t.person.full_name }}</strong> · {{ t.get_office_display }}</li>
+  {% empty %}<li class="muted">{% translate "No board members are listed yet." %}</li>{% endfor %}
+  </ul>
+</section>
+{% for c in committees %}
+<section class="card" aria-labelledby="dir-c{{ c.committee.pk }}-h" data-testid="contact-committee">
+  <div class="card-h"><h2 id="dir-c{{ c.committee.pk }}-h">{{ c.committee.name }}</h2></div>
+  <div class="card-b">
+    {% if c.committee.purpose %}<p class="muted">{{ c.committee.purpose }}</p>{% endif %}
+    <ul class="rows">{% for m in c.members %}<li><strong>{{ m.person.full_name }}</strong>{% if m.is_chair %} · {% translate "Chair" %}{% endif %}</li>{% endfor %}</ul>
+  </div>
+</section>
+{% endfor %}

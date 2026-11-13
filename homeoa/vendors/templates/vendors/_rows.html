@@ -1,0 +1,15 @@
+{% load i18n ui ledger_tags %}<tbody id="vendor-rows">
+{% for v in vendors %}
+  <tr data-testid="vendor-row-{{ v.slug }}">
+    <td><a href="{% url 'vendors:detail' v.slug %}"><b>{{ v.name }}</b></a>{% with c=v.primary_contact %}{% if c %}<div class="faint">{{ c.name }}{% if c.role %} · {{ c.role }}{% endif %}</div>{% endif %}{% endwith %}</td>
+    <td class="muted">{{ v.category|default:"—" }}</td>
+    <td data-testid="vendor-contract-{{ v.slug }}">{% with c=v.contract %}{% if c %}{% with d=c.end_date|date:"M j, Y" %}{% if v.contract_state == "danger" %}{% blocktranslate asvar label %}Ended {{ d }}{% endblocktranslate %}{% badge "danger" label %}{% else %}{% if c.auto_renew %}{% blocktranslate asvar label %}Auto-renews {{ d }}{% endblocktranslate %}{% else %}{% blocktranslate asvar label %}Ends {{ d }}{% endblocktranslate %}{% endif %}{% if v.contract_state == "warn" %}{% badge "warn" label %}{% else %}{{ label }}{% endif %}{% endif %}{% endwith %}{% else %}<span class="faint">—</span>{% endif %}{% endwith %}</td>
+    <td data-testid="vendor-coi-{{ v.slug }}">{% with doc=v.coi %}{% if doc %}{% with e=doc.expiry_date|date:"M j, Y" %}{% if v.coi_state == "danger" %}<span data-testid="vendor-expired-{{ v.slug }}">{% blocktranslate asvar label %}Expired {{ e }}{% endblocktranslate %}{% badge "danger" label %}</span>{% else %}{% blocktranslate asvar label %}Expires {{ e }}{% endblocktranslate %}{% badge v.coi_state label %}{% endif %}{% endwith %}{% else %}<span class="faint">{% translate "None on file" %}</span>{% endif %}{% endwith %}</td>
+    <td class="num" data-testid="vendor-paid-{{ v.slug }}">{{ v.paid_this_year|money }}</td>
+    <td>{% if v.w9_file_key or v.tin %}{% badge "ok" _("On file") %}{% elif v.is_1099_eligible %}{% badge "warn" _("Missing") %}{% else %}<span class="faint">{% translate "Not needed" %}</span>{% endif %}</td>
+    <td>{% if v.is_active %}{% badge "ok" v.get_status_display %}{% else %}{% badge "" v.get_status_display %}{% endif %}{% if v.license_expired %} <span data-testid="vendor-license-expired-{{ v.slug }}">{% badge "danger" _("License expired") %}</span>{% endif %}</td>
+  </tr>
+{% empty %}
+  <tr><td colspan="7" class="muted">{% translate "No vendors match." %}</td></tr>
+{% endfor %}
+</tbody>

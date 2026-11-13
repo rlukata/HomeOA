@@ -1,0 +1,21 @@
+{% extends "ui/base.html" %}
+{% load i18n dashboard_tags %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Home" %}</h1>
+    <div class="muted">{{ today|date:"l, F j" }}{% if show_todos %} · {% blocktranslate count n=todo_count %}{{ n }} thing needs you{% plural %}{{ n }} things need you{% endblocktranslate %}{% endif %}</div>
+  </div>
+  {% if money and can_manage %}
+  <div class="row wrap-ok">
+    <a class="btn" href="{% url 'payments:new' %}">{% translate "Record payment" %}</a>
+  </div>
+  {% endif %}
+</div>
+<div class="g">
+  {% if show_todos %}<div class="span2">{% include "dashboard/_todo_card.html" %}</div>{% endif %}
+  <div class="stack">
+    {% home_cards %}
+  </div>
+</div>
+{% endblock %}

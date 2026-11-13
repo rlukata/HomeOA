@@ -1,0 +1,23 @@
+{% extends "portal/base.html" %}
+{% load i18n ui %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<a href="{% url 'maintenance:my_requests' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Maintenance requests" %}</a>
+<h1 class="h-page">{{ req.title }}</h1>
+<section class="card card-pad">
+  <p data-testid="me-req-status">{% badge req.badge req.get_status_display %}</p>
+  <dl class="kv mt">
+    <dt>{% translate "Unit" %}</dt><dd>{% if req.unit %}{% blocktranslate with n=req.unit.number %}Unit {{ n }}{% endblocktranslate %}{% else %}{% translate "Common area" %}{% endif %}</dd>
+    {% if req.location %}<dt>{% translate "Location" %}</dt><dd>{{ req.location }}</dd>{% endif %}
+    <dt>{% translate "Submitted" %}</dt><dd>{{ req.created_at|date:"Y-m-d" }}</dd>
+    {% if req.description %}<dt>{% translate "Details" %}</dt><dd>{{ req.description|linebreaksbr }}</dd>{% endif %}
+  </dl>
+  {% for p in photos %}
+    {% url 'maintenance:my_photo' req.pk p.pk as photo_url %}
+    <figure class="mt"><img class="attach-preview" src="{{ photo_url }}" alt="{{ p.version.file_name }}"></figure>
+  {% endfor %}
+</section>
+{% include "maintenance/_history.html" with show_actor=False %}
+</div>
+{% endblock %}

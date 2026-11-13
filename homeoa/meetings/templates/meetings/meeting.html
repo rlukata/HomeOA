@@ -1,0 +1,161 @@
+{% extends "ui/base.html" %}
+{% load i18n rule_tags %}
+{% block title %}{{ meeting.display_title }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p><a href="{% url 'meetings:index' %}">{% translate "Meetings" %}</a></p>
+    <h1>{{ meeting.display_title }}</h1>
+    <p class="muted">{{ meeting.date|date:"l, F j, Y" }}{% if meeting.start_time %} · {{ meeting.start_time|time:"g:i A" }}{% endif %}
+      {% if meeting.kind == 'owners_annual' %}· <a href="{% url 'meetings:annual' meeting.pk %}" data-testid="annual-link">{% translate "Annual meeting workflow" %}</a>{% endif %}
+      · <span class="badge {% if meeting.status == 'noticed' or meeting.status == 'held' %}ok{% elif meeting.status == 'cancelled' %}danger{% else %}warn{% endif %}" data-testid="meeting-status">{{ meeting.get_status_display }}</span>{% if emergency %} <span class="badge danger" data-testid="meeting-emergency">{% translate "Emergency" %}</span>{% endif %}</p>
+    {% if emergency %}<p class="muted">{% blocktranslate with reason=meeting.emergency_reason %}Unforeseeable event: {{ reason }}{% endblocktranslate %}</p>{% endif %}
+  </div>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="agenda-h">
+      <div class="card-h"><h2 id="agenda-h">{% translate "Agenda" %}</h2></div>
+      {% if owner_comment %}<div class="card-b"><p data-testid="owner-comment">{{ owner_comment }} <span class="muted small">{% translate "Always first; printed in the notice." %}</span></p></div>{% endif %}
+      {% if agenda %}
+      <div class="card-b">
+        <ol data-testid="agenda">
+          {% for item in agenda %}
+          <li>
+            <strong>{{ item.title }}</strong>
+            {% if item.resolution %} · <a href="{% url 'governance:resolution' item.resolution.pk %}">{% blocktranslate with number=item.resolution.number %}Resolution {{ number }}{% endblocktranslate %}</a>{% endif %}
+            {% if item.notes %}<div class="muted">{{ item.notes|linebreaksbr }}</div>{% endif %}
+            {% if can_manage and meeting.is_open %}
+            <form method="post" action="{% url 'meetings:agenda_move' meeting.pk item.pk %}" class="inline">{% csrf_token %}
+              <button type="submit" name="dir" value="up" class="btn sm" aria-label="{% blocktranslate with title=item.title %}Move {{ title }} up{% endblocktranslate %}">↑</button>
+              <button type="submit" name="dir" value="down" class="btn sm" aria-label="{% blocktranslate with title=item.title %}Move {{ title }} down{% endblocktranslate %}">↓</button>
+            </form>
+            <form method="post" action="{% url 'meetings:agenda_remove' meeting.pk item.pk %}" class="inline">{% csrf_token %}
+              <button type="submit" class="btn sm">{% translate "Remove" %}</button>
+            </form>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+      {% else %}
+      <div class="card-b"><p class="muted">{% translate "No agenda items yet." %}</p></div>
+      {% endif %}
+      {% if can_manage and meeting.is_open %}
+      <div class="card-b">
+        <form method="post" action="{% url 'meetings:agenda_add' meeting.pk %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Agenda item" %} <input type="text" name="title" maxlength="200"></label>
+          <label>{% translate "Resolution (optional)" %}
+            <select name="resolution">
+              <option value="">{% translate "None" %}</option>
+              {% for r in resolutions %}<option value="{{ r.pk }}">{{ r }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>{% translate "Notes" %} <textarea name="notes" rows="2"></textarea></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Add to agenda" %}</button></div>
+        </form>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="notices-h">
+      <div class="card-h"><h2 id="notices-h">{% translate "Notices sent" %}</h2></div>
+      {% if notices %}
+      <div class="table-wrap">
+        <table class="t" data-testid="meeting-notices">
+          <thead><tr>
+            <th scope="col">{% translate "To" %}</th>
+            <th scope="col">{% translate "How" %}</th>
+            <th scope="col">{% translate "Sent" %}</th>
+          </tr></thead>
+          <tbody>
+            {% for n in notices %}
+            <tr>
+              <td>{% if n.unit %}{% blocktranslate with number=n.unit.number %}Unit {{ number }}{% endblocktranslate %}{% else %}{{ n.person }}{% endif %}</td>
+              <td>{{ n.get_channel_display }}{% if n.batch %} · <a class="inline-link" href="{% url 'letters:batch' n.batch.pk %}">{% translate "mail batch" %}</a>{% endif %}</td>
+              <td class="nowrap">{{ n.sent_on|date:"M j, Y" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-b"><p class="muted">{% translate "No notice sent yet." %}</p></div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="records-h">
+      <div class="card-h"><h2 id="records-h">{% translate "Records" %}</h2></div>
+      <div class="card-b stack">
+        <a class="btn" href="{% url 'meetings:attendance' meeting.pk %}" data-testid="attendance-link">{% translate "Attendance and quorum" %}</a>
+        <a class="btn" href="{% url 'meetings:minutes' meeting.pk %}" data-testid="minutes-link">{% translate "Minutes" %}{% if meeting.minutes %} · {{ meeting.minutes.get_status_display }}{% endif %}</a>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="window-h">
+      <div class="card-h"><h2 id="window-h">{% translate "Notice window" %}</h2></div>
+      <div class="card-b" data-testid="notice-window">
+        <p>{% if window.earliest %}{% blocktranslate with start=window.earliest|date:"M j, Y" end=window.latest|date:"M j, Y" %}Send notice between {{ start }} and {{ end }}.{% endblocktranslate %}{% else %}{% blocktranslate with end=window.latest|date:"M j, Y" %}Send notice by {{ end }}.{% endblocktranslate %}{% endif %}</p>
+        <p class="muted">{% if window.max_rule and window.max_rule.value is not None %}{% blocktranslate with min=window.min_rule.value|default:0 max=window.max_rule.value %}At least {{ min }} and at most {{ max }} days before the meeting.{% endblocktranslate %}{% else %}{% blocktranslate with min=window.min_rule.value|default:0 %}At least {{ min }} days before the meeting.{% endblocktranslate %}{% endif %}
+          {% rule_badge window.min_rule %}</p>
+        {% if emergency %}<p class="muted small" data-testid="emergency-note">{% translate "Emergency meeting: shorter notice, sent by email only." %} {{ window.min_rule.note }}</p>{% endif %}
+        {% if window.min_rule.citation %}<p class="muted small">{{ window.min_rule.citation }}</p>{% endif %}
+        {% if window_problem and meeting.status == 'draft' %}<p class="badge warn" role="status">{{ window_problem }}</p>{% endif %}
+        {% if remote_problem and meeting.is_open %}<p class="badge warn" role="status" data-testid="remote-problem">{{ remote_problem }}</p>{% endif %}
+      </div>
+    </section>
+
+    {% if can_manage and meeting.is_open %}
+    <section class="card" aria-labelledby="send-h">
+      <div class="card-h"><h2 id="send-h">{% translate "Send notice" %}</h2></div>
+      <div class="card-b stack">
+        <form method="post" action="{% url 'meetings:send' meeting.pk %}">{% csrf_token %}
+          <input type="hidden" name="mode" value="owners">
+          <button type="submit" class="btn primary" {% if owners_problem or window_problem %}disabled aria-describedby="owners-why"{% endif %}>{% translate "Send to all owners" %}</button>
+          <p class="muted" id="owners-why">{% if owners_problem %}{{ owners_problem }}{% elif emergency %}{% translate "Email to owners who consented to e-notice; no letters for an emergency meeting." %}{% else %}{% translate "Email to owners who consented to e-notice, a letter by mail to everyone else." %}{% endif %}</p>
+        </form>
+        <form method="post" action="{% url 'meetings:send' meeting.pk %}">{% csrf_token %}
+          <input type="hidden" name="mode" value="print">
+          <button type="submit" class="btn" {% if window_problem or print_problem %}disabled{% endif %}>{% translate "Print-only batch" %}</button>
+          <p class="muted">{% if print_problem %}{{ print_problem }}{% else %}{% translate "A letter for every unit to print and mail by hand." %}{% endif %}</p>
+        </form>
+        <form method="post" action="{% url 'meetings:send' meeting.pk %}">{% csrf_token %}
+          <input type="hidden" name="mode" value="board">
+          <button type="submit" class="btn">{% translate "Email the board a copy" %}</button>
+        </form>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="edit-h">
+      <div class="card-h"><h2 id="edit-h">{% translate "Details" %}</h2></div>
+      <div class="card-b">
+        <form method="post" action="{% url 'meetings:edit' meeting.pk %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Title" %} <input type="text" name="title" maxlength="200" value="{{ meeting.title }}"></label>
+          <label>{% translate "Date" %} <input type="date" name="date" required value="{{ meeting.date|date:'Y-m-d' }}"></label>
+          <label>{% translate "Start time" %} <input type="time" name="start_time" value="{{ meeting.start_time|time:'H:i' }}"></label>
+          <label>{% translate "Location" %} <input type="text" name="location" maxlength="300" value="{{ meeting.location }}"></label>
+          <label>{% translate "Video link" %} <input type="url" name="video_url" maxlength="500" value="{{ meeting.video_url }}"></label>
+          <label>{% translate "Join by phone (number and code)" %} <input type="text" name="dial_in" maxlength="200" value="{{ meeting.dial_in }}"></label>
+          <label>{% translate "Description" %} <textarea name="description" rows="3">{{ meeting.description }}</textarea></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Save" %}</button></div>
+        </form>
+        {% if meeting.kind == 'board' and meeting.status == 'draft' %}
+        <form method="post" action="{% url 'meetings:emergency' meeting.pk %}" class="form-grid" data-testid="emergency-form">
+          {% csrf_token %}
+          <label><input type="checkbox" name="on" value="1" {% if meeting.emergency %}checked{% endif %}> {% translate "Emergency meeting for an unforeseeable event" %}</label>
+          <label>{% translate "Reason (required for an emergency meeting)" %} <textarea name="reason" rows="2">{{ meeting.emergency_reason }}</textarea></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Save emergency setting" %}</button></div>
+        </form>
+        {% endif %}
+        <form method="post" action="{% url 'meetings:status' meeting.pk %}" class="inline">{% csrf_token %}
+          <button type="submit" name="status" value="held" class="btn">{% translate "Mark held" %}</button>
+          <button type="submit" name="status" value="cancelled" class="btn">{% translate "Cancel meeting" %}</button>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

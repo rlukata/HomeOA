@@ -1,0 +1,110 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Bank transaction" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{{ txn.description|default:_("Bank transaction") }}</h1>
+  <p class="muted">{{ txn.date|date:"M j, Y" }} · {{ txn.bank_account.name }} · <strong>{{ txn.amount|money }}</strong>{% if txn.payee %} · {{ txn.payee }}{% endif %}</p>
+  <p>{% if txn.status == "unmatched" %}{% badge "warn" txn.get_status_display %}{% else %}{% badge "ok" txn.get_status_display %}{% endif %}{% if txn.is_locked %} {% translate "Reconciled" as rec %}{% badge "" rec %}{% endif %}</p>
+</div></div>
+
+{% if matches %}
+<section class="card" aria-labelledby="m-h">
+  <div class="card-h"><h2 id="m-h">{% translate "Accounted for as" %}</h2></div>
+  <div class="table-wrap"><table class="t">
+    <caption class="sr">{% translate "Matches" %}</caption>
+    <thead><tr><th scope="col">{% translate "Kind" %}</th><th scope="col">{% translate "To" %}</th><th scope="col" class="num">{% translate "Amount" %}</th></tr></thead>
+    <tbody>{% for m in matches %}<tr><td>{{ m.get_kind_display }}</td><td>{% if m.bill %}<a href="{% url 'ap:detail' m.bill.pk %}" data-testid="matched-bill">{{ m.bill }}</a>{% elif m.unit %}{{ m.unit }}{% elif m.account %}{{ m.account.name }}{% else %}—{% endif %}</td><td class="num">{{ m.amount|money }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if unit_balances %}
+  <div class="card-b">
+    {% for unit, bal in unit_balances %}<p>{% blocktranslate %}{{ unit }} balance{% endblocktranslate %}: <strong data-testid="unit-balance">{{ bal|money }}</strong></p>{% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if txn.status != "unmatched" %}
+<section class="card card-pad" aria-labelledby="undo-h">
+  <h2 id="undo-h">{% translate "Undo" %}</h2>
+  <form method="post" action="{% url 'banking:undo' txn.pk %}" class="form-actions">
+    {% csrf_token %}
+    {% if txn.is_locked %}
+    <p class="muted" id="lock-help">{% translate "This transaction is in a completed reconciliation, so it can't be changed." %}</p>
+    <button type="submit" class="btn btn-danger" disabled aria-describedby="lock-help">{% translate "Undo match" %}</button>
+    {% elif can_manage %}
+    <button type="submit" class="btn btn-danger">{% translate "Undo match" %}</button>
+    {% endif %}
+  </form>
+</section>
+{% endif %}
+
+{% if txn.status == "unmatched" and can_manage %}
+<section class="card" aria-labelledby="s-h">
+  <div class="card-h"><h2 id="s-h">{% translate "Suggestions" %}</h2></div>
+  <ul class="list" role="list">
+    {% for s in suggestions %}
+    <li class="att" data-testid="suggestion">
+      <div class="att-main">
+        {% if s.kind == "unit" %}{% blocktranslate with unit=s.unit amount=s.amount|money %}{{ amount }} → {{ unit }}{% endblocktranslate %}
+        {% elif s.kind == "link" %}{% blocktranslate with d=s.receipt.received_date|date:"M j" %}Payment already recorded on {{ d }}{% endblocktranslate %}{% if s.unit %} · {{ s.unit }}{% endif %}
+        {% elif s.kind == "interfund" %}{% blocktranslate with a=s.partner.bank_account.name d=s.partner.date|date:"M j" %}Reserve transfer with {{ a }} ({{ d }}){% endblocktranslate %}
+        {% elif s.kind == "clearing" %}{% blocktranslate with a=s.account.name %}Settle {{ a }}{% endblocktranslate %}
+        {% elif s.kind == "bill_link" %}<span data-testid="bill-link-suggestion">{% blocktranslate with b=s.extra.bill d=s.extra.bill.paid_on|date:"M j" %}Payment of bill {{ b }} already recorded on {{ d }}{% endblocktranslate %}</span>
+        {% elif s.kind == "bill_pending" %}<span data-testid="bill-pending-hint">{{ s.reason }}</span>
+        {% elif s.kind == "bill" %}<span data-testid="bill-suggestion">{% blocktranslate with b=s.extra.bill amount=s.amount|money %}Pays bill {{ b }} ({{ amount }}){% endblocktranslate %}</span>{% if s.extra.split %}<span class="muted" data-testid="bill-fund-split">: {% for f, a in s.extra.split %}{% blocktranslate with f=f.name a=a|money %}{{ f }} {{ a }}{% endblocktranslate %}{% if not forloop.last %}, {% endif %}{% endfor %}. {% translate "Other funds' shares are owed to the paying fund until transferred." %}</span>{% endif %}
+        {% else %}{% blocktranslate with a=s.account.name %}Categorize as {{ a }}{% endblocktranslate %}{% endif %}
+        {% if s.kind != "bill_pending" %}<span class="muted">({{ s.reason }})</span>{% endif %}
+        {% if s.extra.warning %}<p class="callout warn" data-testid="categorize-warning">{{ s.extra.warning }}</p>{% endif %}
+      </div>
+      {% if s.kind == "bill_pending" %}
+      {% if s.extra.bill %}<a class="btn btn-sm" href="{% url 'ap:detail' s.extra.bill.pk %}">{% translate "Open bill" %}</a>{% endif %}
+      {% elif s.kind == "categorize" %}
+      <a class="btn btn-sm" href="{% url 'banking:categorize' txn.pk %}">{% translate "Categorize" %}</a>
+      {% else %}
+      <form method="post" action="{% url 'banking:confirm' txn.pk %}">
+        {% csrf_token %}
+        {% if s.kind == "unit" %}<input type="hidden" name="unit" value="{{ s.unit.pk }}"><input type="hidden" name="reason" value="{{ s.reason }}">
+        {% elif s.kind == "link" %}<input type="hidden" name="receipt" value="{{ s.receipt.pk }}">
+        {% elif s.kind == "clearing" %}<input type="hidden" name="clearing" value="{{ s.extra.key }}">
+        {% elif s.kind == "bill" or s.kind == "bill_link" %}<input type="hidden" name="bill" value="{{ s.extra.bill.pk }}">
+        {% else %}<input type="hidden" name="partner" value="{{ s.partner.pk }}">{% endif %}
+        <button type="submit" class="btn btn-sm btn-primary">{% translate "Confirm" %}</button>
+      </form>
+      {% endif %}
+    </li>
+    {% empty %}
+    <li class="att muted">{% translate "No suggestions. Match to a unit, split, or categorize below." %}</li>
+    {% endfor %}
+  </ul>
+</section>
+
+{% if txn.amount > 0 %}
+<section class="card card-pad" aria-labelledby="split-h">
+  <h2 id="split-h">{% translate "Match to units" %}</h2>
+  <p class="muted">{% translate "One unit, or split the deposit across several. The amounts must add up to the deposit." %}</p>
+  <form method="post" action="{% url 'banking:split' txn.pk %}" class="form-stack">
+    {% csrf_token %}
+    {% for i in split_rows %}
+    <div class="form-row">
+      <label for="split-unit-{{ i }}">{% translate "Unit" %}</label>
+      <select class="input" id="split-unit-{{ i }}" name="unit">
+        <option value="">—</option>
+        {% for u in units %}<option value="{{ u.pk }}">{{ u }}</option>{% endfor %}
+      </select>
+      <label for="split-amt-{{ i }}">{% translate "Amount" %}</label>
+      <input class="input" id="split-amt-{{ i }}" name="amount" inputmode="decimal"{% if forloop.first %} value="{{ txn.amount }}"{% endif %}>
+    </div>
+    {% endfor %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Match" %}</button></div>
+  </form>
+</section>
+{% endif %}
+
+<section class="card card-pad" aria-labelledby="cat-h">
+  <h2 id="cat-h">{% translate "Not from an owner?" %}</h2>
+  <a class="btn" href="{% url 'banking:categorize' txn.pk %}">{% translate "Categorize" %}</a>
+</section>
+{% endif %}
+<p><a href="{% url 'banking:index' %}">{% translate "Back to Bank & deposits" %}</a></p>
+{% endblock %}

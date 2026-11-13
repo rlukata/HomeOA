@@ -1,0 +1,33 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Resale certificates" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Resale certificates" %}</h1>
+  <p class="muted">{% translate "Resale certificates for units being sold, and statements of unpaid assessments for owners and lenders. Owners ask under More in their portal; log requests from agents, escrow or lenders here. Each open request is a to-do on Home until its due date." %}</p></div></div>
+<div class="stack">
+  <section class="card" aria-labelledby="rr-h" data-testid="resale-requests">
+    <div class="card-h"><h2 id="rr-h">{% translate "Requests" %}</h2></div>
+    <div class="table-wrap"><table class="t">
+      <caption class="sr">{% translate "Resale certificate requests" %}</caption>
+      <thead><tr><th scope="col">{% translate "Unit" %}</th><th scope="col">{% translate "Document" %}</th><th scope="col">{% translate "Requested by" %}</th><th scope="col">{% translate "Received" %}</th><th scope="col">{% translate "Due" %}</th><th scope="col">{% translate "Status" %}</th></tr></thead>
+      <tbody>
+      {% for r in requests %}<tr>
+        <td><a href="{% url 'resale:detail' r.pk %}">{{ r.unit }}</a></td>
+        <td>{{ r.get_kind_display }}</td>
+        <td>{% if r.seller %}{{ r.seller.full_name }}{% else %}{{ r.requester_name }}{% endif %}<div class="small muted">{{ r.send_to }}</div></td>
+        <td class="nowrap">{{ r.received_on|date:"Y-m-d" }}</td>
+        <td class="nowrap">{{ r.due_on|date:"Y-m-d"|default:"—" }}</td>
+        <td>{% if r.status == "issued" %}{% badge "ok" r.get_status_display %}{% elif r.status == "open" %}{% badge "warn" r.get_status_display %}{% else %}{% badge "" r.get_status_display %}{% endif %}</td>
+      </tr>{% empty %}<tr><td colspan="6" class="muted">{% translate "No requests yet." %}</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+  <section class="card" aria-labelledby="rl-h">
+    <div class="card-h"><h2 id="rl-h">{% translate "Log a request" %}</h2></div>
+    <form method="post" class="card-b card-pad-t form-grid" data-testid="resale-log-form">{% csrf_token %}
+      {% include "ui/components/form.html" with form=form %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Log request" %}</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

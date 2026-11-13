@@ -1,0 +1,2 @@
+{% load i18n %}<span id="tin-value" data-testid="vendor-tin">{% if clear %}<span class="num">{{ clear }}</span>{% else %}<span class="num">{{ vendor.tin_masked }}</span>{% if can_reveal %}
+  <button type="button" class="btn btn-sm btn-ghost" hx-post="{% url 'vendors:reveal_tin' vendor.slug %}" hx-target="#tin-value" hx-swap="outerHTML" data-testid="reveal-tin">{% translate "Reveal" %}</button>{% endif %}{% endif %}</span>

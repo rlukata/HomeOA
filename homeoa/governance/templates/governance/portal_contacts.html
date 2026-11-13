@@ -1,0 +1,11 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page stack">
+<h1 class="h-page">{% translate "Board & committees" %}</h1>
+<p class="muted">{% translate "Who runs the association, and how to reach them." %}</p>
+{% include "governance/_directory.html" %}
+{% include "governance/_contact_form.html" %}
+</div>
+{% endblock %}

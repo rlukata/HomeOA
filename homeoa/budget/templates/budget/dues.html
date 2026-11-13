@@ -1,0 +1,53 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags ui %}
+{% block title %}{% translate "Dues from budget" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Create dues schedule from budget" %}</h1>
+  <p class="muted">{% translate "Each unit pays the annual assessment times its allocated interest, divided by 12 and rounded to the cent, every month." %}</p>
+</div></div>
+<section class="card card-pad">
+  <dl class="kv">
+    <dt>{% translate "Annual assessment (operating)" %}</dt><dd data-testid="dues-annual">{{ plan.schedule.annual_amount|money }}</dd>
+    <dt>{% translate "Reserve transfer per year" %}</dt><dd>{{ plan.schedule.reserve_annual_amount|money }}</dd>
+    <dt>{% translate "Insurance transfer per year" %}</dt><dd>{{ plan.schedule.insurance_annual_amount|money }}</dd>
+    <dt>{% translate "Effective" %}</dt><dd data-testid="dues-effective">{% blocktranslate with start=plan.schedule.effective_start|date:"F Y" end=plan.schedule.effective_end|date:"M j, Y" %}from {{ start }} to {{ end }}{% endblocktranslate %}</dd>
+  </dl>
+</section>
+<section class="card" aria-labelledby="units-h">
+  <div class="card-h"><h2 id="units-h">{% translate "Monthly dues per unit" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Monthly dues per unit" %}</caption>
+      <thead><tr><th scope="col">{% translate "Unit" %}</th><th scope="col" class="num">{% translate "Allocated interest" %}</th><th scope="col" class="num">{% translate "Monthly" %}</th></tr></thead>
+      <tbody>
+        {% for unit, amount in plan.unit_amounts %}
+        <tr data-testid="dues-unit-{{ unit.number }}"><td>{{ unit.number }}</td><td class="num">{{ unit.allocated_interest }}%</td><td class="num">{{ amount|money }}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><th scope="row" colspan="2">{% translate "Total per month" %}</th><td class="num" data-testid="dues-monthly-total">{{ plan.monthly_total|money }}</td></tr>
+        <tr><th scope="row" colspan="2">{% translate "Total per year" %}</th><td class="num">{{ plan.yearly_total|money }}</td></tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+<section class="card card-pad">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% if budget.ratification != "ratified" %}<p class="callout warn">{% translate "Owners have not ratified this budget yet. Dues can be set from it once the ratification vote is recorded." %}</p>{% endif %}
+    {% form_errors form %}
+    {% field form.change_resolution %}
+    {% if plan.conflicts %}
+    <p class="callout warn">{% translate "These schedules already cover this year. They stay as they are unless you confirm; confirming ends them before the new schedule starts." %}
+    {% blocktranslate with start=plan.schedule.effective_start|date:"F Y" %}Months already billed are kept; the new schedule bills from {{ start }}.{% endblocktranslate %}</p>
+    <ul>{% for s in plan.conflicts %}<li>{{ s.name }}</li>{% endfor %}</ul>
+    <label><input type="checkbox" name="replace" value="1" data-testid="dues-replace"> {% translate "Replace the existing schedule" %}</label>
+    {% endif %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" data-testid="dues-create">{% translate "Create schedule" %}</button>
+      <a class="btn btn-ghost" href="{% url 'budget:detail' budget.pk %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

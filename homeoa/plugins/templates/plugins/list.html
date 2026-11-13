@@ -1,0 +1,43 @@
+{% extends "ui/base.html" %}
+{% load i18n provider_tags %}
+{% block title %}{% translate "Plugins" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Plugins" %}</h1>
+    <p class="muted">{% translate "Optional integrations installed on this server. Turn each one on for the association and configure it here." %}</p>
+  </div>
+</div>
+<section class="card">
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Installed plugins" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Plugin" %}</th>
+          <th scope="col">{% translate "Version" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+          <th scope="col"><span class="sr">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><strong>{{ row.manifest.name }}</strong>{% if row.manifest.description %}<div class="muted">{{ row.manifest.description }}</div>{% endif %}</td>
+          <td>{{ row.manifest.version }}</td>
+          <td>{% if row.installation.enabled %}<span class="badge ok">{% translate "On" %}</span>{% else %}<span class="badge">{% translate "Off" %}</span>{% endif %}</td>
+          <td><a class="btn btn-sm" href="{% url 'plugins:detail' row.manifest.id %}">{% translate "Configure" %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-b card-pad-t">
+    <p class="muted">{% translate "No plugins are installed. HomeOA works fully without them." %}</p>
+  </div>
+  {% endif %}
+</section>
+{% provider_choices %}
+{% endblock %}

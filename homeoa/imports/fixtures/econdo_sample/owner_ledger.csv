@@ -1,0 +1,64 @@
+Unit,Date,Type,Description,Charge,Payment,Balance,Reference
+1,08/01/2026,Charge,Monthly dues · August,335.40,,335.40,
+1,08/05/2026,Payment,Payment,,335.40,0.00,0108
+1,09/01/2026,Charge,Monthly dues · September,335.40,,335.40,
+1,09/05/2026,Payment,Payment,,335.40,0.00,0109
+1,10/01/2026,Charge,Monthly dues · October,335.40,,335.40,
+1,10/05/2026,Payment,Payment,,335.40,0.00,0110
+2,08/01/2026,Charge,Monthly dues · August,377.52,,377.52,
+2,08/05/2026,Payment,Payment,,377.52,0.00,0208
+2,09/01/2026,Charge,Monthly dues · September,377.52,,377.52,
+2,09/05/2026,Payment,Payment,,377.52,0.00,0209
+2,10/01/2026,Charge,Monthly dues · October,377.52,,377.52,
+2,10/05/2026,Payment,Payment,,377.52,0.00,0210
+3,08/01/2026,Charge,Monthly dues · August,335.40,,335.40,
+3,08/05/2026,Payment,Payment,,335.40,0.00,0308
+3,09/01/2026,Charge,Monthly dues · September,335.40,,335.40,
+3,09/05/2026,Payment,Payment,,335.40,0.00,0309
+3,10/01/2026,Charge,Monthly dues · October,335.40,,335.40,
+4,08/01/2026,Charge,Monthly dues · August,377.52,,377.52,
+4,08/05/2026,Payment,Payment,,377.52,0.00,0408
+4,09/01/2026,Charge,Monthly dues · September,377.52,,377.52,
+4,09/05/2026,Payment,Payment,,377.52,0.00,0409
+4,10/01/2026,Charge,Monthly dues · October,377.52,,377.52,
+4,10/05/2026,Payment,Payment,,377.52,0.00,0410
+5,08/01/2026,Charge,Monthly dues · August,335.40,,335.40,
+5,08/05/2026,Payment,Payment,,335.40,0.00,0508
+5,09/01/2026,Charge,Monthly dues · September,335.40,,335.40,
+5,09/05/2026,Payment,Payment,,335.40,0.00,0509
+5,10/01/2026,Charge,Monthly dues · October,335.40,,335.40,
+5,10/05/2026,Payment,Payment,,335.40,0.00,0510
+6,08/01/2026,Charge,Monthly dues · August,377.52,,377.52,
+6,08/05/2026,Payment,Payment,,377.52,0.00,0608
+6,09/01/2026,Charge,Monthly dues · September,377.52,,377.52,
+6,09/05/2026,Payment,Payment,,377.52,0.00,0609
+6,10/01/2026,Charge,Monthly dues · October,377.52,,377.52,
+6,10/05/2026,Payment,Payment,,377.52,0.00,0610
+7,08/01/2026,Charge,Monthly dues · August,377.52,,377.52,
+7,08/05/2026,Payment,Payment,,377.52,0.00,0708
+7,09/01/2026,Charge,Monthly dues · September,377.52,,377.52,
+7,09/11/2026,Late Fee,Late fee,25.00,,402.52,
+7,10/01/2026,Charge,Monthly dues · October,377.52,,780.04,
+8,08/01/2026,Charge,Monthly dues · August,335.40,,335.40,
+8,08/05/2026,Payment,Payment,,335.40,0.00,0808
+8,09/01/2026,Charge,Monthly dues · September,335.40,,335.40,
+8,09/05/2026,Payment,Payment,,335.40,0.00,0809
+8,10/01/2026,Charge,Monthly dues · October,335.40,,335.40,
+8,10/05/2026,Payment,Payment,,385.40,(50.00),0810
+9,08/01/2026,Charge,Monthly dues · August,335.40,,335.40,
+9,08/05/2026,Payment,Payment,,335.40,0.00,0908
+9,09/01/2026,Charge,Monthly dues · September,335.40,,335.40,
+9,09/05/2026,Payment,Payment,,335.40,0.00,0909
+9,10/01/2026,Charge,Monthly dues · October,335.40,,335.40,
+9,10/05/2026,Payment,Payment,,335.40,0.00,0910
+10,08/01/2026,Charge,Monthly dues · August,377.52,,377.52,
+10,08/05/2026,Payment,Payment,,377.52,0.00,1008
+10,09/01/2026,Charge,Monthly dues · September,377.52,,377.52,
+10,09/05/2026,Payment,Payment,,377.52,0.00,1009
+10,10/01/2026,Charge,Monthly dues · October,377.52,,377.52,
+10,10/05/2026,Payment,Payment,,377.52,0.00,1010
+11,08/01/2026,Charge,Monthly dues · August,335.40,,335.40,
+11,08/05/2026,Payment,Payment,,335.40,0.00,1108
+11,09/01/2026,Charge,Monthly dues · September,335.40,,335.40,
+11,09/05/2026,Payment,Payment,,335.40,0.00,1109
+11,10/01/2026,Charge,Monthly dues · October,335.40,,335.40,

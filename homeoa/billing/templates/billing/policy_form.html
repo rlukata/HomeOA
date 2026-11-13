@@ -1,0 +1,25 @@
+{% extends "ui/base.html" %}
+{% load i18n rule_tags %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{{ title }}</h1>
+  <p class="muted">{% translate "A late fee is the flat fee plus a percent of the unpaid amount, charged once per charge after the grace period, then limited to the rule pack's cap." %}</p>
+</div></div>
+<section class="card card-pad" aria-labelledby="rules-h">
+  <h2 id="rules-h">{% translate "Rule pack limits" %}</h2>
+  <ul>
+    <li>{{ cap.label }}: <strong>{{ cap|rule_display }}</strong> {% rule_badge cap %}{% if cap.citation %} <span class="muted">{{ cap.citation }}</span>{% endif %}</li>
+    <li>{{ rate.label }}: <strong>{{ rate|rule_display }}</strong> {% rule_badge rate %}{% if rate.citation %} <span class="muted">{{ rate.citation }}</span>{% endif %}</li>
+  </ul>
+</section>
+<section class="card card-pad">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+      <a class="btn btn-ghost" href="{% url 'billing:late_fees' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

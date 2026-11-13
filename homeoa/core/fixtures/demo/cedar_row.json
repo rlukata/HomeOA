@@ -1,0 +1,272 @@
+{
+  "_source": "A 9-unit condominium (units A-I, unequal allocated interests) with fictional names and a 2026 budget. Amounts are strings parsed as Decimal.",
+  "association": {
+    "name": "Cedar Row Condominium",
+    "short_name": "CR",
+    "timezone": "America/Los_Angeles",
+    "fiscal_year_start_month": 1
+  },
+  "users": [
+    {
+      "email": "treasurer@cedarrow.example",
+      "role": "board",
+      "title": "treasurer",
+      "owner_of": "B"
+    },
+    {
+      "email": "treasurer@cedarrow.example",
+      "role": "sys_admin",
+      "title": ""
+    },
+    {
+      "email": "secretary@cedarrow.example",
+      "role": "board",
+      "title": "secretary",
+      "owner_of": "D"
+    },
+    {
+      "email": "maintenance@cedarrow.example",
+      "role": "maintenance_committee",
+      "title": "",
+      "owner_of": "H"
+    }
+  ],
+  "units": [
+    {
+      "number": "A",
+      "building": "",
+      "owner": "Maya Nguyen",
+      "share": "11.5556",
+      "owner_email": "ownera@cedarrow.example",
+      "e_delivery": true
+    },
+    {
+      "number": "B",
+      "building": "",
+      "owner": "James Okafor",
+      "share": "11.5556"
+    },
+    {
+      "number": "C",
+      "building": "",
+      "owner": "Priya Raman",
+      "share": "11.5556",
+      "owner_email": "ownerc@cedarrow.example"
+    },
+    {
+      "number": "D",
+      "building": "",
+      "owner": "Daniel Kim",
+      "share": "10.6667"
+    },
+    {
+      "number": "E",
+      "building": "",
+      "owner": "Sofia Herrera",
+      "share": "11.5556",
+      "tenant": "Chris Doyle",
+      "tenant_email": "chris.doyle@cedarrow.example"
+    },
+    {
+      "number": "F",
+      "building": "",
+      "owner": "Tom & Lisa Becker",
+      "share": "11.1111",
+      "tenant": "Sam Rivera"
+    },
+    {
+      "number": "G",
+      "building": "",
+      "owner": "Abdi Warsame",
+      "share": "10.2221",
+      "owner_email": "owner7@cedarrow.example",
+      "e_delivery": true
+    },
+    {
+      "number": "H",
+      "building": "",
+      "owner": "Elena Petrova",
+      "share": "10.2221",
+      "tenant": "Jordan Ellis"
+    },
+    {
+      "number": "I",
+      "building": "",
+      "owner": "Rafael Ortiz",
+      "contact_email": "president@cedarrow.example",
+      "share": "11.5556"
+    }
+  ],
+  "ownership_start": "2020-01-01",
+  "tenancy_start": "2025-07-01",
+  "schedule": {
+    "name": "Regular dues",
+    "annual_amount": "41188.49",
+    "reserve_annual_amount": "7550.00",
+    "insurance_annual_amount": "10717.00",
+    "due_day": 10,
+    "effective_start": "2026-01-01"
+  },
+  "posted_periods": [
+    "2026-08-01",
+    "2026-09-01"
+  ],
+  "opening_date": "2026-07-31",
+  "cash_as_of": "2026-09-30",
+  "funds": {
+    "operating": "14382.17",
+    "reserve": "41950.00",
+    "insurance": "8930.00"
+  },
+  "payments": [
+    {
+      "date": "2026-08-04",
+      "period": "2026-08-01",
+      "except": [],
+      "method": "zelle",
+      "reference": "AUG-DUES"
+    },
+    {
+      "date": "2026-09-04",
+      "period": "2026-09-01",
+      "except": [
+        "G"
+      ],
+      "method": "zelle",
+      "reference": "SEP-DUES"
+    }
+  ],
+  "credits": [
+    {
+      "date": "2026-09-04",
+      "unit": "H",
+      "amount": "50.00"
+    }
+  ],
+  "bank_accounts": [
+    {
+      "name": "Operating checking",
+      "institution": "First Tech Federal Credit Union",
+      "last4": "4321",
+      "gl": "1000",
+      "fund": "operating"
+    },
+    {
+      "name": "Reserve savings",
+      "institution": "First Tech Federal Credit Union",
+      "last4": "8765",
+      "gl": "1010",
+      "fund": "reserve"
+    },
+    {
+      "name": "Insurance savings",
+      "institution": "First Tech Federal Credit Union",
+      "last4": "2468",
+      "gl": "1020",
+      "fund": "insurance"
+    }
+  ],
+  "budget_2026": {
+    "_note": "The 2026 budget, kept for the M3 budget module (not posted).",
+    "income": [
+      [
+        "Homeowner Assessment",
+        "41188.49"
+      ],
+      [
+        "Transfer to Reserves",
+        "-7550.00"
+      ],
+      [
+        "Transfer to Insurance Reserves",
+        "-10717.00"
+      ]
+    ],
+    "operating_expense": [
+      [
+        "General Repair & Maint.",
+        "4000.00"
+      ],
+      [
+        "Landscape – Other",
+        "500.00"
+      ],
+      [
+        "Pest Control",
+        "1775.00"
+      ],
+      [
+        "Miscellaneous Expenses",
+        "250.00"
+      ],
+      [
+        "Water",
+        "2083.00"
+      ],
+      [
+        "Storm / Drainage",
+        "1600.00"
+      ],
+      [
+        "Garbage",
+        "3100.00"
+      ],
+      [
+        "Reserve Study Update",
+        "0.00"
+      ],
+      [
+        "Office Expenses",
+        "2000.00"
+      ],
+      [
+        "Management Fee",
+        "7341.55"
+      ],
+      [
+        "Legal Expense",
+        "0.00"
+      ],
+      [
+        "Audit & Tax Preparation Expense",
+        "250.00"
+      ],
+      [
+        "Licenses & Permits",
+        "22.11"
+      ]
+    ],
+    "other_income": [
+      [
+        "Major Maintenance Assess (reserve)",
+        "7549.99"
+      ],
+      [
+        "Insurance Assessments",
+        "10717.00"
+      ],
+      [
+        "Interest Income – Reserve",
+        "0.00"
+      ],
+      [
+        "Special Assessment Income",
+        "0.00"
+      ]
+    ],
+    "other_expense": [
+      [
+        "Major Maintenance Expense",
+        "0.00"
+      ],
+      [
+        "Insurance Expense",
+        "10717.00"
+      ],
+      [
+        "Special Assessment Admin Expense",
+        "0.00"
+      ]
+    ]
+  }
+}

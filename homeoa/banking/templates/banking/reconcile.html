@@ -1,0 +1,45 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Reconcile" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Reconcile" %}</h1>
+  <p class="muted">{% translate "Compare a bank statement with the transactions matched and categorized here. A finished reconciliation locks its transactions." %}</p>
+</div></div>
+{% if can_manage %}
+<section class="card card-pad" aria-labelledby="start-h">
+  <h2 id="start-h">{% translate "Start a reconciliation" %}</h2>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Start" %}</button></div>
+  </form>
+</section>
+{% endif %}
+<section class="card" aria-labelledby="hist-h">
+  <div class="card-h"><h2 id="hist-h">{% translate "Reconciliations" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Reconciliations" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Account" %}</th>
+        <th scope="col">{% translate "Statement date" %}</th>
+        <th scope="col" class="num">{% translate "Ending balance" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for r in recs %}
+        <tr>
+          <td><a href="{% url 'banking:reconciliation' r.pk %}">{{ r.bank_account.name }}</a></td>
+          <td class="nowrap">{{ r.statement_date|date:"M j, Y" }}</td>
+          <td class="num">{{ r.ending_balance|money }}</td>
+          <td>{% if r.is_complete %}{% blocktranslate with d=r.completed_at|date:"M j, Y" %}Reconciled {{ d }}{% endblocktranslate %}{% else %}{% translate "Draft" %}{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty-row">{% translate "No reconciliations yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

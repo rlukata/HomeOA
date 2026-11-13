@@ -1,0 +1,33 @@
+{% load i18n %}<section class="card card-pad" id="bill-approval" aria-labelledby="approval-h" data-testid="bill-approval">
+  {% if request.htmx %}{% include "ui/components/messages.html" with oob=True %}{% endif %}
+  <h2 id="approval-h">{% translate "Approval" %}</h2>
+  {% if bill.status == "pending" %}
+    <p data-testid="approval-progress"><b>{% blocktranslate with done=approvals_done required=approvals_required %}{{ done }} of {{ required }} approvals{% endblocktranslate %}</b></p>
+    {% if waiting_on %}<p class="muted">{% translate "Waiting on:" %} {% for u in waiting_on %}{{ u.full_name|default:u.email }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+    {% if can_approve %}
+    <div class="row wrap-ok mt">
+      <form method="post" action="{% url 'ap:approve' bill.pk %}" hx-post="{% url 'ap:approve' bill.pk %}" hx-target="#bill-approval" hx-swap="outerHTML">
+        {% csrf_token %}<button type="submit" class="btn btn-primary" data-testid="bill-approve">{% translate "Approve" %}</button>
+      </form>
+    </div>
+    <form method="post" action="{% url 'ap:reject' bill.pk %}" hx-post="{% url 'ap:reject' bill.pk %}" hx-target="#bill-approval" hx-swap="outerHTML" class="form-grid mt">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=reject_form %}
+      <div class="form-actions"><button type="submit" class="btn btn-danger" data-testid="bill-reject">{% translate "Reject" %}</button></div>
+    </form>
+    {% endif %}
+  {% elif bill.status == "approved" %}
+    <p data-testid="approval-progress"><b>{% translate "Approved · pay at bank" %}</b></p>
+  {% elif bill.status == "paid" %}
+    <p data-testid="approval-progress">{% translate "Approved and paid." %}</p>
+  {% else %}
+    <p class="muted" data-testid="approval-progress">{% translate "Not submitted for approval." %}</p>
+  {% endif %}
+  {% if approval_history %}
+  <ul class="mt" data-testid="approval-history">
+    {% for a in approval_history %}
+    <li>{{ a.created_at|date:"Y-m-d" }} · {{ a.user.full_name|default:a.user.email }} · {{ a.get_decision_display }}{% if a.reason %} · {{ a.reason }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>

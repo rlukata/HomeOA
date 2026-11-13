@@ -1,0 +1,85 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags ui %}
+{% block title %}{{ heading }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ heading }}</h1>
+    <p class="muted" data-testid="statement-basis">{% if with_range %}{% blocktranslate with s=start|date:"M j, Y" e=end|date:"M j, Y" %}{{ s }} to {{ e }}.{% endblocktranslate %}{% else %}{% blocktranslate with d=as_of|date:"M j, Y" %}As of {{ d }}.{% endblocktranslate %}{% endif %}
+      {% if basis == "cash" %}{% translate "Cash basis: only money that moved through the bank." %}{% else %}{% translate "Accrual basis." %}{% endif %}</p>
+  </div>
+  {% export_links %}
+</div>
+{% include "reports/_nav.html" %}
+<section class="card" aria-labelledby="st-filter-h">
+  <h2 id="st-filter-h" class="sr">{% translate "Filters" %}</h2>
+  <form method="get" class="form-row">
+    {% if with_range %}
+    <label>{% translate "From" %}<input type="date" name="start" value="{{ start|date:'Y-m-d' }}"></label>
+    <label>{% translate "To" %}<input type="date" name="end" value="{{ end|date:'Y-m-d' }}"></label>
+    <label>{% translate "Range" %}
+      <select name="range">
+        <option value="period"{% if not ytd %} selected{% endif %}>{% translate "Period" %}</option>
+        <option value="ytd"{% if ytd %} selected{% endif %}>{% translate "Year to date" %}</option>
+      </select>
+    </label>
+    {% else %}
+    <label>{% translate "As of" %}<input type="date" name="as_of" value="{{ as_of|date:'Y-m-d' }}"></label>
+    {% endif %}
+    <label>{% translate "Funds" %}
+      <select name="fund">
+        {% for value, label in fund_options %}<option value="{{ value }}"{% if value == fund_filter %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>{% translate "Basis" %}
+      <select name="basis">
+        {% for value, label in bases %}<option value="{{ value }}"{% if value == basis %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="btn btn-sm">{% translate "Show" %}</button>
+  </form>
+</section>
+{% if show_cash_note %}
+<p class="callout info mb" data-testid="cash-fund-note">{% translate "Per-fund cash figures are net of interfund balances; only the all-funds total ties to bank movement." %}</p>
+{% endif %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t" data-testid="statement">
+      <caption class="sr">{{ heading }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Line" %}</th>
+          {% for c in statement.columns %}<th scope="col" class="num">{{ c.label }}</th>{% endfor %}
+        </tr>
+      </thead>
+      {% for sec in statement.sections %}
+      <tbody>
+        <tr><th scope="rowgroup" colspan="{{ ncols }}">{{ sec.title }}</th></tr>
+        {% for row in sec.rows %}
+        <tr data-testid="row-{{ row.code }}">
+          <th scope="row">{{ row.label }}</th>
+          {% for v in row.cell_values %}<td class="num">{{ v|money }}</td>{% endfor %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="{{ ncols }}" class="muted">{% translate "Nothing in this period." %}</td></tr>
+        {% endfor %}
+        {% if sec.total %}
+        <tr class="strong">
+          <th scope="row">{{ sec.total.label }}</th>
+          {% for v in sec.total.cell_values %}<td class="num">{{ v|money }}</td>{% endfor %}
+        </tr>
+        {% endif %}
+      </tbody>
+      {% endfor %}
+      <tfoot>
+        {% for row in statement.summary %}
+        <tr data-testid="summary-{{ row.code|default:'net' }}">
+          <th scope="row">{{ row.label }}</th>
+          {% for v in row.cell_values %}<td class="num">{{ v|money }}</td>{% endfor %}
+        </tr>
+        {% endfor %}
+      </tfoot>
+    </table>
+  </div>
+</section>
+{% endblock %}

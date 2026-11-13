@@ -1,0 +1,46 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Insurance" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div><h1>{% translate "Insurance" %}</h1>
+    <p class="muted">{% translate "The master policy and the insurance documents. Owners see the carrier, term and deductible on their Docs tab; premiums and agent details stay with the board." %}</p></div>
+  {% if can_manage %}<div class="row wrap-ok"><a class="btn btn-primary" href="{% url 'insurance:add' %}" data-testid="policy-add">{% if policy %}{% translate "Add the next term" %}{% else %}{% translate "Add the master policy" %}{% endif %}</a></div>{% endif %}
+</div>
+<div class="stack">
+  <section class="card" aria-labelledby="policy-h" data-testid="master-policy">
+    <div class="card-h"><h2 id="policy-h">{% translate "Master policy" %}</h2>{% if policy and can_manage %}<a class="btn btn-sm btn-ghost" href="{% url 'insurance:edit' policy.pk %}">{% translate "Edit" %}</a>{% endif %}</div>
+    {% if policy %}
+    <dl class="card-b kv">
+      <dt>{% translate "Insurance company" %}</dt><dd>{{ policy.carrier }}{% if policy.policy_number %} · {{ policy.policy_number }}{% endif %}</dd>
+      <dt>{% translate "Term" %}</dt><dd data-testid="policy-term">{{ policy.start_date|date:"M j, Y" }} – {{ policy.end_date|date:"M j, Y" }}</dd>
+      <dt>{% translate "Deductible" %}</dt><dd>{{ policy.deductible|money|default:"—" }}</dd>
+      <dt>{% translate "Property coverage limit" %}</dt><dd>{{ policy.property_limit|money|default:"—" }}</dd>
+      <dt>{% translate "Liability limit" %}</dt><dd>{{ policy.liability_limit|money|default:"—" }}</dd>
+      <dt>{% translate "Yearly premium" %}</dt><dd>{{ policy.premium|money|default:"—" }}</dd>
+      <dt>{% translate "Agent or broker" %}</dt><dd>{{ policy.agent_name|default:"—" }}{% if policy.agent_email %} · <a href="mailto:{{ policy.agent_email }}">{{ policy.agent_email }}</a>{% endif %}{% if policy.agent_phone %} · <a href="tel:{{ policy.agent_phone }}">{{ policy.agent_phone }}</a>{% endif %}</dd>
+      {% if policy.certificate %}<dt>{% translate "Certificate" %}</dt><dd><a href="{% url 'documents:detail' policy.certificate.public_id %}">{{ policy.certificate.title }}</a></dd>{% endif %}
+      {% if policy.notes %}<dt>{% translate "Notes" %}</dt><dd>{{ policy.notes|linebreaksbr }}</dd>{% endif %}
+    </dl>
+    <div class="card-b"><p class="faint">{% translate "The renewal shows on the compliance calendar before the term ends, with reminders to the board." %}</p></div>
+    {% else %}
+    <div class="card-b"><p class="muted">{% translate "No master policy on file yet." %}</p></div>
+    {% endif %}
+  </section>
+
+  {% if policies|length > 1 %}
+  <section class="card" aria-labelledby="terms-h">
+    <div class="card-h"><h2 id="terms-h">{% translate "All terms" %}</h2></div>
+    <ul class="rows card-b">{% for p in policies %}<li>{{ p.start_date|date:"M j, Y" }} – {{ p.end_date|date:"M j, Y" }} · {{ p.carrier }}{% if can_manage %} · <a href="{% url 'insurance:edit' p.pk %}">{% translate "Edit" %}</a>{% endif %}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  <section class="card" aria-labelledby="ins-docs-h">
+    <div class="card-h"><h2 id="ins-docs-h">{% translate "Insurance documents" %}</h2>{% if can_manage %}<a class="btn btn-sm btn-ghost" href="{% url 'documents:upload' %}">{% translate "Upload" %}</a>{% endif %}</div>
+    <ul class="rows card-b">
+    {% for d in documents %}<li><a href="{% url 'documents:detail' d.public_id %}">{{ d.title }}</a> · <span class="muted">{{ d.get_visibility_display }}</span></li>
+    {% empty %}<li class="muted">{% translate "No documents yet." %}</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

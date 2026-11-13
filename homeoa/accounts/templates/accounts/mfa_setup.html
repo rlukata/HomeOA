@@ -1,0 +1,43 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Two-step sign-in" %}{% endblock %}
+{% block content %}
+{% if codes %}
+  <h1>{% if just_enrolled %}{% translate "Two-step sign-in is on" %}{% else %}{% translate "New recovery codes" %}{% endif %}</h1>
+  <p>{% translate "Save these recovery codes somewhere safe. Each one works once if you lose your phone. They won't be shown again." %}</p>
+  <h2>{% translate "Recovery codes" %}</h2>
+  <ul class="auth-codes">{% for code in codes %}<li>{{ code }}</li>{% endfor %}</ul>
+  <a class="btn btn-primary btn-lg" href="{% url 'dashboard:index' %}">{% translate "I've saved them, continue" %}</a>
+{% elif enrolled %}
+  <h1>{% translate "Two-step sign-in" %}</h1>
+  <p class="auth-msg ok">{% translate "Your authenticator app is set up." %}</p>
+  <p>{% blocktranslate count counter=remaining %}{{ counter }} recovery code left.{% plural %}{{ counter }} recovery codes left.{% endblocktranslate %}</p>
+  <form method="post">{% csrf_token %}
+    <button type="submit" name="action" value="regenerate" class="btn btn-lg">{% translate "Make new recovery codes" %}</button>
+  </form>
+  {% if not required %}
+  <form class="mt-10" method="post">{% csrf_token %}
+    <button type="submit" name="action" value="disable" class="btn btn-ghost btn-lg">{% translate "Turn off two-step sign-in" %}</button>
+  </form>
+  {% endif %}
+  <p class="auth-links"><a href="{% url 'accounts:passkeys' %}">{% translate "Passkeys" %}</a> · <a href="{% url 'dashboard:index' %}">{% translate "Back to home" %}</a></p>
+{% else %}
+  <h1>{% translate "Set up two-step sign-in" %}</h1>
+  {% if required %}<p class="auth-msg err" role="alert">{% translate "Your association requires two-step sign-in for board members. Set it up to continue." %}</p>{% endif %}
+  <p class="muted">{% translate "Prefer a passkey (fingerprint, face or device PIN)?" %} <a href="{% url 'accounts:passkeys' %}">{% translate "Set up a passkey instead" %}</a></p>
+  <p class="muted">{% translate "Scan this code with an authenticator app, or type the key below into the app." %}</p>
+  <img class="auth-qr" src="{{ qr }}" alt="{% translate 'QR code for your authenticator app' %}">
+  <p class="auth-secret"><span class="muted">{% translate "Key:" %}</span> <span data-testid="totp-secret">{{ secret }}</span></p>
+  {% if error %}<p class="auth-msg err" role="alert">{{ error }}</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="confirm">
+    <div class="auth-field">
+      <label for="id_code">{% translate "6-digit code from the app" %}</label>
+      <input type="text" id="id_code" name="code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9 ]*" required>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg">{% translate "Verify and turn on" %}</button>
+  </form>
+  {% if not required %}<p class="auth-links"><a href="{% url 'dashboard:index' %}">{% translate "Not now" %}</a></p>{% endif %}
+{% endif %}
+{% endblock %}

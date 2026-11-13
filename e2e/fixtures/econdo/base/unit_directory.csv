@@ -1,0 +1,10 @@
+Unit,Building,Address,Parcel ID,Allocated Interest %,Status
+A,,"14207 Cedar Row Ln #A, Tukwila, WA 98168",,11.5556,Owner Occupied
+B,,"14207 Cedar Row Ln #B, Tukwila, WA 98168",,11.5556,Owner Occupied
+C,,"14207 Cedar Row Ln #C, Tukwila, WA 98168",,11.5556,Owner Occupied
+D,,"14207 Cedar Row Ln #D, Tukwila, WA 98168",,10.6667,Owner Occupied
+E,,"14207 Cedar Row Ln #E, Tukwila, WA 98168",,11.5556,Tenant Occupied
+F,,"14207 Cedar Row Ln #F, Tukwila, WA 98168",,11.1111,Tenant Occupied
+G,,"14207 Cedar Row Ln #G, Tukwila, WA 98168",,10.2221,Owner Occupied
+H,,"14207 Cedar Row Ln #H, Tukwila, WA 98168",,10.2221,Tenant Occupied
+I,,"14207 Cedar Row Ln #I, Tukwila, WA 98168",,11.5556,Owner Occupied

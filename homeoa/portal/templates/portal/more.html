@@ -1,0 +1,18 @@
+{% extends "portal/base.html" %}
+{% load i18n homeoa_ui portal_parts %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "More" %}</h1>
+<section class="card" data-testid="more-links">
+  {% if not is_tenant_only %}<a class="li" href="{% url 'documents:portal_welcome' %}" data-testid="more-welcome"><div class="grow">{% translate "Welcome packet" %}</div>{% icon "right" %}</a>{% endif %}
+  <a class="li" href="{% url 'portal:profile' %}"><div class="grow">{% if is_tenant_only %}{% translate "Profile" %}{% else %}{% translate "Profile & household" %}{% endif %}</div>{% icon "right" %}</a>
+  <a class="li" href="{% url 'portal:profile' %}#notices"><div class="grow">{% translate "How I get notices" %}</div>{% icon "right" %}</a>
+  <a class="li" href="{% url 'contacts:portal' %}" data-testid="more-contacts"><div class="grow">{% translate "Board & committees" %}</div>{% icon "right" %}</a>
+  {% if not is_tenant_only %}<a class="li" href="{% url 'resale_portal:index' %}" data-testid="more-resale"><div class="grow">{% translate "Selling? Resale certificate" %}</div>{% icon "right" %}</a>{% endif %}
+  {% if not is_tenant_only %}<a class="li" href="{% url 'records_portal:index' %}" data-testid="more-records"><div class="grow">{% translate "Records requests" %}</div>{% icon "right" %}</a>{% endif %}
+  {% portal_parts "more" %}
+  {% if not is_tenant_only %}<a class="li" href="{% url 'votes_portal:index' %}" data-testid="more-votes"><div class="grow">{% translate "Owner votes" %}</div>{% icon "right" %}</a>{% endif %}
+</section>
+</div>
+{% endblock %}

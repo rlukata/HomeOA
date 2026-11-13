@@ -1,0 +1,16 @@
+.git
+.venv
+.env
+.env.*
+.work
+.claude
+.pytest_cache
+.ruff_cache
+**/__pycache__
+staticfiles
+media
+design
+e2e
+docs
+test-results
+playwright-report

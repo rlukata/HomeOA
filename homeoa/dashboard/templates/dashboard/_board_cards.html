@@ -1,0 +1,48 @@
+{% load i18n ledger_tags %}
+{# Board dashboard cards (RPT-02). Read-only; each links to its page. Needs board (BoardCards) and money (MoneySummary). #}
+<section class="card" aria-labelledby="dash-cash-h" data-testid="dash-cash">
+  <div class="card-h"><h2 id="dash-cash-h">{% translate "Cash by fund" %}</h2><a class="btn btn-sm btn-ghost" href="{% url 'banking:index' %}">{% translate "Open" %}</a></div>
+  <div class="card-b stack-sm">
+    {% for fund, cash in board.funds %}
+    <div class="row between"><span>{{ fund.name }}</span><span class="num" data-testid="dash-fund-{{ fund.code }}">{{ cash|money }}</span></div>
+    {% empty %}<p class="muted m-0">{% translate "No funds set up yet." %}</p>{% endfor %}
+  </div>
+</section>
+<section class="card" aria-labelledby="dash-budget-h" data-testid="dash-budget">
+  <div class="card-h"><h2 id="dash-budget-h">{% translate "Budget vs actual (YTD)" %}</h2>{% if board.budget %}<a class="btn btn-sm btn-ghost" href="{% url 'budget:actual' board.budget.budget.pk %}">{% translate "Open" %}</a>{% else %}<a class="btn btn-sm btn-ghost" href="{% url 'budget:index' %}">{% translate "Open" %}</a>{% endif %}</div>
+  <div class="card-b stack-sm">
+    {% if board.budget %}
+    <div class="stat stat-flat">
+      <div class="stat-l">{% blocktranslate with y=board.budget.budget.year %}Expenses, {{ y }} budget{% endblocktranslate %}</div>
+      <div class="stat-v" data-testid="dash-expense-actual">{{ board.budget.expense_actual|money }} <span class="of">{% blocktranslate with b=board.budget.expense_budget|money %}of {{ b }}{% endblocktranslate %}</span></div>
+      <div class="stat-s">{% blocktranslate with u=board.budget.expense_used_pct|default_if_none:"0" e=board.budget.elapsed_pct|default_if_none:"0" %}{{ u }}% used · {{ e }}% of the year gone{% endblocktranslate %}</div>
+      <div class="stat-s">{% blocktranslate with a=board.budget.income_actual|money b=board.budget.income_budget|money %}Income {{ a }} of {{ b }}{% endblocktranslate %}</div>
+    </div>
+    {% else %}<p class="muted m-0">{% translate "No adopted budget for this fiscal year." %}</p>{% endif %}
+  </div>
+</section>
+<section class="card" aria-labelledby="dash-ap-h" data-testid="dash-ap">
+  <div class="card-h"><h2 id="dash-ap-h">{% translate "Bills due in 14 days" %}</h2><a class="btn btn-sm btn-ghost" href="{% url 'ap:index' %}">{% translate "Open" %}</a></div>
+  <div class="card-b stack-sm">
+    <div class="stat-v" data-testid="dash-ap-total">{{ board.ap_due_total|money }}</div>
+    {% for bill in board.ap_due %}
+    <div class="row between"><a href="{% url 'ap:detail' bill.pk %}">{{ bill.vendor }}</a><span class="num{% if bill.due_date < today %} danger{% endif %}">{{ bill.total|money }} · {{ bill.due_date|date:"M j" }}</span></div>
+    {% empty %}<p class="muted m-0">{% translate "Nothing due." %}</p>{% endfor %}
+  </div>
+</section>
+<section class="card" aria-labelledby="dash-ar-h" data-testid="dash-ar">
+  <div class="card-h"><h2 id="dash-ar-h">{% translate "Owners past due" %}</h2><a class="btn btn-sm btn-ghost" href="{% url 'reports:ar_aging' %}">{% translate "Open" %}</a></div>
+  <div class="card-b stack-sm">
+    <div class="stat-v{% if money.past_due_total %} danger{% endif %}" data-testid="dash-ar-total">{{ money.past_due_total|money }}</div>
+    <div class="stat-s">{% blocktranslate count n=money.past_due|length %}{{ n }} unit{% plural %}{{ n }} units{% endblocktranslate %}</div>
+  </div>
+</section>
+{% if show_compliance %}
+<section class="card" aria-labelledby="dash-comp-h" data-testid="dash-compliance">
+  <div class="card-h"><h2 id="dash-comp-h">{% translate "Compliance" %}</h2><a class="btn btn-sm btn-ghost" href="{% url 'compliance:index' %}">{% translate "Open" %}</a></div>
+  <div class="card-b stack-sm">
+    <div class="stat-v" data-testid="dash-compliance-open">{{ board.compliance_open }} <span class="of">{% translate "open" %}</span></div>
+    {% if board.compliance_missed %}<div class="stat-s danger">{% blocktranslate count n=board.compliance_missed %}{{ n }} missed deadline{% plural %}{{ n }} missed deadlines{% endblocktranslate %}</div>{% endif %}
+  </div>
+</section>
+{% endif %}

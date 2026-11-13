@@ -1,0 +1,12 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Not open yet" %} · {% endblock %}
+{% block content %}
+<div class="hero"><h1>{% translate "Resident pages are not open to residents yet" %}</h1></div>
+<section class="card" data-testid="residents-closed">
+  <div class="card-b card-pad-t">
+    <p>{% translate "The association is still setting things up. Until resident access opens, keep paying and contacting the association the way you do today." %}</p>
+    <p class="muted">{% translate "The board will let you know when you can sign in here." %}</p>
+  </div>
+</section>
+{% endblock %}

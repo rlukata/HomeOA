@@ -1,0 +1,59 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% blocktranslate with n=unit.number %}Unit {{ n }} communications{% endblocktranslate %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p class="muted"><a href="{% url 'registry:unit' unit.number %}">{% blocktranslate with n=unit.number %}Unit {{ n }}{% endblocktranslate %}</a></p>
+    <h1>{% translate "Communication log" %}</h1>
+    <p class="muted">{% blocktranslate count n=rows|length %}{{ n }} message{% plural %}{{ n }} messages{% endblocktranslate %}</p>
+  </div>
+  <div class="row wrap-ok">
+    {% export_links "" %}
+  </div>
+</div>
+
+<form method="get" class="row wrap-ok mb" aria-label="{% translate 'Filter messages' %}">
+  <label>{% translate "Channel" %}
+    <select name="channel">
+      <option value="">{% translate "All channels" %}</option>
+      {% for key, label in channel_choices %}<option value="{{ key }}"{% if filters.channel == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>{% translate "Status" %}
+    <select name="status">
+      <option value="">{% translate "All statuses" %}</option>
+      {% for key, label in status_choices %}<option value="{{ key }}"{% if filters.status == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </label>
+  <button class="btn" type="submit">{% translate "Filter" %}</button>
+</form>
+
+<section class="card" data-testid="comm-log">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% blocktranslate with n=unit.number %}Messages to unit {{ n }}, newest first{% endblocktranslate %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Date" %}</th>
+        <th scope="col">{% translate "Recipient" %}</th>
+        <th scope="col">{% translate "Channel" %}</th>
+        <th scope="col">{% translate "Subject" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr data-status="{{ r.d.status }}">
+          <td class="nowrap">{{ r.at|date:"M j, Y H:i" }}</td>
+          <td>{{ r.d.notification.recipient.full_name }}{% if r.d.address %} <span class="faint">· {{ r.d.address }}</span>{% endif %}</td>
+          <td>{{ r.channel }}</td>
+          <td>{{ r.d.notification.subject }}</td>
+          <td><span class="badge {{ r.tone }}">{{ r.d.get_status_display }}</span>{% if r.d.error %}<div class="faint">{{ r.d.error }}</div>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "No messages for this unit yet." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

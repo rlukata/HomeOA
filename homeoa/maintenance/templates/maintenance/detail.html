@@ -1,0 +1,79 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{{ req.title }}{% endblock %}
+{% block content %}
+<a href="{% url 'maintenance:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Maintenance" %}</a>
+<div class="stack">
+  <section class="card card-pad" aria-labelledby="req-h">
+    <div class="between wrap-ok">
+      <div>
+        <h1 id="req-h">{{ req.title }}</h1>
+        <div class="muted"><span data-testid="req-status">{% badge req.badge req.get_status_display %}</span>{% if req.priority == "urgent" %} {% badge "danger" req.get_priority_display %}{% endif %}</div>
+      </div>
+      <a class="btn btn-primary" href="{% url 'maintenance:work_order_add' req.pk %}" data-testid="wo-create">{% translate "Create work order" %}</a>
+    </div>
+    <dl class="kv mt">
+      <dt>{% translate "Unit" %}</dt><dd>{% if req.unit %}{% blocktranslate with n=req.unit.number %}Unit {{ n }}{% endblocktranslate %}{% else %}{% translate "Common area" %}{% endif %}</dd>
+      {% if req.location %}<dt>{% translate "Location" %}</dt><dd>{{ req.location }}</dd>{% endif %}
+      <dt>{% translate "Priority" %}</dt><dd>{{ req.get_priority_display }}</dd>
+      <dt>{% translate "Submitted by" %}</dt><dd>{{ req.submitted_by|default:"—" }}</dd>
+      <dt>{% translate "Entered by" %}</dt><dd>{% if req.entered_by %}{{ req.entered_by.full_name|default:req.entered_by.email }}{% else %}—{% endif %} <span class="muted">· {{ req.created_at|date:"Y-m-d H:i" }}</span></dd>
+      {% if req.description %}<dt>{% translate "Details" %}</dt><dd>{{ req.description|linebreaksbr }}</dd>{% endif %}
+    </dl>
+  </section>
+
+  <section class="card card-pad" aria-labelledby="photos-h">
+    <h2 id="photos-h">{% translate "Photos" %}</h2>
+    {% for p in photos %}
+      <figure class="mt" data-testid="maint-photo">
+        {% url 'maintenance:photo' req.pk p.pk as photo_url %}
+        <img class="attach-preview" src="{{ photo_url }}" alt="{{ p.version.file_name }}">
+        <figcaption><a href="{{ photo_url }}" target="_blank" rel="noopener">{{ p.version.file_name }}</a></figcaption>
+      </figure>
+    {% empty %}
+      <p class="muted">{% translate "No photos." %}</p>
+    {% endfor %}
+    <form method="post" action="{% url 'maintenance:add_photos' req.pk %}" enctype="multipart/form-data" class="row wrap-ok mt">
+      {% csrf_token %}
+      <label for="add-photos" class="sr">{% translate "Add photos" %}</label>
+      <input id="add-photos" type="file" name="photos" accept="image/png,image/jpeg" multiple required>
+      <button type="submit" class="btn btn-sm">{% translate "Add photos" %}</button>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="wos-h">
+    <div class="card-h"><h2 id="wos-h">{% translate "Work orders" %}</h2></div>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Work orders for this request" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "Work order" %}</th>
+          <th scope="col">{% translate "Vendor" %}</th>
+          <th scope="col">{% translate "Scheduled" %}</th>
+          <th scope="col" class="num">{% translate "Actual cost" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr></thead>
+        <tbody>
+        {% for wo in work_orders %}
+          <tr><td><a href="{% url 'maintenance:work_order' wo.pk %}">{{ wo }}</a></td><td>{{ wo.vendor.name }}</td><td>{{ wo.scheduled_for|date:"M j"|default:"—" }}{% if wo.overdue %} {% badge "danger" _("Overdue") %}{% endif %}</td><td class="num">{{ wo.actual_cost|money }}</td><td>{% badge wo.badge wo.get_status_display %}</td></tr>
+        {% empty %}
+          <tr><td colspan="5" class="muted">{% translate "No work orders yet." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card card-pad" aria-labelledby="status-h">
+    <h2 id="status-h">{% translate "Update status" %}</h2>
+    <p class="muted">{% translate "The resident who submitted the request sees the status and the note." %}</p>
+    <form method="post" action="{% url 'maintenance:request_status' req.pk %}" class="form-grid mt">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=status_form %}
+      <div class="form-actions"><button type="submit" class="btn" data-testid="req-status-save">{% translate "Update" %}</button></div>
+    </form>
+  </section>
+
+  {% include "maintenance/_history.html" with show_actor=True %}
+</div>
+{% endblock %}

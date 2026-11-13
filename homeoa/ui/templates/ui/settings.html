@@ -1,0 +1,40 @@
+{% extends "ui/base.html" %}
+{% load i18n homeoa_access %}
+{% block title %}{% translate "Settings" %}{% endblock %}
+{% block content %}
+<div class="hero"><h1>{% translate "Settings" %}</h1></div>
+<div class="stack">
+<section class="card">
+  <div class="card-b card-pad-t">
+    {% has_perm "roles.manage" as can_roles %}{% has_perm "plugins.manage" as can_plugins %}{% has_perm "audit.read" as can_audit %}{% has_perm "jobs.read" as can_jobs %}{% has_perm "settings.manage" as can_settings %}{% has_perm "policy.propose" as can_policy %}{% has_perm "letters.manage" as can_letters %}{% has_perm "vendors.propose" as can_vendors %}
+    {% if can_roles or can_plugins or can_audit or can_jobs or can_settings or can_policy or can_vendors or can_letters %}
+    <ul class="link-list">
+      {% if can_roles or can_policy or can_vendors %}<li><a href="{% url 'changes:index' %}">{% translate "Change requests" %}</a></li>{% endif %}
+      {% if can_policy %}<li><a href="{% url 'setup:index' %}" data-testid="settings-setup">{% translate "Association setup" %}</a></li>{% endif %}
+      {% if can_policy %}<li><a href="{% url 'changes:limits' %}">{% translate "Approval limits" %}</a></li>{% endif %}
+      {% if can_settings %}<li><a href="{% url 'access:status' %}">{% translate "Association status" %}</a></li><li><a href="{% url 'access:go_live' %}">{% translate "Go live" %}</a></li><li><a href="{% url 'rules:law_changes' %}" data-testid="settings-law-changes">{% translate "Law changes" %}</a></li>{% endif %}
+      {% if can_roles %}<li><a href="{% url 'access:index' %}">{% translate "Roles and security" %}</a></li>{% endif %}
+      {% if can_plugins %}<li><a href="{% url 'plugins:index' %}">{% translate "Plugins" %}</a></li>{% endif %}
+      {% if can_audit %}<li><a href="{% url 'audit:index' %}">{% translate "Audit log" %}</a></li>{% endif %}
+      {% if can_jobs %}<li><a href="{% url 'jobs:index' %}">{% translate "Job history" %}</a></li>{% endif %}
+      {% if can_letters %}<li><a href="{% url 'letters:index' %}">{% translate "Letter templates" %}</a></li>{% endif %}
+    </ul>
+    {% endif %}
+    {% has_perm "governance.contacts" as can_contact %}
+    {% if can_contact %}<ul class="link-list"><li><a href="{% url 'contacts:board' %}" data-testid="settings-contact">{% translate "Contact the board, a committee or the system admin" %}</a></li></ul>{% endif %}
+    <p>
+      <button type="button" class="btn" data-theme-toggle>{% translate "Toggle light / dark theme" %}</button>
+    </p>
+  </div>
+</section>
+<section class="card" aria-labelledby="account-h">
+  <div class="card-h"><h2 id="account-h">{% translate "Account" %}</h2></div>
+  <div class="card-b">
+    <p class="muted">{% blocktranslate with email=user.email %}Signed in as {{ email }}.{% endblocktranslate %}</p>
+    <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+      <button type="submit" class="btn" data-testid="sign-out">{% translate "Sign out" %}</button>
+    </form>
+  </div>
+</section>
+</div>
+{% endblock %}

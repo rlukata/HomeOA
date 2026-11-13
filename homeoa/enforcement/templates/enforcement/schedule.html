@@ -1,0 +1,85 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ s }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ s }}</h1>
+    <p class="muted">{% blocktranslate with date=s.effective_on|date:"M j, Y" %}Effective {{ date }}{% endblocktranslate %}</p>
+  </div>
+</div>
+<p><a href="{% url 'enforcement:schedules' %}">{% translate "Back to fine schedule" %}</a></p>
+{% if not s.is_furnished %}
+<p class="callout warn" role="alert" data-testid="unfurnished-banner">{% translate "Not yet furnished to owners: fines cannot be imposed" %}</p>
+{% endif %}
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="l-h">
+      <div class="card-h"><h2 id="l-h">{% translate "Fines by category" %}</h2></div>
+      {% if lines %}
+      <div class="table-wrap">
+        <table class="t" data-testid="lines">
+          <thead><tr>
+            <th scope="col">{% translate "Category" %}</th>
+            <th scope="col">{% translate "Rule citation" %}</th>
+            <th scope="col" class="num">{% translate "First" %}</th>
+            <th scope="col" class="num">{% translate "Repeat" %}</th>
+            <th scope="col" class="num">{% translate "Continuing" %}</th>
+            <th scope="col"><span class="sr-only">{% translate "Remove" %}</span></th>
+          </tr></thead>
+          <tbody>
+            {% for l in lines %}
+            <tr>
+              <td>{{ l.category }}</td>
+              <td>{{ l.category.rule_citation }}</td>
+              <td class="num">${{ l.first_amount }}</td>
+              <td class="num">${{ l.repeat_amount }}</td>
+              <td class="num">{% if l.continuing_amount is not None %}{% blocktranslate with amount=l.continuing_amount days=l.continuing_period_days %}${{ amount }} per {{ days }} days{% endblocktranslate %}{% else %}—{% endif %}</td>
+              <td>
+                <form method="post">{% csrf_token %}<input type="hidden" name="action" value="remove_line"><input type="hidden" name="line" value="{{ l.pk }}"><button type="submit" class="btn btn-sm btn-ghost">{% translate "Remove" %}</button></form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-b"><p class="muted">{% translate "No fine lines yet." %}</p></div>
+      {% endif %}
+      <div class="card-b">
+        <form method="post" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="line">
+          <label>{% translate "Category" %}
+            <select name="category" required>{% for c in categories %}<option value="{{ c.pk }}">{{ c }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "First offense ($)" %} <input type="text" inputmode="decimal" name="first_amount" required></label>
+          <label>{% translate "Repeat offense ($)" %} <input type="text" inputmode="decimal" name="repeat_amount" required></label>
+          <label>{% translate "Continuing fine ($)" %} <input type="text" inputmode="decimal" name="continuing_amount"></label>
+          <label>{% translate "Continuing period (days)" %} <input type="number" min="1" name="continuing_period_days"></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Save fine line" %}</button></div>
+        </form>
+      </div>
+    </section>
+  </div>
+  <div class="stack">
+    <section class="card" aria-labelledby="e-h">
+      <div class="card-h"><h2 id="e-h">{% translate "Dates" %}</h2></div>
+      <div class="card-b">
+        <form method="post" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="dates">
+          <label>{% translate "Adopted on" %} <input type="date" name="adopted_on" value="{{ s.adopted_on|date:'Y-m-d' }}" required></label>
+          <label>{% translate "Effective date" %} <input type="date" name="effective_on" value="{{ s.effective_on|date:'Y-m-d' }}" required></label>
+          <label>{% translate "Furnished to owners on" %} <input type="date" name="furnished_on" value="{{ s.furnished_on|date:'Y-m-d' }}"></label>
+          <label>{% translate "Resolution" %}
+            <select name="resolution"><option value="">—</option>{% for r in resolutions %}<option value="{{ r.pk }}"{% if r.pk == s.resolution_id %} selected{% endif %}>{{ r.number }} {{ r.title }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Note" %} <input type="text" name="note" value="{{ s.note }}" maxlength="300"></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Save" %}</button></div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

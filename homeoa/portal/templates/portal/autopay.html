@@ -1,0 +1,53 @@
+{% extends "portal/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Autopay" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+{% include "portal/_pay_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Autopay" %}</h1>
+{% if pay.enrollment %}
+  <section class="card" data-testid="autopay-status">
+    <div class="li"><div class="grow"><div>{% blocktranslate with date=pay.enrollment.starts_on|date:"M j" %}Autopay is on from {{ date }}{% endblocktranslate %}</div>
+      <div class="s">{% if pay.enrollment.rule == "fixed" %}{% blocktranslate with amount=pay.enrollment.fixed_amount|money %}{{ amount }} each month{% endblocktranslate %}{% else %}{% translate "Your balance each month, after dues post" %}{% endif %} · {{ pay.enrollment.mandate_label }}</div></div></div>
+    <form method="post" class="li">{% csrf_token %}
+      <input type="hidden" name="unit" value="{{ pay.unit.number }}"><input type="hidden" name="action" value="off">
+      <button class="btn btn-ghost" type="submit">{% translate "Turn off autopay" %}</button>
+    </form>
+  </section>
+  <div class="sec-t">{% translate "Change autopay" %}</div>
+{% endif %}
+{% if not pay.online %}
+  <section class="card"><div class="card-b card-pad-t"><p class="muted">{% translate "Online payments are not set up yet." %}</p></div></section>
+{% elif not pay.chargeable %}
+  <section class="card"><div class="card-b card-pad-t"><p class="muted">{% translate "Link and verify a bank account first." %}</p>
+    <a class="btn" href="{{ pay.setup_url }}">{% translate "Link a bank account" %}</a></div></section>
+{% else %}
+<form method="post" class="card">
+  {% csrf_token %}
+  <input type="hidden" name="unit" value="{{ pay.unit.number }}">
+  <input type="hidden" name="action" value="on">
+  <fieldset class="li plain">
+    <legend class="s legend-pad">{% translate "How much" %}</legend>
+    {% for value, label in rules %}
+      <label class="choice"><input type="radio" name="rule" value="{{ value }}"{% if form.rule == value %} checked{% endif %}>
+        <span class="grow">{{ label }}{% if value == "balance" %}<span class="s block">{% translate "Whatever you owe once the month's dues post. Nothing is taken when you owe nothing." %}</span>{% else %}
+          <span class="s block">{% translate "The same amount every month, never more than your balance. Skipped when you owe nothing." %}</span>
+          <input name="fixed_amount" inputmode="decimal" class="input w-md mt-6" placeholder="0.00" value="{{ form.fixed_amount }}" aria-label="{% translate 'Fixed amount' %}">{% endif %}</span></label>
+    {% endfor %}
+  </fieldset>
+  <fieldset class="li plain">
+    <legend class="s legend-pad">{% translate "Pay from" %}</legend>
+    {% for m in pay.chargeable %}
+      <label class="choice"><input type="radio" name="method" value="{{ m.ref }}"{% if form.method == m.ref or forloop.first and not form.method %} checked{% endif %}> {{ m.label }}</label>
+    {% endfor %}
+  </fieldset>
+  <div class="li auth">{% blocktranslate with date=starts_on|date:"M j" %}Autopay starts with the dues that post on or after {{ date }}. Each debit is made under the bank authorization you accepted when you linked the account. You can turn autopay off here at any time before the next debit.{% endblocktranslate %}</div>
+  <div class="li"><a class="btn btn-ghost" href="{% url 'portal:pay' %}?unit={{ pay.unit.number }}">{% translate "Cancel" %}</a><div class="grow"></div>
+    <button class="btn btn-primary" type="submit">{% translate "Turn on autopay" %}</button></div>
+</form>
+{% endif %}
+<div class="sec-t">{% translate "Autopay history" %}</div>
+<section class="card">{% include "payments/_autopay_history.html" with charges=history %}</section>
+</div>
+{% endblock %}

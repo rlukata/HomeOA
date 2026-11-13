@@ -1,0 +1,106 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags homeoa_access %}
+{% block title %}{{ special.name }}{% endblock %}
+{% block content %}{% has_perm "finance.manage" as can_manage %}
+<div class="hero">
+  <div>
+    <h1>{{ special.name }}</h1>
+    <p class="muted">{{ special.get_method_display }} · {{ special.operating_fund.name }}{% if special.for_reserves %} · {% translate "Designated for reserves" %}{% endif %} · {% translate "Total" %} {{ special.total|money }}</p>
+    {% if special.description %}<p>{{ special.description }}</p>{% endif %}
+  </div>
+  <div class="hero-actions"><a class="btn" href="{% url 'billing:specials' %}">{% translate "All special assessments" %}</a></div>
+</div>
+
+{% if ratification_required or special.ratification %}
+<section class="card" aria-labelledby="rat-h" data-testid="special-ratification">
+  <div class="card-h"><h2 id="rat-h">{% translate "Owner ratification" %}</h2></div>
+  <div class="card-b">
+    {% if special.ratification == "emergency" %}<p data-testid="special-emergency-done">{% badge "warn" _("Emergency") %} {% blocktranslate with d=special.emergency_decided_on|date:"M j, Y" f=special.emergency_votes_for n=special.emergency_board_size %}Effective on the board's vote of {{ d }} ({{ f }} of {{ n }} seats), without owner ratification. The owners were notified.{% endblocktranslate %}</p><p class="muted">{{ special.get_emergency_kind_display }}: {{ special.emergency_reason }}</p>
+    {% elif special.ratification == "ratified" %}<p>{% badge "ok" _("Ratified by owners") %} {% blocktranslate with d=special.ratification_meeting_on|date:"M j, Y" %}at the meeting on {{ d }}.{% endblocktranslate %}</p>
+    {% elif special.ratification == "rejected" %}<p>{% badge "danger" _("Rejected by owners") %} {% translate "Nothing will post." %}</p>
+    {% else %}<p class="muted">{% translate "Like the budget, a special assessment takes effect only after the owners consider it: send them a summary, hold a ratification meeting, and record the result here. Nothing posts until it is ratified." %}{% if window %} {% blocktranslate with a=window.0|date:"M j, Y" b=window.1|date:"M j, Y" %}The meeting must fall between {{ a }} and {{ b }}.{% endblocktranslate %}{% endif %}</p>{% endif %}
+    {% if can_ratify and special.ratification != "ratified" %}
+    <form method="post" action="{% url 'billing:special_ratify' special.pk %}" class="form-grid">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=ratify_form %}
+      <div class="form-actions"><button type="submit" class="btn" data-testid="special-ratify">{% translate "Record the result" %}</button></div>
+    </form>
+    {% endif %}
+    {% if can_ratify and emergency_rule.value and not special.ratification %}
+    <details class="mt" data-testid="special-emergency">
+      <summary>{% translate "Emergency: adopt it by board vote instead" %}</summary>
+      <p class="muted">{% blocktranslate with vote=emergency_vote cite=emergency_rule.citation %}In an emergency (an imminent threat to health, safety or the habitability of units, or a risk of substantial economic loss) the board may make a special assessment effective right away by {{ vote }} board vote ({{ cite }}), without owner ratification. The money may be spent only as the vote says, and every owner is told at once.{% endblocktranslate %}</p>
+      <form method="post" action="{% url 'billing:special_emergency' special.pk %}" class="form-grid">
+        {% csrf_token %}
+        {% include "ui/components/form.html" with form=emergency_form %}
+        <div class="form-actions"><button type="submit" class="btn" data-testid="special-emergency-submit">{% translate "Record the emergency vote" %}</button></div>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="inst-h">
+  <div class="card-h"><h2 id="inst-h">{% translate "Installments" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Installments" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">{% translate "Charge date" %}</th>
+          <th scope="col">{% translate "Due date" %}</th>
+          <th scope="col" class="num">{% translate "Amount" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in installments %}
+        <tr>
+          <td>{{ i.number }}</td>
+          <td>{{ i.charge_date|date:"M j, Y" }}</td>
+          <td>{{ i.due_date|date:"M j, Y" }}</td>
+          <td class="num">{{ i.amount|money }}</td>
+          <td>
+            {% if i.posted %}{% badge "ok" _("Posted") %}
+            {% elif can_manage and may_post %}
+            <form method="post" action="{% url 'billing:installment_post' i.pk %}" class="inline-form">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm">{% blocktranslate with n=i.number %}Post installment {{ n }}{% endblocktranslate %}</button>
+            </form>
+            {% else %}{% badge "" _("Scheduled") %}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="units-h">
+  <div class="card-h"><h2 id="units-h">{% translate "Per unit" %}</h2></div>
+  {% if problem %}<div class="callout warn" role="alert">{{ problem }}</div>{% endif %}
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Amount per unit" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          {% for i in installments %}<th scope="col" class="num">{% blocktranslate with n=i.number %}Installment {{ n }}{% endblocktranslate %}</th>{% endfor %}
+          <th scope="col" class="num">{% translate "Total" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.unit.number }}</td>
+          {% for a in r.amounts %}<td class="num">{{ a|money }}</td>{% endfor %}
+          <td class="num">{{ r.total|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

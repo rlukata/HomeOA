@@ -1,0 +1,41 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block content %}
+<div class="hero">
+  <div><h1>{% translate "Owners & tenants" %}</h1>
+    <p class="muted">{% blocktranslate count n=people|length %}{{ n }} person{% plural %}{{ n }} people{% endblocktranslate %}</p></div>
+  <div class="row wrap-ok">
+    <a class="btn" href="{% url 'registry:records' %}">{% translate "Owner records export" %}</a>
+    <a class="btn btn-primary" href="{% url 'registry:person_add' %}">{% translate "Add person" %}</a>
+  </div>
+</div>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Owners & tenants" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Name" %}</th>
+        <th scope="col">{% translate "Owns" %}</th>
+        <th scope="col">{% translate "Lives in" %}</th>
+        <th scope="col">{% translate "Email" %}</th>
+        <th scope="col">{% translate "Phone" %}</th>
+        <th scope="col">{% translate "Notices by" %}</th>
+      </tr></thead>
+      <tbody>
+      {% for row in people %}
+        <tr>
+          <td><a href="{% url 'registry:person' row.person.pk %}"><b>{{ row.person.full_name }}</b></a></td>
+          <td>{% for u in row.owns %}{% if not forloop.first %}, {% endif %}<a href="{% url 'registry:unit' u.number %}">{{ u }}</a>{% empty %}<span class="faint">—</span>{% endfor %}</td>
+          <td>{% for u in row.occupies %}{% if not forloop.first %}, {% endif %}{{ u }} <span class="faint">({% translate "tenant" %})</span>{% empty %}<span class="faint">—</span>{% endfor %}</td>
+          <td>{{ row.person.email|default:"—" }}</td>
+          <td class="nowrap">{{ row.person.phone|default:"—" }}</td>
+          <td>{% if row.pref %}{% if row.pref.delivery == "email" %}{% badge "accent" row.pref.get_delivery_display %}{% else %}{% badge "" row.pref.get_delivery_display %}{% endif %}{% else %}<span class="faint">{% translate "Not recorded" %}</span>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">{% translate "No people yet." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% load i18n %}
+<form method="post" action="{% url 'registry:unit_transfer' unit.number %}" class="form-grid" id="transfer-panel">
+  {% csrf_token %}
+  {% include "ui/components/form.html" %}
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">{% translate "Save transfer" %}</button>
+    <a class="btn btn-ghost" href="{% url 'registry:unit' unit.number %}">{% translate "Cancel" %}</a>
+  </div>
+</form>

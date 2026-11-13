@@ -1,0 +1,90 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Reconciliation" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% blocktranslate with a=rec.bank_account.name d=rec.statement_date|date:"M j, Y" %}Reconcile {{ a }} through {{ d }}{% endblocktranslate %}</h1>
+  {% if rec.is_complete %}<p>{% translate "Reconciled" as done %}{% badge "ok" done %} {{ rec.completed_at|date:"M j, Y" }}{% if rec.completed_by %} · {{ rec.completed_by.email }}{% endif %}</p>{% endif %}
+</div></div>
+{% if error %}<p class="callout danger" role="alert">{{ error }}</p>{% endif %}
+<section class="card" aria-labelledby="sum-h">
+  <div class="card-h"><h2 id="sum-h">{% translate "Summary" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Reconciliation summary" %}</caption>
+      <tbody>
+        <tr><th scope="row">{% translate "Beginning balance" %}</th><td class="num">{{ rec.beginning_balance|money }}</td></tr>
+        <tr><th scope="row">{% translate "Cleared transactions" %}</th><td class="num">{{ rec.cleared_total|money }}</td></tr>
+        <tr><th scope="row">{% translate "Statement ending balance" %}</th><td class="num">{{ rec.ending_balance|money }}</td></tr>
+        <tr><th scope="row">{% translate "Difference" %}</th><td class="num"><strong data-testid="recon-difference">{{ rec.difference|money }}</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  {% if not rec.is_complete and can_manage %}
+  <div class="card-b">
+    <form method="post" class="form-actions">
+      {% csrf_token %}
+      {% if rec.difference %}
+      <p class="muted" id="diff-help">{% translate "The difference must be $0.00 to finish. Match or categorize the remaining transactions, or check the ending balance." %}</p>
+      <button type="submit" class="btn btn-primary" disabled aria-describedby="diff-help">{% translate "Finish reconciliation" %}</button>
+      {% else %}
+      {% if books.difference %}
+      <div class="field full">
+        <label class="field-l" for="id_note">{% translate "Why do the books differ?" %} <span class="req" aria-hidden="true">*</span><span class="sr">{% translate "(required)" %}</span></label>
+        <textarea class="input" id="id_note" name="note" rows="3" required aria-describedby="book-help">{{ note }}</textarea>
+      </div>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">{% translate "Finish reconciliation" %}</button>
+      {% endif %}
+      <a class="btn btn-ghost" href="{% url 'banking:reconcile' %}">{% translate "Start over" %}</a>
+    </form>
+  </div>
+  {% endif %}
+</section>
+{% if books %}
+<section class="card" aria-labelledby="bk-h">
+  <div class="card-h"><h2 id="bk-h">{% translate "Bank vs books" %}</h2></div>
+  {% if books.difference %}<p class="callout" role="status" id="book-help">{% translate "The books don't agree with the bank. You can still finish, but you'll need to write a note explaining why." %}</p>{% endif %}
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Book balance compared with the statement" %}</caption>
+      <tbody>
+        <tr><th scope="row">{% blocktranslate with a=rec.bank_account.gl_account d=rec.statement_date|date:"M j, Y" %}Book cash ({{ a }}) on {{ d }}{% endblocktranslate %}</th><td class="num" data-testid="recon-book-balance">{{ books.book_balance|money }}</td></tr>
+        <tr><th scope="row">{% translate "Less outstanding items" %}</th><td class="num">{{ books.outstanding_total|money }}</td></tr>
+        <tr><th scope="row">{% translate "Adjusted book balance" %}</th><td class="num">{{ books.adjusted|money }}</td></tr>
+        <tr><th scope="row">{% translate "Book difference" %}</th><td class="num"><strong data-testid="recon-book-difference">{{ books.difference|money }}</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  {% if books.outstanding %}
+  <div class="table-wrap"><table class="t">
+    <caption>{% translate "Outstanding: in the books but not matched to a bank transaction" %}</caption>
+    <thead><tr><th scope="col">{% translate "Date" %}</th><th scope="col">{% translate "Memo" %}</th><th scope="col" class="num">{% translate "Amount" %}</th></tr></thead>
+    <tbody>{% for ln in books.outstanding %}<tr><td class="nowrap">{{ ln.entry.date|date:"M j, Y" }}</td><td>{{ ln.entry.memo|default:ln.memo }}</td><td class="num">{{ ln.amount|money }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endif %}
+{% if rec.book_note %}<section class="card card-pad"><h2>{% translate "Note on book difference" %}</h2><p>{{ rec.book_note|linebreaksbr }}</p></section>{% endif %}
+{% if unmatched %}
+<section class="card" aria-labelledby="un-h">
+  <div class="card-h"><h2 id="un-h">{% translate "Not yet matched or categorized" %}</h2></div>
+  <div class="table-wrap"><table class="t">
+    <caption class="sr">{% translate "Unmatched transactions" %}</caption>
+    <thead><tr><th scope="col">{% translate "Date" %}</th><th scope="col">{% translate "Description" %}</th><th scope="col" class="num">{% translate "Amount" %}</th></tr></thead>
+    <tbody>{% for t in unmatched %}<tr><td class="nowrap">{{ t.date|date:"M j, Y" }}</td><td><a href="{% url 'banking:txn' t.pk %}">{{ t.description }}</a></td><td class="num">{{ t.amount|money }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+<section class="card" aria-labelledby="cl-h">
+  <div class="card-h"><h2 id="cl-h">{% translate "Cleared transactions" %}</h2></div>
+  <div class="table-wrap"><table class="t">
+    <caption class="sr">{% translate "Cleared transactions" %}</caption>
+    <thead><tr><th scope="col">{% translate "Date" %}</th><th scope="col">{% translate "Description" %}</th><th scope="col">{% translate "Status" %}</th><th scope="col" class="num">{% translate "Amount" %}</th></tr></thead>
+    <tbody>
+      {% for t in cleared %}<tr><td class="nowrap">{{ t.date|date:"M j, Y" }}</td><td><a href="{% url 'banking:txn' t.pk %}">{{ t.description }}</a></td><td>{{ t.get_status_display }}</td><td class="num">{{ t.amount|money }}</td></tr>
+      {% empty %}<tr><td colspan="4" class="empty-row">{% translate "No cleared transactions in this period." %}</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

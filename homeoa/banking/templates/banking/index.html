@@ -1,0 +1,144 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags banking_tags %}
+{% block title %}{% translate "Bank & deposits" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Bank & deposits" %}</h1>
+    <p class="muted">{% translate "Imported bank transactions. Importing never posts to the books; each one is matched or categorized." %}</p>
+  </div>
+  <div class="form-actions">
+    {% if feed.connected and can_manage %}
+    <form method="post" action="{% url 'banking:sync' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary">{% translate "Sync now" %}</button>
+    </form>
+    {% endif %}
+    <a class="btn{% if not feed.connected %} btn-primary{% endif %}" href="{% url 'banking:import' %}">{% translate "Import statement" %}</a>
+    <a class="btn" href="{% url 'banking:reconcile' %}">{% translate "Reconcile" %}</a>
+    <a class="btn" href="{% url 'banking:reserve' %}">{% translate "Reserve withdrawals" %}</a>
+    <a class="btn" href="{% url 'banking:account_new' %}">{% translate "Add bank account" %}</a>
+  </div>
+</div>
+{% if reserve_owed %}
+<div class="callout info" role="status" data-testid="reserve-owed">
+  <div><strong>{% translate "Reserve transfer owed" %}: {{ reserve_owed|money }}</strong>
+  <span class="muted">{% translate "Booked reserve contributions not yet moved from the operating to the reserve bank account. Imported transfers are suggested as matches." %}</span></div>
+</div>
+{% endif %}
+{% if insurance_owed %}
+<div class="callout info" role="status" data-testid="insurance-owed">
+  <div><strong>{% translate "Insurance transfer owed" %}: {{ insurance_owed|money }}</strong>
+  <span class="muted">{% translate "Booked insurance transfers not yet moved from the operating bank account to the insurance fund's account." %}</span></div>
+</div>
+{% endif %}
+{% include "banking/_overlaps.html" %}
+{% if feed %}
+<div class="callout{% if not feed.error %} info{% endif %}" role="status" data-testid="bank-feed">
+  <div>
+    {% if feed.error %}<strong>{% blocktranslate with name=feed.name err=feed.error %}{{ name }}: {{ err }}.{% endblocktranslate %}</strong>
+    {% elif feed.last_synced_at %}{% blocktranslate with name=feed.name %}{{ name }} bank feed{% endblocktranslate %} · {% translate "synced" %} {% synced_at feed.last_synced_at %}
+    {% elif feed.connected %}{% blocktranslate with name=feed.name %}{{ name }} bank feed: not synced yet.{% endblocktranslate %}
+    {% else %}{% blocktranslate with name=feed.name %}{{ name }} bank feed is on but not connected.{% endblocktranslate %}{% endif %}
+    <a href="{{ feed.manage_url }}">{% translate "Bank feed settings" %}</a>
+  </div>
+</div>
+{% endif %}
+<section class="card" aria-labelledby="acct-h">
+  <div class="card-h"><h2 id="acct-h">{% translate "Bank accounts" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Bank accounts" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Account" %}</th>
+        <th scope="col">{% translate "GL account" %}</th>
+        <th scope="col">{% translate "Fund" %}</th>
+        <th scope="col" class="num">{% translate "Statement balance" %}</th>
+        <th scope="col"><span class="sr">{% translate "Actions" %}</span></th>
+      </tr></thead>
+      <tbody>
+        {% for a in accounts %}
+        <tr>
+          <td>{{ a.name }}{% if a.masked_number %} <span class="muted">{{ a.masked_number }}</span>{% endif %}{% if not a.active %} {% translate "Inactive" as inactive %}{% badge "" inactive %}{% endif %}</td>
+          <td>{{ a.gl_account.code }} {{ a.gl_account.name }}</td>
+          <td>{{ a.fund.name }}</td>
+          <td class="num">{% if a.stmt_balance is not None %}{{ a.stmt_balance|money }} <span class="muted">{% blocktranslate with d=a.stmt_as_of|date:"M j" %}as of {{ d }}{% endblocktranslate %}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td class="nowrap"><a href="{% url 'banking:account_edit' a.pk %}">{% translate "Edit" %}</a> · <a href="{% url 'banking:mapping' a.pk %}">{% translate "CSV mapping" %}</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "No bank accounts yet. Add one to import statements." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card" aria-labelledby="txn-h">
+  <div class="card-h"><h2 id="txn-h">{% translate "Transactions" %}</h2></div>
+  <div class="card-b">
+    <form method="get" class="form-row">
+      <label>{% translate "Account" %}{{ filters.account }}</label>
+      <label>{% translate "Status" %}{{ filters.status }}</label>
+      <button type="submit" class="btn btn-sm">{% translate "Show" %}</button>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Bank transactions, newest first" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Date" %}</th>
+        <th scope="col">{% translate "Description" %}</th>
+        <th scope="col">{% translate "Account" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+        <th scope="col" class="num">{% translate "Amount" %}</th>
+        <th scope="col" class="num">{% translate "Balance" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for t in txns %}
+        <tr data-testid="bank-txn" data-status="{{ t.status }}">
+          <td class="nowrap">{{ t.date|date:"M j, Y" }}</td>
+          <td><a href="{% url 'banking:txn' t.pk %}">{{ t.description|default:_("(no description)") }}</a>{% if t.memo %} <span class="muted">{{ t.memo }}</span>{% endif %}
+            {% if t.suggestion %}<div class="muted" data-testid="match-suggestion">{% if t.suggestion.kind == "unit" or t.suggestion.kind == "link" and t.suggestion.unit %}{% blocktranslate with unit=t.suggestion.unit reason=t.suggestion.reason %}Suggested: {{ unit }} ({{ reason }}){% endblocktranslate %}{% elif t.suggestion.kind == "interfund" %}{% translate "Suggested: reserve transfer" %}{% elif t.suggestion.kind == "clearing" %}{% blocktranslate with r=t.suggestion.reason %}Suggested: {{ r }}{% endblocktranslate %}{% elif t.suggestion.kind == "bill_pending" %}{{ t.suggestion.reason }}{% elif t.suggestion.kind == "bill" or t.suggestion.kind == "bill_link" %}{% blocktranslate with b=t.suggestion.extra.bill r=t.suggestion.reason %}Suggested: pays bill {{ b }} ({{ r }}){% endblocktranslate %}{% elif t.suggestion.account %}{% blocktranslate with a=t.suggestion.account.name %}Suggested: {{ a }}{% endblocktranslate %}{% endif %}
+              {% if can_manage and t.suggestion.kind != "categorize" and t.suggestion.kind != "bill_pending" %}<form method="post" action="{% url 'banking:confirm' t.pk %}" class="form-actions">{% csrf_token %}<input type="hidden" name="next" value="index">{% if t.suggestion.kind == "unit" %}<input type="hidden" name="unit" value="{{ t.suggestion.unit.pk }}"><input type="hidden" name="reason" value="{{ t.suggestion.reason }}">{% elif t.suggestion.kind == "link" %}<input type="hidden" name="receipt" value="{{ t.suggestion.receipt.pk }}">{% elif t.suggestion.kind == "clearing" %}<input type="hidden" name="clearing" value="{{ t.suggestion.extra.key }}">{% elif t.suggestion.kind == "bill" or t.suggestion.kind == "bill_link" %}<input type="hidden" name="bill" value="{{ t.suggestion.extra.bill.pk }}">{% else %}<input type="hidden" name="partner" value="{{ t.suggestion.partner.pk }}">{% endif %}<button type="submit" class="btn btn-sm">{% translate "Confirm" %}</button></form>{% elif can_manage %}<a class="btn btn-sm" href="{% url 'banking:categorize' t.pk %}">{% translate "Categorize" %}</a>{% endif %}
+            </div>{% endif %}
+          </td>
+          <td>{{ t.bank_account.name }}</td>
+          <td>{% if t.status == "unmatched" %}{% badge "warn" t.get_status_display %}{% elif t.status == "ignored" %}{% badge "" t.get_status_display %}{% else %}{% badge "ok" t.get_status_display %}{% endif %}</td>
+          <td class="num">{{ t.amount|money }}</td>
+          <td class="num">{{ t.running_balance|money_or_blank }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-row">{% translate "No transactions imported yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card" aria-labelledby="imp-h">
+  <div class="card-h"><h2 id="imp-h">{% translate "Recent imports" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Recent imports" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Import" %}</th>
+        <th scope="col">{% translate "Account" %}</th>
+        <th scope="col">{% translate "Dates" %}</th>
+        <th scope="col" class="num">{% translate "Imported" %}</th>
+        <th scope="col" class="num">{% translate "Skipped" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for b in batches %}
+        <tr>
+          <td><a href="{% url 'banking:batch' b.pk %}">#{{ b.pk }} {{ b.get_source_display }} {{ b.filename }}</a>{% if b.is_undone %} {% translate "Undone" as undone %}{% badge "danger" undone %}{% endif %}</td>
+          <td>{{ b.bank_account.name }}</td>
+          <td class="nowrap">{% if b.date_from %}{{ b.date_from|date:"M j" }} – {{ b.date_to|date:"M j, Y" }}{% else %}—{% endif %}</td>
+          <td class="num">{{ b.imported_count }}</td>
+          <td class="num">{{ b.duplicate_count }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "No imports yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

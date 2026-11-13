@@ -1,0 +1,8 @@
+{% load i18n %}
+{% for a, b in overlaps %}
+<div class="callout warn" role="alert" data-testid="bank-overlap">
+  {% blocktranslate with acct=a.bank_account sa=a.get_source_display fa=a.filename sb=b.get_source_display fb=b.filename %}Possible duplicates on {{ acct }}: a {{ sa }} import ({{ fa }}) and a {{ sb }} import ({{ fb }}) cover overlapping dates. Undo one of them:{% endblocktranslate %}
+  <a href="{% url 'banking:batch' a.pk %}">{% blocktranslate with n=a.pk %}import #{{ n }}{% endblocktranslate %}</a>,
+  <a href="{% url 'banking:batch' b.pk %}">{% blocktranslate with n=b.pk %}import #{{ n }}{% endblocktranslate %}</a>
+</div>
+{% endfor %}

@@ -1,0 +1,37 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Categorize rules" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Categorize rules" %}</h1>
+  <p class="muted">{% translate "When a transaction's description contains the text, suggest categorizing it to the account." %}</p>
+</div></div>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Categorize rules" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Description contains" %}</th>
+        <th scope="col">{% translate "Account" %}</th>
+        <th scope="col">{% translate "Note" %}</th>
+        <th scope="col">{% translate "Active" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for r in rules %}
+        <tr><td>{{ r.contains }}</td><td>{{ r.account.name }}</td><td>{{ r.note }}</td><td>{% if r.active %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</td></tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty-row">{% translate "No rules yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card card-pad" aria-labelledby="add-h">
+  <h2 id="add-h">{% translate "Add a rule" %}</h2>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save rule" %}</button></div>
+  </form>
+</section>
+{% endblock %}

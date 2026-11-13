@@ -1,0 +1,67 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags ui %}
+{% block title %}{% translate "General ledger detail" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "General ledger detail" %}</h1>
+    <p class="muted">{% translate "Every posted line by account, with running balances (debits positive)." %}
+      {% if basis == "cash" %}{% translate "Cash basis: only money that moved through the bank, dated when it moved." %}{% endif %}</p>
+  </div>
+  {% export_links %}
+</div>
+{% include "reports/_nav.html" %}
+<section class="card" aria-labelledby="gl-filter-h">
+  <h2 id="gl-filter-h" class="sr">{% translate "Filters" %}</h2>
+  <form method="get" class="form-row">
+    <label>{% translate "Account" %}
+      <select name="account">
+        <option value="">{% translate "All accounts" %}</option>
+        {% for a in accounts %}<option value="{{ a.code }}"{% if a == account %} selected{% endif %}>{{ a.code }} {{ a.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>{% translate "From" %}<input type="date" name="start" value="{{ start|date:'Y-m-d' }}"></label>
+    <label>{% translate "To" %}<input type="date" name="end" value="{{ end|date:'Y-m-d' }}"></label>
+    {% include "reports/_filters.html" with with_basis=True %}
+  </form>
+</section>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "General ledger lines by account" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Date" %}</th>
+          <th scope="col">{% translate "Entry" %}</th>
+          <th scope="col">{% translate "Memo" %}</th>
+          <th scope="col">{% translate "Fund" %}</th>
+          <th scope="col" class="num">{% translate "Debit" %}</th>
+          <th scope="col" class="num">{% translate "Credit" %}</th>
+          <th scope="col" class="num">{% translate "Balance" %}</th>
+        </tr>
+      </thead>
+      {% for g in groups %}
+      <tbody>
+        <tr class="group">
+          <th scope="rowgroup" colspan="6">{{ g.account.code }} {{ g.account.name }}</th>
+          <td class="num">{% if start %}{{ g.opening|money }}{% endif %}</td>
+        </tr>
+        {% for r in g.rows %}
+        <tr>
+          <td class="nowrap">{{ r.line.entry.date|date:"Y-m-d" }}</td>
+          <td class="nowrap">{{ r.line.entry.pk }}{% if r.line.entry.reversal_of_id %} <span class="badge">{% translate "reversal" %}</span>{% endif %}</td>
+          <td>{{ r.line.memo|default:r.line.entry.memo }}</td>
+          <td>{{ r.line.fund.name }}</td>
+          <td class="num">{{ r.line.debit|money_or_blank }}</td>
+          <td class="num">{{ r.line.credit|money_or_blank }}</td>
+          <td class="num">{{ r.balance|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% empty %}
+      <tbody><tr><td colspan="7" class="muted">{% translate "No lines match." %}</td></tr></tbody>
+      {% endfor %}
+    </table>
+  </div>
+</section>
+{% endblock %}

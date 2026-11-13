@@ -1,0 +1,27 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% if form %}{{ form.name }}{% else %}{% translate "New form" %}{% endif %}{% endblock %}
+{% block content %}
+<a href="{% url 'arc:forms' %}" class="btn btn-ghost btn-sm">{% translate "Forms & reviewers" %}</a>
+<div class="hero"><div><h1>{% if form %}{{ form.name }}{% else %}{% translate "New form" %}{% endif %}</h1>
+  <p class="muted">{% translate "One row per field, in the order owners see them. Leave a label blank to remove a field. Requests already submitted keep the fields they were submitted with." %}</p></div></div>
+<section class="card"><div class="card-b">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <div class="field"><label class="field-l" for="f-name">{% translate "Form name" %}</label><input type="text" id="f-name" name="name" maxlength="120" required value="{{ name }}"></div>
+    <div class="field check"><label for="f-active"><input type="checkbox" id="f-active" name="active"{% if not form or form.active %} checked{% endif %}> <span>{% translate "In use" %}</span></label></div>
+    <div class="field"><label class="field-l" for="f-law">{% translate "Deadline set by law" %}</label><select id="f-law" name="statutory_kind" aria-describedby="f-law-h">{% for value, label in statutory_kinds %}<option value="{{ value }}"{% if value == statutory_kind %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><p class="field-help" id="f-law-h">{% translate "Where your rule pack sets one (WA: 60 days for EV chargers and heat pumps), a request on this form not denied in writing in time is recorded as approved." %}</p></div>
+    <div class="field full"><label class="field-l" for="f-desc">{% translate "Instructions for owners" %}</label><textarea id="f-desc" name="description" rows="2">{{ form.description|default:'' }}</textarea></div>
+    <div class="table-wrap full"><table class="t" data-testid="field-rows">
+      <thead><tr><th scope="col">{% translate "Label" %}</th><th scope="col">{% translate "Type" %}</th><th scope="col">{% translate "Options (for a choice, comma-separated)" %}</th><th scope="col">{% translate "Required" %}</th></tr></thead>
+      <tbody>{% for r in rows %}<tr>
+        <td><input type="hidden" name="key" value="{{ r.key }}"><input type="text" name="label" maxlength="200" value="{{ r.label }}" aria-label="{% translate 'Label' %}"></td>
+        <td><select name="kind" aria-label="{% translate 'Type' %}">{% for val, label in kinds %}<option value="{{ val }}"{% if r.kind == val %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+        <td><input type="text" name="choices" value="{{ r.choices_text }}" aria-label="{% translate 'Options' %}"></td>
+        <td><input type="checkbox" name="required" value="{{ forloop.counter0 }}"{% if r.required %} checked{% endif %} aria-label="{% translate 'Required' %}"></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save form" %}</button></div>
+  </form>
+</div></section>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% blocktranslate with number=r.number %}Resolution {{ number }}{% endblocktranslate %}{% endblock %}
+{% block content %}
+<a href="{% url 'governance:index' %}" class="btn btn-ghost btn-sm">{% translate "Board & committees" %}</a>
+<div class="hero">
+  <div>
+    <h1>{% blocktranslate with number=r.number %}Resolution {{ number }}{% endblocktranslate %}: {{ r.title }}</h1>
+    <p class="muted" data-testid="status">
+      <span class="badge {% if r.status == 'adopted' %}ok{% elif r.status == 'rescinded' %}danger{% else %}warn{% endif %}">{{ r.get_status_display }}</span>
+      {% if r.adopted_on %}{% blocktranslate with date=r.adopted_on|date:"M j, Y" %}Adopted {{ date }}{% endblocktranslate %}{% endif %}
+      {% if r.rescinded_on %} · {% blocktranslate with date=r.rescinded_on|date:"M j, Y" reason=r.rescind_reason %}Rescinded {{ date }}: {{ reason }}{% endblocktranslate %}{% endif %}
+    </p>
+  </div>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card">
+      <div class="card-h"><h2>{% translate "Text" %}</h2></div>
+      <div class="card-b">
+        {% if can_manage and r.is_draft %}
+        <form method="post" action="{% url 'governance:resolution_act' r.pk %}" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="edit">
+          <label>{% translate "Title" %} <input type="text" name="title" value="{{ r.title }}" maxlength="200"></label>
+          <label>{% translate "Text" %} <textarea name="text" rows="10">{{ r.text }}</textarea></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Save draft" %}</button></div>
+        </form>
+        {% else %}
+        <div class="letter-body">{{ r.text }}</div>
+        {% if r.pdf_key %}<p class="mt-16"><a href="{% url 'governance:resolution_pdf' r.pk %}">{% translate "Download PDF" %}</a> <span class="muted">({{ r.get_pdf_visibility_display }})</span></p>{% endif %}
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h"><h2>{% translate "Action items" %}</h2></div>
+      <div class="card-b">
+        <ul class="list">
+          {% for i in action_items %}
+          <li>{{ i.title }} · {{ i.owner }} · {{ i.due_date|date:"M j, Y"|default:"—" }} <span class="badge">{{ i.get_status_display }}</span></li>
+          {% empty %}<li class="muted">{% translate "None." %}</li>{% endfor %}
+        </ul>
+        {% if can_manage and voters %}
+        <form method="post" action="{% url 'governance:action_add' %}" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="resolution" value="{{ r.pk }}">
+          <label>{% translate "Title" %} <input type="text" name="title" maxlength="200" required></label>
+          <label>{% translate "Owner" %}
+            <select name="owner">{% for v in voters %}<option value="{{ v.person.pk }}">{{ v.person }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Due date" %} <input type="date" name="due_date"></label>
+          <div class="form-actions"><button type="submit" class="btn btn-sm">{% translate "Add action item" %}</button></div>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card">
+      <div class="card-h"><h2>{% translate "Board vote" %}</h2></div>
+      <div class="card-b">
+        <p data-testid="tally">{% blocktranslate with f=tally.for a=tally.against s=tally.abstain %}For {{ f }} · Against {{ a }} · Abstain {{ s }}{% endblocktranslate %}</p>
+        {% if can_manage and r.is_draft %}
+        <form method="post" action="{% url 'governance:resolution_act' r.pk %}" class="stack">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="votes">
+          {% for v in voters %}
+          <label>{{ v.person }}
+            <select name="vote-{{ v.person.pk }}">
+              <option value="">{% translate "No vote" %}</option>
+              {% for val, label in vote_choices %}<option value="{{ val }}"{% if val == v.vote %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </label>
+          {% endfor %}
+          <button type="submit" class="btn btn-sm">{% translate "Save votes" %}</button>
+        </form>
+        {% else %}
+        <ul class="list">{% for v in voters %}{% if v.vote %}<li>{{ v.person }}: {{ v.label }}</li>{% endif %}{% endfor %}</ul>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if can_manage and r.is_draft %}
+    <section class="card">
+      <div class="card-h"><h2>{% translate "Adopt" %}</h2></div>
+      <div class="card-b">
+        <form method="post" enctype="multipart/form-data" action="{% url 'governance:resolution_act' r.pk %}" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="adopt">
+          <label>{% translate "Adopted on" %} <input type="date" name="adopted_on" value="{{ today|date:'Y-m-d' }}" required></label>
+          <label>{% translate "Signed PDF (optional)" %} <input type="file" name="pdf" accept="application/pdf"></label>
+          <label>{% translate "PDF visible to" %}
+            <select name="visibility">{% for v, l in visibilities %}<option value="{{ v }}"{% if v == "owners" %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+          </label>
+          <p class="muted">{% translate "After adoption the resolution cannot be edited, only rescinded." %}</p>
+          <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Adopt resolution" %}</button></div>
+        </form>
+      </div>
+    </section>
+    {% elif can_manage and r.status == "adopted" %}
+    <section class="card">
+      <div class="card-h"><h2>{% translate "Rescind" %}</h2></div>
+      <div class="card-b">
+        <form method="post" action="{% url 'governance:resolution_act' r.pk %}" class="form-grid">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="rescind">
+          <label>{% translate "Rescinded on" %} <input type="date" name="on" value="{{ today|date:'Y-m-d' }}" required></label>
+          <label>{% translate "Reason" %} <input type="text" name="reason" maxlength="300" required></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Rescind resolution" %}</button></div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

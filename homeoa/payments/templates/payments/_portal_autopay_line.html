@@ -1,0 +1,4 @@
+{% load i18n %}<div class="mt-10 center" data-testid="autopay-line">
+        {% if enrollment %}{% blocktranslate with date=enrollment.starts_on|date:"M j" %}Autopay is on from {{ date }}{% endblocktranslate %}
+        {% else %}<a class="inline-link" href="{% url 'portal:autopay' %}?unit={{ pay.unit.number }}">{% translate "Turn on autopay" %}</a> {% translate "so you never think about it" %}{% endif %}
+      </div>

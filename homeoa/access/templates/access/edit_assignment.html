@@ -1,0 +1,56 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Edit role" %}{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+  .acc-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; padding: 14px 16px; }
+  .acc-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .acc-form input, .acc-form select { min-height: 34px; padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; }
+  .acc-form .errorlist { margin: 2px 0 0; padding: 0; list-style: none; color: var(--danger); font-size: 12px; font-weight: 500; }
+  .acc-form > .errorlist { grid-column: 1 / -1; }
+  .acc-actions { display: flex; gap: 8px; align-items: center; grid-column: 1 / -1; }
+  .acc-stack { display: flex; flex-direction: column; gap: 16px; }
+  .acc-changes { list-style: none; margin: 0; padding: 0; }
+</style>
+<div class="hero"><div><h1>{% translate "Edit role" %}</h1>
+  <p class="muted">{{ assignment.user.email }} · {{ assignment.role }}</p></div></div>
+<div class="acc-stack">
+<section class="card" aria-labelledby="edit-h">
+  <div class="card-h"><h2 id="edit-h">{% translate "Title and dates" %}</h2></div>
+  <form method="post" class="acc-form" data-testid="edit-assignment-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <label>{{ field.label }}{{ field }}{{ field.errors }}</label>
+    {% endfor %}
+    <div class="acc-actions"><button type="submit" class="btn btn-primary">{% translate "Send for approval" %}</button>
+      <a class="btn btn-ghost" href="{% url 'access:index' %}">{% translate "Cancel" %}</a></div>
+  </form>
+</section>
+
+<section class="card" aria-labelledby="hist-h">
+  <div class="card-h"><h2 id="hist-h">{% translate "History" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t" data-testid="assignment-history">
+      <thead><tr>
+        <th scope="col">{% translate "When" %}</th>
+        <th scope="col">{% translate "Who" %}</th>
+        <th scope="col">{% translate "Change" %}</th>
+      </tr></thead>
+      <tbody>
+      {% for row in history %}
+        <tr>
+          <td class="nowrap">{{ row.event.created_at }}</td>
+          <td>{{ row.event.actor_label|default:"—" }}</td>
+          <td>{% if row.event.action == "create" %}{% translate "Assigned" %}{% elif row.event.action == "delete" %}{% translate "Removed" %}{% endif %}
+            {% if row.items %}<ul class="acc-changes">{% for label, before, after in row.items %}<li>{{ label|capfirst }}: {% if row.event.action == "create" %}{{ after }}{% else %}{{ before }} → {{ after }}{% endif %}</li>{% endfor %}</ul>{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3" class="muted">{% translate "No changes recorded." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+{% endblock %}

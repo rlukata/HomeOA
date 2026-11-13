@@ -1,0 +1,18 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{{ title }}</h1>
+  <p class="muted">{% translate "Give an annual amount or an amount per month. Owners are billed in the operating fund; one twelfth of the yearly reserve contribution moves to the reserve fund with each month." %}</p>
+</div></div>
+<section class="card card-pad">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+      <a class="btn btn-ghost" href="{% url 'billing:index' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

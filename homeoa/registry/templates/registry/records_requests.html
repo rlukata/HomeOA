@@ -1,0 +1,48 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Records requests" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Records requests" %}</h1>
+  <p class="muted">{% translate "Owners' requests to inspect or copy association records. Owners ask under More > Records requests; log requests that came by email, mail or in person here. Each open request is a to-do on Home until its due date." %}</p></div></div>
+<div class="stack">
+  <section class="card" aria-labelledby="requests-h" data-testid="records-requests">
+    <div class="card-h"><h2 id="requests-h">{% translate "Requests" %}</h2></div>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Owner records requests" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "From" %}</th>
+          <th scope="col">{% translate "Received" %}</th>
+          <th scope="col">{% translate "Due" %}</th>
+          <th scope="col">{% translate "Latest" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+          <th scope="col"><span class="sr">{% translate "Actions" %}</span></th>
+        </tr></thead>
+        <tbody>
+        {% for r in requests %}
+          <tr>
+            <td>{% if r.person %}{{ r.person.full_name }}{% else %}{{ r.requester_name }}{% endif %}{% if r.delivery %} · {{ r.get_delivery_display }}{% endif %}{% if r.note %}<div class="small muted">{{ r.note }}</div>{% endif %}</td>
+            <td class="nowrap">{{ r.received_on|date:"Y-m-d" }}</td>
+            <td class="nowrap">{{ r.due_on|date:"Y-m-d"|default:"—" }}</td>
+            <td class="nowrap">{{ r.latest_on|date:"Y-m-d"|default:"—" }}</td>
+            <td>{% if r.fulfilled_on %}{% badge "ok" _("Fulfilled") %}{% else %}{% badge "warn" _("Open") %}{% endif %}</td>
+            <td>{% if not r.fulfilled_on %}<form method="post" action="{% url 'registry:records_request_done' r.pk %}">{% csrf_token %}<button type="submit" class="btn btn-sm btn-ghost">{% translate "Mark fulfilled" %}</button></form>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="muted">{% translate "No records requests logged." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card" aria-labelledby="log-h">
+    <div class="card-h"><h2 id="log-h">{% translate "Log a request" %}</h2></div>
+    <div class="card-b card-pad-t">
+      <form method="post" action="{% url 'registry:records_request_add' %}" class="form-grid">{% csrf_token %}
+        {% include "ui/components/form.html" with form=request_form %}
+        <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Log request" %}</button></div>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}

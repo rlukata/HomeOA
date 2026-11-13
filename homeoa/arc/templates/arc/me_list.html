@@ -1,0 +1,15 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="hero"><h1>{% translate "Architectural requests" %}</h1>
+  {% if owned_units %}<a class="btn btn-primary" href="{% url 'arc:mine_new' %}">{% translate "New request" %}</a>{% endif %}</div>
+<section class="card"><div class="card-b card-pad-t">
+  <p class="muted">{% translate "Ask the board before changing the outside of your home: paint, windows, doors, landscaping or structure." %}</p>
+  <ul class="list" data-testid="my-arc">
+    {% for r in reqs %}<li><a href="{% url 'arc:mine_detail' r.pk %}"><b>{{ r.title }}</b></a> · {{ r.unit }}
+      <span class="badge {% if r.status == 'denied' %}danger{% elif r.status == 'info_requested' %}warn{% elif r.status == 'approved' or r.status == 'approved_with_conditions' %}ok{% endif %}">{{ r.get_status_display }}</span>
+      <div class="muted">{% blocktranslate with date=r.submitted_on|date:"M j, Y" %}Submitted {{ date }}{% endblocktranslate %}</div></li>
+    {% empty %}<li class="muted">{% translate "No requests yet." %}</li>{% endfor %}
+  </ul>
+</div></section>
+{% endblock %}

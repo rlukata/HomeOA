@@ -1,0 +1,32 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Calendar" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Community" %}</h1>
+    <p class="muted">{% translate "Announcements and calendar for owners and tenants" %}</p>
+  </div>
+  <div class="row wrap-ok"><a class="btn btn-primary" href="{% url 'community:event_new' %}" data-testid="new-event">{% translate "New event" %}</a></div>
+</div>
+<div class="g">
+  <section class="card span2" aria-labelledby="cal-h">
+    <div class="card-h"><h2 id="cal-h">{% translate "Coming up" %}</h2></div>
+    {% include "community/_events.html" with events=rows edit=True %}
+    <div class="card-gap"></div>
+  </section>
+  <div class="stack">
+    <section class="card" aria-labelledby="feed-h">
+      <div class="card-h"><h2 id="feed-h">{% translate "iCal feed" %}</h2></div>
+      {% include "community/_feed.html" %}
+    </section>
+    {% if past %}
+    <section class="card" aria-labelledby="past-h">
+      <div class="card-h"><h2 id="past-h">{% translate "Past events" %}</h2></div>
+      <ul class="list">{% for e in past %}<li class="feed-i"><a href="{% url 'community:event_edit' e.pk %}">{{ e.title }}</a><span class="when">{{ e.start_date|date:"M j, Y" }}</span></li>{% endfor %}</ul>
+      <div class="card-gap"></div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

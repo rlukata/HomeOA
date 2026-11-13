@@ -1,0 +1,42 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Budget vs actual" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Budget vs actual" %}</h1>
+  <p class="muted">{% blocktranslate with name=budget.name start=report.start|date:"M j, Y" end=report.as_of|date:"M j, Y" %}{{ name }}, actuals {{ start }} to {{ end }} (accrual).{% endblocktranslate %}</p>
+</div></div>
+<div class="kpis">
+  <div class="kpi"><div class="kpi-l">{% translate "Expense budget" %}</div><div class="kpi-v" data-testid="bva-budget">{{ report.expense_budget|money }}</div></div>
+  <div class="kpi"><div class="kpi-l">{% translate "Spent year to date" %}</div><div class="kpi-v" data-testid="bva-spent">{{ report.expense_actual|money }}</div></div>
+  <div class="kpi"><div class="kpi-l">{% translate "Of budget used" %}</div><div class="kpi-v" data-testid="bva-used">{% if report.expense_used_pct is not None %}{{ report.expense_used_pct }}%{% endif %}</div></div>
+  <div class="kpi"><div class="kpi-l">{% translate "Of year elapsed" %}</div><div class="kpi-v" data-testid="bva-elapsed">{{ report.elapsed_pct }}%</div></div>
+</div>
+<section class="card" aria-labelledby="bva-h">
+  <div class="card-h"><h2 id="bva-h">{% translate "By line" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Budget vs actual by line" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Line" %}</th><th scope="col">{% translate "Fund" %}</th>
+        <th scope="col" class="num">{% translate "Budget" %}</th><th scope="col" class="num">{% translate "Actual" %}</th>
+        <th scope="col" class="num">{% translate "Variance" %}</th><th scope="col" class="num">{% translate "Variance %" %}</th>
+        <th scope="col" class="num">{% translate "Used" %}</th></tr></thead>
+      {% for name, rows in report.groups %}
+      <tbody>
+        <tr class="group-row"><th scope="rowgroup" colspan="7">{{ name }}</th></tr>
+        {% for r in rows %}
+        <tr data-testid="bva-row-{{ r.account.code }}-{{ r.fund.code }}">
+          <td>{{ r.label }}</td><td>{{ r.fund }}</td>
+          <td class="num">{{ r.budget|money }}</td><td class="num">{{ r.actual|money }}</td>
+          <td class="num">{{ r.variance|money }}</td>
+          <td class="num">{% if r.variance_pct is not None %}{{ r.variance_pct }}%{% endif %}</td>
+          <td class="num">{% if r.used_pct is not None %}{{ r.used_pct }}%{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      {% endfor %}
+    </table>
+  </div>
+</section>
+{% endblock %}

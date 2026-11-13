@@ -1,0 +1,29 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Poll" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page stack">
+<p class="small muted">{% translate "Poll · not a vote. The board asks for your view; nothing is decided by it." %}</p>
+<h1 class="h-page">{{ poll.question }}</h1>
+{% if poll.details %}<p>{{ poll.details|linebreaksbr }}</p>{% endif %}
+<p class="small muted">{% blocktranslate with o=poll.opens_on|date:"M j" c=poll.closes_on|date:"M j, Y" %}Open {{ o }} to {{ c }}. One answer per unit; you can change it while the poll is open.{% endblocktranslate %}</p>
+{% for u, a in units %}
+<section class="card" data-testid="poll-unit"><div class="card-b card-pad-t">
+  {% if units|length > 1 %}<h2 class="h-sub">{{ u }}</h2>{% endif %}
+  {% if open_now %}
+  <form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="unit" value="{{ u.number }}">
+    <fieldset class="field"><legend class="field-l">{% translate "Your answer" %}</legend>
+      <div class="choices">{% for c in poll.choices %}<label><input type="radio" name="choice" value="{{ forloop.counter0 }}" required{% if a and a.choice == forloop.counter0 %} checked{% endif %}> {{ c }}</label>{% endfor %}</div></fieldset>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% if a %}{% translate "Change answer" %}{% else %}{% translate "Send answer" %}{% endif %}</button></div>
+  </form>
+  {% elif a %}<p>{% translate "This poll is closed. Your unit answered." %}</p>
+  {% else %}<p>{% translate "This poll is closed." %}</p>{% endif %}
+</div></section>
+{% endfor %}
+{% if results %}
+<section class="card" data-testid="poll-results"><div class="card-h"><h2>{% translate "Results" %}</h2></div>
+  <ul class="rows card-b">{% for c, n, pct in results.rows %}<li>{{ c }}: {{ n }} ({{ pct }}%)</li>{% endfor %}</ul></section>
+{% endif %}
+</div>
+{% endblock %}

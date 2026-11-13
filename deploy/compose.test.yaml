@@ -1,0 +1,90 @@
+# Throwaway stack for the backup -> restore drill (deploy/drill.sh): Postgres 17, MinIO as
+# the S3-compatible bucket, and the backup tool image. Local, fake credentials only.
+name: homeoa-backup-drill
+
+x-pg: &pg
+  PGHOST: db
+  PGUSER: drill
+  PGPASSWORD: drill-password
+  PGDATABASE: homeoa
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: drill
+      POSTGRES_PASSWORD: drill-password
+      POSTGRES_DB: homeoa
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drill"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  minio:
+    # Upstream stopped publishing minio/minio images (2025); pgsty/minio is a community
+    # build of the same server. Override with HOMEOA_MINIO_IMAGE.
+    image: ${HOMEOA_MINIO_IMAGE:-pgsty/minio:latest}
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: drillaccess
+      MINIO_ROOT_PASSWORD: drillsecret123
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # The real app image, used to migrate the full HomeOA schema into the drill database.
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: homeoa:drill
+    command: ["migrate"]
+    environment:
+      HOMEOA_DB_HOST: db
+      HOMEOA_DB_USER: drill
+      HOMEOA_DB_PASSWORD: drill-password
+      HOMEOA_DB_NAME: homeoa
+      HOMEOA_SECRET_KEY: drill-only-not-a-real-secret-key-0123456789abcdefghijklmnop
+      HOMEOA_FIELD_KEYS: ZxBFQzV0wh4mnXQim1_pLdCRfc-HXr6s8f-IZO3m-ow=
+      HOMEOA_ALLOWED_HOSTS: localhost
+      HOMEOA_BASE_URL: https://localhost
+    depends_on:
+      db: {condition: service_healthy}
+
+  tool:
+    build:
+      context: ..
+      dockerfile: deploy/backup.Dockerfile
+    image: homeoa-backup:drill
+    user: root
+    entrypoint: ["bash", "-c"]
+    command: ["true"]
+    environment:
+      <<: *pg
+      BACKUP_S3_BUCKET: homeoa-backups
+      BACKUP_S3_PREFIX: drill/
+      BACKUP_S3_ENDPOINT: http://minio:9000
+      AWS_ACCESS_KEY_ID: drillaccess
+      AWS_SECRET_ACCESS_KEY: drillsecret123
+      AWS_DEFAULT_REGION: us-east-1
+      BACKUP_MEDIA_DIR: /data/media
+      BACKUP_AGE_IDENTITY_FILE: /keys/age.key
+      BACKUP_RETENTION_DAYS: "30"
+      BACKUP_STATUS_DIR: /status
+    volumes:
+      - status:/status
+      - keys:/keys
+      - media:/data/media
+      - restored:/restored
+    depends_on:
+      db: {condition: service_healthy}
+      minio: {condition: service_healthy}
+
+volumes:
+  keys:
+  media:
+  restored:
+  status:

@@ -1,0 +1,31 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block content %}
+<a href="{% url 'arc:mine' %}" class="btn btn-ghost btn-sm">{% translate "Architectural requests" %}</a>
+<div class="hero"><div><h1>{{ req.title }}</h1>
+  <p class="muted" data-testid="status"><span class="badge {% if req.status == 'denied' %}danger{% elif req.status == 'info_requested' %}warn{% elif req.status == 'approved' or req.status == 'approved_with_conditions' %}ok{% endif %}">{{ req.get_status_display }}</span>
+  {{ req.unit }} · {% blocktranslate with date=req.submitted_on|date:"M j, Y" %}Submitted {{ date }}{% endblocktranslate %}{% if req.deemed %} <span class="badge">{% translate "Approved by law: not denied in time" %}</span>{% endif %}</p></div></div>
+<section class="card"><div class="card-b card-pad-t">
+  {% include "arc/_answers.html" %}
+  {% if req.decision_note %}<h3>{% translate "Note from the board" %}</h3><p>{{ req.decision_note|linebreaksbr }}</p>{% endif %}
+  {% if req.decision_letter_id %}<p data-testid="decision-letter"><a href="{% url 'arc:mine_letter' req.pk %}">{% translate "Decision letter (PDF)" %}</a></p>{% endif %}
+  {% if attachments %}<h3>{% translate "Attachments" %}</h3><ul class="list">{% for a in attachments %}<li><a href="{% url 'arc:mine_file' req.pk a.pk %}">{{ a.version.file_name }}</a></li>{% endfor %}</ul>{% endif %}
+</div></section>
+<section class="card"><div class="card-h"><h2>{% translate "Messages" %}</h2></div><div class="card-b">
+  <ul class="list" data-testid="comments">
+    {% for c in comments %}<li><b>{{ c.author_name }}</b> <span class="muted">{{ c.created_at|date:"M j, Y" }}</span><div>{{ c.body|linebreaksbr }}</div></li>
+    {% empty %}<li class="muted">{% translate "No messages yet." %}</li>{% endfor %}
+  </ul>
+  {% if req.is_open %}
+  <form method="post" action="{% url 'arc:mine_act' req.pk %}" class="form-grid">
+    {% csrf_token %}<input type="hidden" name="action" value="reply">
+    <div class="field full"><label class="field-l" for="r-body">{% if req.status == 'info_requested' %}{% translate "Answer the board" %}{% else %}{% translate "Message the board" %}{% endif %}</label><textarea id="r-body" name="body" rows="3" required></textarea></div>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Send" %}</button></div>
+  </form>
+  <form method="post" action="{% url 'arc:mine_act' req.pk %}">
+    {% csrf_token %}<input type="hidden" name="action" value="withdraw">
+    <button type="submit" class="btn btn-ghost btn-sm">{% translate "Withdraw request" %}</button>
+  </form>
+  {% endif %}
+</div></section>
+{% endblock %}

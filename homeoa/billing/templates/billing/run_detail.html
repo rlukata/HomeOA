@@ -1,0 +1,48 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% blocktranslate with month=run.period|date:"F Y" %}Assessments · {{ month }}{% endblocktranslate %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% blocktranslate with month=run.period|date:"F Y" %}Assessments · {{ month }}{% endblocktranslate %}</h1>
+    <p class="muted">{% blocktranslate with name=run.schedule.name c=run.charge_date|date:"M j, Y" %}{{ name }} · charged {{ c }}{% endblocktranslate %}</p>
+  </div>
+  <div class="hero-actions"><a class="btn btn-ghost" href="{% url 'billing:index' %}">{% translate "Back to assessments" %}</a></div>
+</div>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Charges in this run" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Due" %}</th>
+          <th scope="col" class="num">{% translate "Charge" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in charges %}
+        <tr>
+          <td>{{ c.unit.number }}</td>
+          <td>{{ c.due_date|date:"M j" }}</td>
+          <td class="num">{{ c.operating_amount|money }}</td>
+          <td class="num">{{ c.amount|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row" colspan="2">{% translate "Total" %}</th>
+          <td class="num">{{ run.total|money }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% if run.reserve_amount %}
+  <p class="card-f muted">{% blocktranslate with r=run.reserve_amount|money %}Reserve contribution {{ r }} posted from operating to reserve (5900/2900 and 1900/4900).{% endblocktranslate %}</p>
+  {% endif %}
+  {% if run.insurance_amount %}
+  <p class="card-f muted">{% blocktranslate with r=run.insurance_amount|money %}Insurance transfer {{ r }} posted from operating to insurance (5910/2920 and 1920/4910).{% endblocktranslate %}</p>
+  {% endif %}
+</section>
+{% endblock %}

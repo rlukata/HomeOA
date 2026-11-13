@@ -1,0 +1,50 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Adjustments" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Adjustments" %}</h1>
+    <p class="muted">{% translate "Credit memos, write-offs, manual charges and voided charges. Every adjustment needs a reason and is recorded in the audit log." %}</p>
+  </div>
+  <div class="hero-actions"><a class="btn btn-ghost" href="{% url 'payments:index' %}">{% translate "Payments" %}</a></div>
+</div>
+{% if summary %}
+<section class="card" aria-labelledby="sum-h">
+  <div class="card-h"><h2 id="sum-h">{% translate "Unit balance" %}</h2></div>
+  {% include "payments/_unit_summary.html" %}
+</section>
+{% endif %}
+{% if form %}
+<section class="card card-pad" aria-labelledby="adj-h">
+  <h2 id="adj-h">{% translate "New adjustment" %}</h2>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save adjustment" %}</button></div>
+  </form>
+</section>
+{% endif %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Recent adjustments" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Date" %}</th>
+        <th scope="col">{% translate "Unit" %}</th>
+        <th scope="col">{% translate "Type" %}</th>
+        <th scope="col" class="num">{% translate "Amount" %}</th>
+        <th scope="col">{% translate "Account" %}</th>
+        <th scope="col">{% translate "Reason" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for a in adjustments %}
+        <tr><td>{{ a.date|date:"M j, Y" }}</td><td>{{ a.unit.number }}</td><td>{{ a.get_kind_display }}</td><td class="num">{{ a.amount|money }}</td><td>{{ a.account }}</td><td>{{ a.reason }}</td></tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-row">{% translate "No adjustments yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

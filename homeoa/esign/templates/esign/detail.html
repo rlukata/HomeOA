@@ -1,0 +1,52 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ envelope.title }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ envelope.title }}</h1>
+    <p class="muted"><span class="badge" data-testid="esign-status">{{ envelope.get_status_display }}</span> · {{ envelope.get_routing_display }}</p>
+  </div>
+  <div class="row">
+    <a class="btn" href="{% url 'esign:file' envelope.pk 'original' %}">{% translate "Original" %}</a>
+    {% if envelope.result_key %}<a class="btn btn-primary" href="{% url 'esign:file' envelope.pk 'signed' %}" data-testid="signed-pdf">{% translate "Signed PDF" %}</a>{% endif %}
+    {% if can_manage and envelope.status == 'draft' %}
+    <form method="post" action="{% url 'esign:send' envelope.pk %}">{% csrf_token %}<button class="btn btn-primary" type="submit">{% translate "Send" %}</button></form>
+    {% endif %}
+    {% if can_manage and needs_review %}
+    <form method="post" action="{% url 'esign:reviewed' envelope.pk %}">{% csrf_token %}<button class="btn" type="submit" data-testid="esign-reviewed">{% translate "Mark reviewed" %}</button></form>
+    {% endif %}
+    {% if can_manage and envelope.is_open %}
+    <form method="post" action="{% url 'esign:void' envelope.pk %}">{% csrf_token %}<button class="btn" type="submit">{% translate "Void" %}</button></form>
+    {% endif %}
+  </div>
+</div>
+{% if envelope.message %}<section class="card"><p>{{ envelope.message|linebreaksbr }}</p></section>{% endif %}
+<section class="card">
+  <div class="card-h"><h2>{% translate "Signers" %}</h2></div>
+  <div class="table-wrap"><table class="t" data-testid="esign-signers">
+    <thead><tr><th scope="col">#</th><th scope="col">{% translate "Signer" %}</th><th scope="col">{% translate "Status" %}</th><th scope="col">{% translate "When (UTC)" %}</th><th scope="col"><span class="sr">{% translate "Actions" %}</span></th></tr></thead>
+    <tbody>
+    {% for s in signers %}
+      <tr>
+        <td>{{ s.order }}</td>
+        <td>{{ s.name }} <span class="muted">{{ s.email }}</span></td>
+        <td>{{ s.get_status_display }}{% if s.decline_reason %}: {{ s.decline_reason }}{% endif %}</td>
+        <td class="nowrap">{% if s.acted_at %}{{ s.acted_at|date:"Y-m-d H:i" }}{% endif %}</td>
+        <td>{% if s.invite_failed and s.status == 'invited' %}<span class="badge danger" data-testid="invite-failed">{% translate "Email failed" %}</span> {% endif %}{% if can_manage and envelope.status == 'sent' and s.status == 'invited' %}<form method="post" action="{% url 'esign:resend' envelope.pk s.pk %}">{% csrf_token %}<button class="btn" type="submit">{% translate "Resend link" %}</button></form>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+<section class="card">
+  <div class="card-h"><h2>{% translate "History" %}</h2></div>
+  {% if envelope.source_sha256 %}<p class="muted">{% translate "SHA-256 of the original:" %} <code>{{ envelope.source_sha256 }}</code></p>{% endif %}
+  {% if envelope.result_sha256 %}<p class="muted">{% translate "SHA-256 of the signed PDF:" %} <code data-testid="result-sha">{{ envelope.result_sha256 }}</code></p>{% endif %}
+  <ul data-testid="esign-events">
+  {% for ev in events %}
+    <li><span class="nowrap">{{ ev.at|date:"Y-m-d H:i:s" }}</span> · {{ ev.get_kind_display }}{% if ev.signer %} · {{ ev.signer.name }}{% endif %}{% if ev.ip %} · {{ ev.ip }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

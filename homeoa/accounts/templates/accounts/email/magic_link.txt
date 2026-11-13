@@ -1,0 +1,5 @@
+{% load i18n %}{% blocktranslate %}Use this link to sign in. It works once and expires in {{ minutes }} minutes:{% endblocktranslate %}
+
+{{ url }}
+
+{% translate "If you didn't ask to sign in, you can ignore this email." %}

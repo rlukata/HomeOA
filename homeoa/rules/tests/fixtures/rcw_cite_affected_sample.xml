@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SYNTHETIC sample built from the service's WSDL shape; not a recorded reply. -->
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <GetLegislationAffectingRcwCiteResponse xmlns="http://WSLWebServices.leg.wa.gov/">
+      <GetLegislationAffectingRcwCiteResult>
+        <LegislationInfo>
+          <Biennium>2025-26</Biennium>
+          <BillId>SB 9991</BillId>
+          <BillNumber>9991</BillNumber>
+          <SubstituteVersion>1</SubstituteVersion>
+          <EngrossedVersion>1</EngrossedVersion>
+          <ShortLegislationType>
+            <ShortLegislationType>B</ShortLegislationType>
+            <LongLegislationType>Bill</LongLegislationType>
+          </ShortLegislationType>
+          <OriginalAgency>Senate</OriginalAgency>
+          <Active>true</Active>
+          <DisplayNumber>ESSB 9991</DisplayNumber>
+        </LegislationInfo>
+        <LegislationInfo>
+          <Biennium>2025-26</Biennium>
+          <BillId>HB 9992</BillId>
+          <BillNumber>9992</BillNumber>
+          <SubstituteVersion>0</SubstituteVersion>
+          <EngrossedVersion>0</EngrossedVersion>
+          <OriginalAgency>House</OriginalAgency>
+          <Active>true</Active>
+          <DisplayNumber>HB 9992</DisplayNumber>
+        </LegislationInfo>
+      </GetLegislationAffectingRcwCiteResult>
+    </GetLegislationAffectingRcwCiteResponse>
+  </soap:Body>
+</soap:Envelope>

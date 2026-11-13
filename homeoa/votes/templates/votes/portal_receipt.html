@@ -1,0 +1,16 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Ballot received" %}</h1>
+<section class="card" data-testid="receipt">
+  <div class="card-b">
+    <p>{% blocktranslate with title=vote.title unit=ballot.unit.number date=ballot.cast_at|date:"M j, Y H:i" %}Your ballot on “{{ title }}” for unit {{ unit }} was recorded on {{ date }}.{% endblocktranslate %}</p>
+    <p>{% translate "Receipt id" %}: <code data-testid="receipt-id">{{ receipt }}</code></p>
+    <p class="muted small">{% translate "Keep this id. You can change your ballot until the vote closes; the latest ballot counts." %}</p>
+    <p><a class="btn btn-ghost" href="{% url 'votes_portal:index' %}">{% translate "Back to owner votes" %}</a></p>
+  </div>
+</section>
+</div>
+{% endblock %}

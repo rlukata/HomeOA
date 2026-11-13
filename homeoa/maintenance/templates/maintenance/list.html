@@ -1,0 +1,87 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags module_tags %}
+{% block title %}{% translate "Maintenance" %}{% endblock %}
+{% block content %}
+{% with requests_on="owner_requests"|module_on:request.association %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Maintenance" %}</h1>
+    <p class="muted">{% translate "Requests from owners and tenants, and work orders to vendors" %}</p>
+  </div>
+  <div class="row wrap-ok">
+    {% if "work_orders"|module_on:request.association %}<a class="btn" href="{% url 'maintenance:work_order_new' %}">{% translate "New work order" %}</a>{% endif %}
+    {% if requests_on %}<a class="btn btn-primary" href="{% url 'maintenance:add' %}" data-testid="maint-add">{% translate "New request" %}</a>{% endif %}
+  </div>
+</div>
+{% if requests_on %}
+<form method="get" class="row wrap-ok mb" aria-label="{% translate 'Filter requests' %}">
+  <div class="chips" role="radiogroup" aria-label="{% translate 'Status' %}">
+    {% for value, label in statuses %}
+    <label class="chip{% if value == status %} on{% endif %}"><input class="sr" type="radio" name="status" value="{{ value }}"{% if value == status %} checked{% endif %}>{{ label }}</label>
+    {% endfor %}
+  </div>
+  <button type="submit" class="btn btn-sm">{% translate "Filter" %}</button>
+</form>
+<section class="card mb" aria-labelledby="req-h">
+  <div class="card-h"><h2 id="req-h">{% translate "Requests" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Maintenance requests" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Request" %}</th>
+        <th scope="col">{% translate "Unit / location" %}</th>
+        <th scope="col">{% translate "Submitted by" %}</th>
+        <th scope="col">{% translate "Priority" %}</th>
+        <th scope="col">{% translate "Date" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      <tbody>
+      {% for r in requests %}
+        <tr data-testid="maint-row-{{ r.pk }}">
+          <td><a href="{% url 'maintenance:detail' r.pk %}"><b>{{ r.title }}</b></a></td>
+          <td>{% if r.unit %}{% blocktranslate with n=r.unit.number %}Unit {{ n }}{% endblocktranslate %}{% else %}{% translate "Common area" %}{% endif %}{% if r.location %} <span class="muted">· {{ r.location }}</span>{% endif %}</td>
+          <td>{{ r.submitted_by|default:"—" }}</td>
+          <td>{% if r.priority == "urgent" %}{% badge "danger" r.get_priority_display %}{% else %}{{ r.get_priority_display }}{% endif %}</td>
+          <td class="nowrap">{{ r.created_at|date:"M j" }}</td>
+          <td>{% badge r.badge r.get_status_display %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">{% translate "No requests match." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% if "work_orders"|module_on:request.association %}
+<section class="card" aria-labelledby="wo-h">
+  <div class="card-h"><h2 id="wo-h">{% translate "Open work orders" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Open work orders" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Work order" %}</th>
+        <th scope="col">{% translate "Vendor" %}</th>
+        <th scope="col">{% translate "Scheduled" %}</th>
+        <th scope="col" class="num">{% translate "Estimate" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      <tbody>
+      {% for wo in work_orders %}
+        <tr data-testid="wo-row-{{ wo.pk }}">
+          <td><a href="{% url 'maintenance:work_order' wo.pk %}"><b>{{ wo }}</b></a>{% if wo.request %} <span class="muted">· {{ wo.request.title }}</span>{% endif %}</td>
+          <td>{{ wo.vendor.name }}</td>
+          <td class="nowrap">{{ wo.scheduled_for|date:"M j"|default:"—" }}{% if wo.overdue %} {% badge "danger" _("Overdue") %}{% endif %}</td>
+          <td class="num">{% if wo.estimated_cost is not None %}{{ wo.estimated_cost|money }}{% else %}—{% endif %}</td>
+          <td>{% badge wo.badge wo.get_status_display %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">{% translate "No open work orders." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endwith %}
+{% endblock %}

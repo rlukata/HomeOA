@@ -1,0 +1,102 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags module_tags %}
+{% block title %}{{ bill }}{% endblock %}
+{% block content %}
+<a href="{% url 'ap:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "All bills" %}</a>
+<div class="stack">
+  <section class="card card-pad" aria-labelledby="bill-h">
+    <div class="between wrap-ok">
+      <div>
+        <h1 id="bill-h">{{ bill.vendor.name }} · {{ bill.invoice_number }}</h1>
+        <div class="muted"><span data-testid="bill-status">{% badge bill.badge bill.get_status_display %}</span>{% if bill.overdue %} {% badge "danger" _("Overdue") %}{% endif %}</div>
+      </div>
+      {% if can_manage %}<div class="row wrap-ok">
+        {% if bill.is_editable %}
+          <a class="btn" href="{% url 'ap:edit' bill.pk %}">{% translate "Edit" %}</a>
+          <form method="post" action="{% url 'ap:submit' bill.pk %}">{% csrf_token %}<button type="submit" class="btn btn-primary" data-testid="bill-submit">{% translate "Submit bill" %}</button></form>
+        {% endif %}
+      </div>{% endif %}
+    </div>
+    <dl class="kv mt">
+      <dt>{% translate "Vendor" %}</dt><dd><a href="{% url 'vendors:detail' bill.vendor.slug %}">{{ bill.vendor.name }}</a></dd>
+      <dt>{% translate "Bill date" %}</dt><dd>{{ bill.bill_date|date:"Y-m-d" }}</dd>
+      <dt>{% translate "Due date" %}</dt><dd>{{ bill.due_date|date:"Y-m-d"|default:"—" }}</dd>
+      {% if bill.description %}<dt>{% translate "Description" %}</dt><dd>{{ bill.description }}</dd>{% endif %}
+      <dt>{% translate "Total" %}</dt><dd class="num" data-testid="bill-amount"><b>{{ bill.total|money }}</b></dd>
+      {% if bill.entry_id %}<dt>{% translate "Booked to AP" %}</dt><dd>{% blocktranslate with n=bill.entry_id %}Journal entry {{ n }}{% endblocktranslate %}</dd>{% endif %}
+      {% if "work_orders"|module_on:request.association %}{% for wo in bill.work_orders.all %}<dt>{% translate "Work order" %}</dt><dd><a href="{% url 'maintenance:work_order' wo.pk %}" data-testid="bill-work-order">{{ wo }}</a></dd>{% endfor %}{% endif %}
+      {% if bill.paid_on %}<dt>{% translate "Paid on" %}</dt><dd>{{ bill.paid_on|date:"Y-m-d" }}{% if bill.paid_by %} · {{ bill.get_paid_by_display }}{% endif %}</dd>{% endif %}
+      {% if bill.status == "void" %}<dt>{% translate "Void reason" %}</dt><dd>{{ bill.void_reason|default:"—" }}</dd>{% endif %}
+    </dl>
+  </section>
+
+  {% include "ap/_approval.html" %}
+
+  <section class="card" aria-labelledby="lines-h">
+    <div class="card-h"><h2 id="lines-h">{% translate "Lines" %}</h2></div>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Bill lines" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "Expense account" %}</th>
+          <th scope="col">{% translate "Fund" %}</th>
+          <th scope="col">{% translate "Memo" %}</th>
+          <th scope="col" class="num">{% translate "Amount" %}</th>
+        </tr></thead>
+        <tbody>
+        {% for ln in bill.lines.all %}
+          <tr data-testid="bill-line"><td>{{ ln.account.code }} · {{ ln.account.name }}</td><td>{{ ln.fund.name }}</td><td class="muted">{{ ln.memo|default:"—" }}</td><td class="num">{{ ln.amount|money }}</td></tr>
+        {% empty %}
+          <tr><td colspan="4" class="muted">{% translate "No lines yet." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card card-pad" aria-labelledby="files-h">
+    <h2 id="files-h">{% translate "Invoice files" %}</h2>
+    {% for att in bill.attachments.all %}
+      <figure class="mt" data-testid="bill-attachment">
+        {% url 'ap:attachment' bill.pk att.pk as att_url %}
+        {% if att.is_image %}<img class="attach-preview" src="{{ att_url }}" alt="{{ att.name }}">
+        {% elif att.is_pdf %}<iframe class="attach-preview" src="{{ att_url }}" title="{{ att.name }}"></iframe>{% endif %}
+        <figcaption><a href="{{ att_url }}" target="_blank" rel="noopener">{{ att.name }}</a></figcaption>
+      </figure>
+    {% empty %}
+      <p class="muted">{% translate "No file attached." %}</p>
+    {% endfor %}
+    {% if can_manage and bill.status != "void" %}
+    <form method="post" action="{% url 'ap:attach' bill.pk %}" enctype="multipart/form-data" class="form-grid mt">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=attach_form %}
+      <div class="form-actions"><button type="submit" class="btn">{% translate "Attach" %}</button></div>
+    </form>
+    {% endif %}
+  </section>
+
+  {% if can_manage and bill.status == "approved" %}
+  <section class="card card-pad" aria-labelledby="paid-h">
+    <h2 id="paid-h">{% translate "Mark paid" %}</h2>
+    <p class="muted">{% translate "Pay this bill through the bank's online bill pay. Use this only if the bank feed will not record the payment." %}</p>
+    <form method="post" action="{% url 'ap:mark_paid' bill.pk %}" class="form-grid mt">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=paid_form %}
+      <div class="form-actions"><button type="submit" class="btn" data-testid="bill-mark-paid">{% translate "Mark paid" %}</button></div>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if can_manage and bill.status != "void" and bill.status != "paid" %}
+  <section class="card card-pad" aria-labelledby="void-h">
+    <h2 id="void-h">{% translate "Void bill" %}</h2>
+    <p class="muted">{% translate "Voiding reverses the accounts payable entry. To correct a submitted bill, void it and enter it again." %}</p>
+    <form method="post" action="{% url 'ap:void' bill.pk %}" class="form-grid mt">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=void_form %}
+      <div class="form-actions"><button type="submit" class="btn btn-danger" data-testid="bill-void">{% translate "Void bill" %}</button></div>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

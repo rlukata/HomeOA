@@ -1,0 +1,45 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Import data" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Import data" %}</h1>
+  <p class="muted">{% translate "Bring in units, owners, tenants, opening balances and ledger history from an AppFolio-style export or any CSV files. You map the columns and see a preview before anything changes. Importing the same files again changes nothing." %}</p>
+</div></div>
+<section class="card">
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Upload" %}</button>
+      <a class="btn btn-ghost" href="{% url 'registry:index' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+<section class="card" aria-labelledby="runs-h">
+  <div class="card-h"><h2 id="runs-h">{% translate "Recent imports" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Recent imports" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Import" %}</th>
+        <th scope="col">{% translate "As of" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+        <th scope="col">{% translate "By" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for r in runs %}
+        <tr>
+          <td><a href="{% url 'imports:run' r.pk %}">#{{ r.pk }} {{ r.get_source_display }}</a> <span class="muted">{{ r.get_mode_display }}</span></td>
+          <td class="nowrap">{{ r.as_of|date:"M j, Y" }}</td>
+          <td>{{ r.get_status_display }}</td>
+          <td>{{ r.created_by.email|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty-row">{% translate "No imports yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "1099 tracking" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "1099 tracking" %}</h1>
+    <p class="muted">{% blocktranslate %}Cash paid to 1099-eligible vendors in {{ year }}, by payment date. The same file is in the year-end CPA package.{% endblocktranslate %}</p>
+  </div>
+  {% export_links %}
+</div>
+<form method="get" class="form-row mb">
+  <label>{% translate "Calendar year" %}
+    <select name="year" data-testid="ten99-year">
+      {% for y in years %}<option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit" class="btn btn-sm">{% translate "Show" %}</button>
+</form>
+{% if totals.missing_w9 %}
+<div class="callout warn" role="note" data-testid="ten99-missing-w9">
+  {% translate "No W-9 on file for:" %} {% for r in totals.missing_w9 %}<a class="inline-link" href="{% url 'vendors:detail' r.vendor.slug %}">{{ r.vendor.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}.
+  {% translate "Request one before filing 1099s." %}
+</div>
+{% endif %}
+{% if threshold is not None %}
+<p class="muted">{% blocktranslate with t=threshold %}Reporting threshold from settings: ${{ t }} (unverified).{% endblocktranslate %}</p>
+{% endif %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "1099 vendor totals" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Vendor" %}</th>
+        <th scope="col">{% translate "Legal name" %}</th>
+        <th scope="col">{% translate "TIN" %}</th>
+        <th scope="col">{% translate "W-9 on file" %}</th>
+        <th scope="col" class="num">{% translate "Paid" %}</th>
+        <th scope="col" class="num">{% translate "By card or app (left out)" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for r in totals.rows %}
+        <tr data-testid="ten99-row-{{ r.vendor.slug }}">
+          <td><a href="{% url 'vendors:detail' r.vendor.slug %}">{{ r.vendor.name }}</a></td>
+          <td>{{ r.vendor.legal_name|default:"—" }}</td>
+          <td>{{ r.vendor.tin_masked|default:"—" }}</td>
+          <td>{% if r.w9_on_file %}{% translate "Yes" %}{% else %}<span class="badge warn">{% translate "No" %}</span>{% endif %}</td>
+          <td class="num">{{ r.paid|money }}{% if threshold is not None and r.paid >= threshold %} <span class="badge">{% translate "Over threshold" %}</span>{% endif %}</td>
+          <td class="num muted">{% if r.by_processor %}{{ r.by_processor|money }}{% else %}—{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="muted">{% translate "No vendors are marked 1099 eligible." %}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th scope="row" colspan="4">{% translate "Total" %}</th><td class="num" data-testid="ten99-total">{{ totals.total|money }}</td><td class="num muted">{{ totals.by_processor|money }}</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="card-b"><p class="faint">{% translate "Bills paid by card or a payment app are reported by the processor on Form 1099-K, so they are left out of the totals. Set how a bill was paid when you mark it paid. Confirm with your CPA." %}</p></div>
+</section>
+{% endblock %}

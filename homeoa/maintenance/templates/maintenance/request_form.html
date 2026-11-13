@@ -1,0 +1,17 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "New maintenance request" %}{% endblock %}
+{% block content %}
+<a href="{% url 'maintenance:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Maintenance" %}</a>
+<div class="hero"><div><h1>{% translate "New maintenance request" %}</h1>
+  <p class="muted">{% translate "Enter a request for an owner or tenant, or for a common area." %}</p></div></div>
+<form method="post" enctype="multipart/form-data" class="stack">
+  {% csrf_token %}
+  <section class="card card-pad">
+    <div class="form-grid">
+      {% include "ui/components/form.html" %}
+    </div>
+  </section>
+  <div class="form-actions"><button type="submit" class="btn btn-primary" data-testid="maint-save">{% translate "Save request" %}</button></div>
+</form>
+{% endblock %}

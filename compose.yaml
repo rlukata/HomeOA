@@ -1,0 +1,40 @@
+# Development services. One shared stack for every checkout: the project name is fixed,
+# and each checkout picks its own database via HOMEOA_DB_NAME (see README).
+name: homeoa
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${HOMEOA_DB_USER:-homeoa}
+      POSTGRES_PASSWORD: ${HOMEOA_DB_PASSWORD:-homeoa}
+      POSTGRES_DB: homeoa
+    ports:
+      - "${HOMEOA_DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${HOMEOA_DB_USER:-homeoa}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # Background job worker (optional in dev): docker compose --profile worker up -d worker
+  # Or run it on the host instead: uv run manage.py run_worker
+  worker:
+    profiles: ["worker"]
+    image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
+    working_dir: /app
+    command: ["uv", "run", "--frozen", "manage.py", "run_worker"]
+    environment:
+      HOMEOA_DB_HOST: db
+      HOMEOA_DB_NAME: ${HOMEOA_DB_NAME:-homeoa}
+      UV_PROJECT_ENVIRONMENT: /venv
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

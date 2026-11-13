@@ -1,0 +1,10 @@
+{% load i18n ui %}
+<ul class="list" aria-label="{% translate 'Close checklist' %}">
+  {% for c in checks %}
+  <li class="att" data-testid="check-{{ c.key }}">
+    <span class="att-main att-t">{{ c.label }}</span>
+    {% if c.ok %}{% translate "Done" as st %}{% badge "ok" st %}{% else %}{% translate "Not yet" as st %}{% badge "warn" st %}{% endif %}
+    {% if c.detail %}<span class="muted">{{ c.detail }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>

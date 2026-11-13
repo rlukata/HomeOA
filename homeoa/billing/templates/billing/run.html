@@ -1,0 +1,66 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Run assessment" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Run assessment" %}</h1>
+    <p class="muted">{% translate "Choose the month, check the amounts, then post. Posting a month twice changes nothing." %}</p>
+  </div>
+</div>
+{% if not has_schedule %}
+{% url 'billing:schedule_new' as new_url %}
+{% include "ui/components/empty.html" with message=_("Add an assessment schedule first.") action_url=new_url action_label=_("New schedule") %}
+{% else %}
+<section class="card card-pad" aria-labelledby="run-h">
+  <h2 id="run-h" class="sr">{% translate "Month to bill" %}</h2>
+  <form method="post" action="{% url 'billing:post' %}" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Post charges" %}</button>
+      <button type="submit" class="btn" formmethod="get" formaction="{% url 'billing:run' %}">{% translate "Preview" %}</button>
+      <a class="btn btn-ghost" href="{% url 'billing:index' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% if plan %}
+<section class="card" aria-labelledby="preview-h">
+  <div class="card-h"><h2 id="preview-h">{% blocktranslate with month=plan.period|date:"F Y" %}Preview for {{ month }}{% endblocktranslate %}</h2></div>
+  {% if plan.problems %}
+  <div class="callout danger" role="alert"><ul>{% for p in plan.problems %}<li>{{ p }}</li>{% endfor %}</ul></div>
+  {% endif %}
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Per-unit amounts before posting" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Owner of record" %}</th>
+          <th scope="col" class="num">{% translate "Interest" %}</th>
+          <th scope="col" class="num">{% translate "Charge" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in plan.rows %}
+        <tr>
+          <td>{{ row.unit.number }}</td>
+          <td>{% for o in row.owners %}{{ o }}{% if not forloop.last %}, {% endif %}{% empty %}{% badge "danger" _("No owner") %}{% endfor %}</td>
+          <td class="num">{{ row.unit.allocated_interest }}%</td>
+          <td class="num">{{ row.amount|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row" colspan="3">{% translate "Total" %}</th>
+          <td class="num">{{ plan.total|money }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <p class="card-f muted">{% blocktranslate with c=plan.charge_date|date:"M j, Y" d=plan.due_date|date:"M j, Y" %}Charge date {{ c }} · due {{ d }}{% endblocktranslate %}{% if plan.reserve_amount %} · {% blocktranslate with r=plan.reserve_amount|money %}Reserve contribution {{ r }} moves from operating to reserve.{% endblocktranslate %}{% endif %}{% if plan.insurance_amount %} · {% blocktranslate with r=plan.insurance_amount|money %}Insurance transfer {{ r }} moves from operating to insurance.{% endblocktranslate %}{% endif %}</p>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

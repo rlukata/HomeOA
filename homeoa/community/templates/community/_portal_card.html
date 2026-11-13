@@ -1,0 +1,2 @@
+{% load i18n %}<section class="card" data-testid="announcements">{% include "community/_announcement_items.html" %}
+{% if not read_only %}<div class="li"><div class="grow"><a href="{% url 'community:resident' %}">{% translate "All announcements and the calendar" %}</a></div></div>{% endif %}</section>

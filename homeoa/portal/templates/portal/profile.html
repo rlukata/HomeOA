@@ -1,0 +1,79 @@
+{% extends "portal/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Profile" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Profile" %}</h1>
+
+<div class="sec-t">{% translate "Contact details" %}</div>
+<section class="card" data-testid="contact"><div class="card-b card-pad-t">
+  <p class="muted small">{% blocktranslate with name=person.full_name %}Name on file: {{ name }}. Ask the board to change your legal name.{% endblocktranslate %}</p>
+  <form method="post" action="{% url 'portal:profile' %}" class="form-grid">{% csrf_token %}
+    {% include "ui/components/form.html" with form=form %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save contact details" %}</button></div>
+  </form>
+</div></section>
+
+{% if owned_units %}
+<div class="sec-t">{% translate "Household" %}</div>
+<section class="card" data-testid="household">
+  {% for o in household %}
+    <div class="li"><div class="grow"><div>{{ o.person.full_name }}</div><div class="s">{% blocktranslate with number=o.unit.number %}Lives in Unit {{ number }}{% endblocktranslate %}</div></div>
+      <form method="post" action="{% url 'portal:household_end' o.pk %}">{% csrf_token %}<button type="submit" class="btn btn-sm btn-ghost">{% translate "Remove" %}</button></form></div>
+  {% empty %}
+    <div class="li"><div class="grow muted">{% translate "No other household members listed." %}</div></div>
+  {% endfor %}
+  <div class="card-b card-pad-t">
+    <form method="post" action="{% url 'portal:household_add' %}" class="form-grid">{% csrf_token %}
+      {% if owned_units|length > 1 %}
+      <div class="field"><label class="field-l" for="hh-unit">{% translate "Unit" %}</label>
+        <select id="hh-unit" name="unit">{% for u in owned_units %}<option value="{{ u.number }}">{% blocktranslate with number=u.number %}Unit {{ number }}{% endblocktranslate %}</option>{% endfor %}</select></div>
+      {% endif %}
+      {% include "ui/components/form.html" with form=household_form %}
+      <div class="form-actions"><button type="submit" class="btn">{% translate "Add household member" %}</button></div>
+    </form>
+  </div>
+</section>
+{% endif %}
+
+<div class="sec-t" id="notices">{% translate "Official notices" %}</div>
+<section class="card" data-testid="consent"><div class="card-b card-pad-t">
+  <p class="callout small" data-testid="consent-draft">{% translate "Draft wording, pending attorney review. Not legal advice." %}</p>
+  {% if consent %}
+    <p>{% if consent.valid_consent %}{% translate "You get official notices by email." %} <span data-testid="consent-email">{{ consent.email }}</span>{% else %}{% translate "You get official notices by postal mail." %}{% endif %}
+      <span class="muted small">{% translate "Recorded" %} <time data-testid="consent-at" datetime="{{ consent.recorded_at|date:'c' }}">{{ consent.recorded_at|date:"M j, Y H:i" }}</time> · {{ consent.get_source_display }}{% if consent.revoke_reason %} · {{ consent.get_revoke_reason_display }}{% endif %}</span></p>
+  {% else %}
+    <p>{% translate "You get official notices by postal mail. No electronic delivery consent is on file." %}</p>
+  {% endif %}
+  {% if consent.valid_consent %}
+    <form method="post" action="{% url 'portal:consent' %}">{% csrf_token %}
+      <input type="hidden" name="action" value="withdraw">
+      <button type="submit" class="btn btn-sm" data-testid="consent-withdraw">{% translate "Withdraw consent and switch to postal mail" %}</button>
+    </form>
+  {% else %}
+    {% include "portal/_consent_form.html" with consent_context="portal" %}
+  {% endif %}
+</div></section>
+
+<div class="sec-t">{% translate "Notifications" %}</div>
+<section class="card" data-testid="preferences"><div class="card-b card-pad-t">
+  <form method="post" action="{% url 'portal:notifications' %}" class="form-stack">{% csrf_token %}
+    {% for row in pref_rows %}
+      <fieldset class="field"><legend class="field-l">{{ row.type.label }}</legend>
+        {% if row.type.mandatory %}
+          <p class="field-help">{% translate "Required notice: it always reaches you, by email if you consented above, otherwise by mail." %}</p>
+        {% else %}
+          <div class="choices">{% for key, label, on in row.channels %}
+            <label><input type="checkbox" name="{{ row.type.key }}:{{ key }}"{% if on %} checked{% endif %}> {{ label }}</label>
+          {% endfor %}</div>
+        {% endif %}
+      </fieldset>
+    {% empty %}
+      <p class="muted">{% translate "There are no notification settings yet." %}</p>
+    {% endfor %}
+    {% if pref_rows %}<div class="form-actions"><button type="submit" class="btn">{% translate "Save notification settings" %}</button></div>{% endif %}
+  </form>
+</div></section>
+</div>
+{% endblock %}

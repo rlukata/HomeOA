@@ -1,0 +1,26 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Owner records export" %}{% endblock %}
+{% block content %}
+<a href="{% url 'registry:people' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Owners & tenants" %}</a>
+<div class="hero"><div><h1>{% translate "Owner records export" %}</h1>
+  <p class="muted">{% translate "The roster of units, owners, mailing addresses and shares, for an owner or a successor manager." %}</p></div></div>
+<div class="stack">
+  <section class="card card-pad" aria-labelledby="owner-export-h" data-testid="owner-export">
+    <div class="between wrap-ok"><h2 id="owner-export-h">{% translate "For an owner" %}</h2>{% export_links "" %}</div>
+    <p class="small muted mt">{% translate "Left out: unlisted phone numbers, emails of owners who keep them confidential, every resident's (non-owner's) email, and Address Confidentiality Program addresses (the substitute address is shown instead). Personnel, medical and unit files are never included." %}</p>
+    <p class="small mt">{% translate "Owners' requests to inspect or copy records are under Documents > Records requests." %}</p>
+  </section>
+
+  {% if can_full %}
+  <section class="card card-pad" aria-labelledby="full-export-h" data-testid="full-export">
+    <h2 id="full-export-h">{% translate "Full export, board only" %}</h2>
+    <p class="callout small">{% translate "Contains confidential data and is watermarked. Every download is recorded in the audit log with its reason." %}</p>
+    <form method="post" action="{% url 'registry:records_full' %}" class="form-grid">{% csrf_token %}
+      {% include "ui/components/form.html" with form=full_form %}
+      <div class="form-actions"><button type="submit" class="btn">{% translate "Download full export" %}</button></div>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

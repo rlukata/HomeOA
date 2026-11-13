@@ -1,0 +1,10 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Sign out" %}{% endblock %}
+{% block content %}
+<h1>{% translate "Sign out" %}</h1>
+<p>{% blocktranslate with email=user.email %}You're signed in as {{ email }}.{% endblocktranslate %}</p>
+<form method="post">{% csrf_token %}
+  <button type="submit" class="btn btn-primary btn-lg">{% translate "Sign out" %}</button>
+</form>
+{% endblock %}

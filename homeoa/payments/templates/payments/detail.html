@@ -1,0 +1,42 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Payment" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% blocktranslate with a=receipt.amount|money n=receipt.unit.number %}Payment {{ a }} · Unit {{ n }}{% endblocktranslate %}</h1>
+    <p class="muted">{{ receipt.get_method_display }}{% if receipt.reference %} · {{ receipt.reference }}{% endif %} · {{ receipt.received_date|date:"M j, Y" }} · {{ receipt.deposit_account }}{% if receipt.payer %} · {{ receipt.payer }}{% endif %}</p>
+    {% if receipt.status == "void" %}<p>{% badge "danger" _("Void") %} {{ receipt.void_reason }}</p>{% endif %}
+  </div>
+  <div class="hero-actions"><a class="btn btn-ghost" href="{% url 'payments:index' %}">{% translate "All payments" %}</a></div>
+</div>
+{% include "payments/_result.html" %}
+{% if refunds %}
+<section class="card" aria-labelledby="ref-h">
+  <div class="card-h"><h2 id="ref-h">{% translate "Refunds issued outside HomeOA" %}</h2></div>
+  <ul class="card-pad">{% for r in refunds %}<li>{{ r.date|date:"M j, Y" }} · {{ r.amount|money }} · {{ r.get_method_display }} · {{ r.reason }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% if can_manage and receipt.status == "posted" %}
+{% if unapplied > 0 %}
+<section class="card card-pad" aria-labelledby="refund-h">
+  <h2 id="refund-h">{% translate "Record a refund" %}</h2>
+  <p class="muted">{% translate "HomeOA never sends money. Record a refund the board already issued from the bank." %}</p>
+  <form method="post" action="{% url 'payments:refund' receipt.pk %}" class="form-grid">
+    {% csrf_token %}
+    {% with form=refund_form %}{% include "ui/components/form.html" %}{% endwith %}
+    <div class="form-actions"><button type="submit" class="btn">{% translate "Record refund" %}</button></div>
+  </form>
+</section>
+{% endif %}
+<section class="card card-pad" aria-labelledby="void-h">
+  <h2 id="void-h">{% translate "Void this payment" %}</h2>
+  <p class="muted">{% translate "For a bounced check or a payment entered by mistake. The ledger entry and its allocations are reversed." %}</p>
+  <form method="post" action="{% url 'payments:void' receipt.pk %}" class="form-grid">
+    {% csrf_token %}
+    {% with form=void_form %}{% include "ui/components/form.html" %}{% endwith %}
+    <div class="form-actions"><button type="submit" class="btn btn-danger">{% translate "Void payment" %}</button></div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

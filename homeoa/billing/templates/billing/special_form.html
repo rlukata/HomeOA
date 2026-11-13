@@ -1,0 +1,18 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{{ title }}</h1>
+  <p class="muted">{% translate "The total splits evenly across installments, then each installment across units. Nothing posts until you post an installment or its date arrives." %}</p>
+</div></div>
+<section class="card card-pad">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+      <a class="btn btn-ghost" href="{% url 'billing:specials' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

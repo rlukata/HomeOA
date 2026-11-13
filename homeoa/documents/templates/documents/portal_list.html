@@ -1,0 +1,21 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Documents" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Documents" %}</h1>
+<section class="card" data-testid="docs-list">
+  {% for d in documents %}
+    <a class="li" href="{% url 'documents:download' d.public_id %}" target="_blank" rel="noopener" data-testid="doc-{{ d.public_id }}">
+      <div class="grow"><div>{{ d.title }}{% if d.status %} <span class="badge danger">{{ d.get_status_display }}</span>{% endif %}</div>{% if d.status_note %}<div class="faint">{{ d.status_note }}</div>{% endif %}
+        <div class="s">{{ d.get_category_display }} · {{ d.updated_at|date:"M j, Y" }}</div></div>
+      <span class="badge {{ d.badge }}">{{ d.get_visibility_display }}</span>
+    </a>
+  {% empty %}
+    <div class="li"><div class="grow muted">{% translate "No documents yet." %}</div></div>
+  {% endfor %}
+</section>
+{% if insurance %}{% include "insurance/_owner_summary.html" %}{% endif %}
+</div>
+{% endblock %}

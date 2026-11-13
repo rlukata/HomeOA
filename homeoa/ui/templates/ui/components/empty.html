@@ -1,0 +1,5 @@
+{# Empty state: include with message="..." and optionally action_url and action_label. #}
+<div class="empty">
+  <p>{{ message }}</p>
+  {% if action_url %}<a class="btn btn-primary btn-sm" href="{{ action_url }}">{{ action_label }}</a>{% endif %}
+</div>

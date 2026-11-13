@@ -1,0 +1,34 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Sign document" %}{% endblock %}
+{% block content %}
+<h1>{{ envelope.title }}</h1>
+<p>{% blocktranslate with n=signer.name %}Hello {{ n }}, you are asked to sign this document.{% endblocktranslate %}</p>
+{% if envelope.message %}<p class="muted">{{ envelope.message|linebreaksbr }}</p>{% endif %}
+<p><a href="{% url 'esign:sign_document' token %}" target="_blank" rel="noreferrer">{% translate "Read the document (PDF)" %}</a></p>
+{% if error %}<p role="alert" class="badge danger" data-testid="sign-error">{{ error }}</p>{% endif %}
+{% if is_turn %}
+<form method="post" class="stack">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="sign">
+  <div class="card" data-testid="esign-consent">
+    <p><strong>{% translate "Consent to sign electronically" %}</strong></p>
+    <p>{% translate "By checking the box and clicking Sign, you agree to sign this document electronically and that your electronic signature has the same effect as a handwritten one, under the federal ESIGN Act and the Uniform Electronic Transactions Act. You may ask the board for a paper copy to sign by hand instead. Your typed name, the time, your IP address and your browser are recorded on a signature certificate attached to the document." %}</p>
+    <label><input type="checkbox" name="consent" required> {% translate "I agree to sign electronically." %}</label>
+  </div>
+  <label>{% translate "Type your full name" %} <input type="text" name="typed_name" required maxlength="200" autocomplete="name"></label>
+  <button type="submit" class="btn btn-primary">{% translate "Sign" %}</button>
+</form>
+<details>
+  <summary>{% translate "Decline to sign" %}</summary>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="decline">
+    <label>{% translate "Reason (optional)" %} <textarea name="reason" rows="2"></textarea></label>
+    <button type="submit" class="btn">{% translate "Decline" %}</button>
+  </form>
+</details>
+{% else %}
+<p class="muted">{% translate "An earlier signer has not signed yet. You can sign once they have." %}</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{{ section.title }}{% endblock %}
+{% block content %}
+<a href="{% url 'setup:index' %}" class="btn btn-ghost btn-sm">{% translate "Association setup" %}</a>
+<div class="hero"><div>
+  <h1>{{ section.title }}</h1>
+  {% if section.intro %}<p class="muted">{{ section.intro }}</p>{% endif %}
+</div></div>
+{% if state.pending %}
+<p class="callout warn" role="status" data-testid="setup-pending">{% blocktranslate with n=state.pending.resolution.number %}These answers wait for the board to adopt resolution {{ n }}.{% endblocktranslate %}
+  <a href="{% url 'governance:resolution' state.pending.resolution_id %}">{% translate "Open the resolution" %}</a> · <a href="{% url 'changes:detail' state.pending.pk %}">{% translate "Withdraw to change the answers" %}</a></p>
+{% elif state.adopted %}
+<p class="callout info" role="status">{% blocktranslate with n=state.adopted.resolution.number d=state.adopted.resolution.adopted_on|date:"M j, Y" %}Adopted by resolution {{ n }} on {{ d }}. Answering again drafts a new resolution.{% endblocktranslate %}</p>
+{% endif %}
+{% if refusals %}
+<div class="callout danger" role="alert" data-testid="setup-refusals">
+  <p>{% translate "These features can't be set this way:" %}</p>
+  <ul>{% for r in refusals %}<li>{{ r }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{% if always_on is not None %}
+<section class="card card-pad" data-testid="setup-always-on" aria-labelledby="always-on-h">
+  <h2 id="always-on-h">{% translate "Always on" %}</h2>
+  {% if always_on %}<ul>
+    {% for f in always_on %}<li>{{ f.label }}{% if f.citation %} <span class="muted">· {% blocktranslate with citation=f.citation %}required by law ({{ citation }}){% endblocktranslate %}</span>{% endif %}{% if not f.verified %} {% translate "Unverified" as unv %}{% badge "warn" unv %}{% endif %}</li>{% endfor %}
+  </ul>{% endif %}
+  <p class="muted">{% translate "Also always on: compliance calendar, insurance tracking, vendor 1099s, statement upload and bank feed, ledger, dues, units and owners, bank, documents, budget, meetings and minutes, records requests, resale certificates and owner votes." %}</p>
+</section>
+{% endif %}
+<form method="post" class="stack" data-testid="setup-form">
+  {% csrf_token %}
+  {% for row in rows %}
+  <section class="card card-pad" aria-labelledby="{{ row.name }}-l">
+    <fieldset class="field full{% if row.error %} has-error{% endif %}"{% if not can_propose %} disabled{% endif %}>
+      <legend class="field-l" id="{{ row.name }}-l">{{ row.q.label }}</legend>
+      {% if row.q.help %}<p class="field-help">{{ row.q.help }}</p>{% endif %}
+      {% if row.fixed is not None %}
+      <p data-testid="setup-fixed"><strong>{{ row.fixed }}</strong> {% translate "Set by law" as sbl %}{% badge "info" sbl %}{% if row.law.citation %} <span class="muted">· {% if row.law.source_url %}<a href="{{ row.law.source_url }}" rel="noopener" target="_blank">{{ row.law.citation }}</a>{% else %}{{ row.law.citation }}{% endif %}</span>{% endif %}</p>
+      {% elif row.range %}
+      <div class="stack" data-testid="setup-range">
+        {% if row.range.max is not None %}<div data-slider hidden><label class="sr" for="{{ row.name }}-slider">{% blocktranslate with label=row.q.label %}{{ label }}, slider{% endblocktranslate %}</label>
+        <input type="range" id="{{ row.name }}-slider" data-mirror="{{ row.name }}" min="{{ row.range.slider_min }}" max="{{ row.range.max }}" step="{{ row.range.step }}" value="{{ row.range.value }}"></div>{% endif %}
+        <label class="field-l" for="{{ row.name }}">{% translate "Exact amount" %}</label>
+        <input type="number" id="{{ row.name }}" name="{{ row.name }}" value="{{ row.range.value }}" step="{{ row.range.step }}"{% if row.range.min is not None %} min="{{ row.range.min }}"{% endif %}{% if row.range.max is not None %} max="{{ row.range.max }}"{% endif %} aria-describedby="{{ row.name }}-bounds">
+        <p class="muted" id="{{ row.name }}-bounds" data-testid="setup-bounds">
+          {% if row.range.min_text %}{% blocktranslate with v=row.range.min_text %}At least {{ v }}{% endblocktranslate %}{% endif %}{% if row.range.min_text and row.range.max_text %} · {% endif %}{% if row.range.max_text %}{% blocktranslate with v=row.range.max_text %}at most {{ v }}{% endblocktranslate %}{% endif %} ({{ row.law.citation }}){% if row.range.suggested_text %} · {% blocktranslate with v=row.range.suggested_text %}Suggested: {{ v }}{% endblocktranslate %}{% endif %}
+        </p>
+      </div>
+      {% else %}
+      <div class="choices">
+        {% for c in row.choices %}
+        <label><input type="radio" name="{{ row.name }}" value="{{ c.value }}"{% if c.checked and not c.ruled_out %} checked{% endif %}{% if c.ruled_out %} disabled{% endif %}> <span>{{ c.label }}{% if c.suggested %} {% translate "Suggested" as sug %}{% badge "ok" sug %}{% endif %}{% if c.ruled_out %}<span class="muted" data-testid="setup-ruled-out"> · {% blocktranslate with citation=row.law.citation %}Not allowed by {{ citation }}{% endblocktranslate %}</span>{% endif %}{% if c.explain %}<span class="muted"> · {{ c.explain }}</span>{% endif %}</span></label>
+        {% endfor %}
+        {% if row.q.other %}
+        {% if row.choices %}<label><input type="radio" name="{{ row.name }}" value="__other__"{% if row.other_checked %} checked{% endif %}> <span>{% translate "Other" %}</span></label>{% endif %}
+        <label class="{% if row.choices %}sr{% else %}field-l sr{% endif %}" for="{{ row.name }}-other">{% translate "Other amount" %}</label>
+        <input type="text" inputmode="decimal" id="{{ row.name }}-other" name="{% if row.choices %}{{ row.name }}-other{% else %}{{ row.name }}{% endif %}" value="{% if row.other_checked or not row.choices %}{{ row.value }}{% endif %}">
+        {% endif %}
+        {% if not row.choices and not row.q.other and row.q.kind == "bool" %}<label><input type="checkbox" name="{{ row.name }}"{% if row.value %} checked{% endif %}> <span>{% if row.feature %}{% translate "On" %}{% else %}{% translate "Yes" %}{% endif %}</span></label>{% endif %}
+      </div>
+      {% endif %}
+      {% if row.error %}<ul class="field-err"><li>{{ row.error }}</li></ul>{% endif %}
+      {% if row.law and row.fixed is None and row.law.note %}<p class="muted" data-testid="setup-law-note">{{ row.law.note }}</p>{% endif %}
+      {% if row.law and row.law.attorney_review or row.law and not row.law.verified %}<p class="muted">{% if not row.law.verified %}{% translate "Legal limit unverified" as lun %}{% badge "warn" lun %}{% endif %}{% if row.law.attorney_review %} {% translate "Confirm with attorney" as att2 %}{% badge "warn" att2 %}{% endif %}</p>{% endif %}
+      {% if row.q.citation or row.q.note %}<p class="muted" data-testid="setup-basis">
+        {% if row.q.citation %}{% if row.q.source_url %}<a href="{{ row.q.source_url }}" rel="noopener" target="_blank">{{ row.q.citation }}</a>{% else %}{{ row.q.citation }}{% endif %}{% endif %}
+        {% if row.q.note %}{% if row.q.citation %} · {% endif %}{{ row.q.note }}{% endif %}
+        {% if row.q.attorney_review %} {% translate "Confirm with attorney" as att %}{% badge "warn" att %}{% endif %}
+      </p>{% endif %}
+    </fieldset>
+  </section>
+  {% endfor %}
+  {% if can_propose %}<div class="form-actions">
+    <button type="submit" class="btn btn-primary">{% translate "Draft the resolution" %}</button>
+    <a class="btn btn-ghost" href="{% url 'setup:index' %}">{% translate "Cancel" %}</a>
+  </div>{% endif %}
+</form>
+{% endblock %}

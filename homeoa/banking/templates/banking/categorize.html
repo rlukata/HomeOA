@@ -1,0 +1,20 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Categorize transaction" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Categorize transaction" %}</h1>
+  <p class="muted">{{ txn.date|date:"M j, Y" }} · {{ txn.description }} · {{ txn.amount|money }} · {{ txn.bank_account.name }}</p>
+</div></div>
+{% if warning %}<p class="callout warn" role="alert" data-testid="categorize-warning">{{ warning }}</p>{% endif %}
+<section class="card card-pad">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Categorize" %}</button>
+      <a class="btn btn-ghost" href="{% url 'banking:txn' txn.pk %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

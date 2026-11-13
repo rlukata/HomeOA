@@ -1,0 +1,59 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags ui %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Units" %}</h1>
+    <p class="muted">{% blocktranslate count n=rows|length %}{{ n }} unit{% plural %}{{ n }} units{% endblocktranslate %} · {% blocktranslate count n=rented %}{{ n }} rented{% plural %}{{ n }} rented{% endblocktranslate %}</p>
+  </div>
+  <div class="row wrap-ok">
+    {% export_links "" %}
+    <a class="btn" href="{% url 'registry:interests' %}">{% translate "Edit allocated interests" %}</a>
+    <a class="btn btn-primary" href="{% url 'registry:unit_add' %}">{% translate "Add unit" %}</a>
+  </div>
+</div>
+{% if rows and not total_ok %}
+<div class="callout mb" role="alert">
+  {% blocktranslate with total=total|floatformat:2 %}Allocated interests add up to {{ total }}%, not 100%. Check them before posting assessments.{% endblocktranslate %}
+  <a href="{% url 'registry:interests' %}">{% translate "Fix" %}</a>
+</div>
+{% endif %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "All units" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Owner" %}</th>
+          <th scope="col">{% translate "Occupancy" %}</th>
+          <th scope="col" class="num">{% translate "Share" %}</th>
+          {% if show_money %}<th scope="col" class="num">{% translate "Balance" %}</th><th scope="col">{% translate "Status" %}</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><a href="{% url 'registry:unit' row.unit.number %}"><b>{% blocktranslate with n=row.unit.number %}Unit {{ n }}{% endblocktranslate %}</b></a>{% if row.unit.building %} <span class="faint">· {% blocktranslate with b=row.unit.building %}Bldg {{ b }}{% endblocktranslate %}</span>{% endif %}</td>
+          <td>{% for owner in row.owners %}{% if not forloop.first %}, {% endif %}<a href="{% url 'registry:person' owner.pk %}">{{ owner.full_name }}</a>{% empty %}<span class="faint">{% translate "No owner recorded" %}</span>{% endfor %}</td>
+          <td>{% if row.tenants %}{% translate "Rented" %} <span class="faint">· {% for t in row.tenants %}{% if not forloop.first %}, {% endif %}{{ t.person.full_name }}{% endfor %}</span>{% else %}{% translate "Owner" %}{% endif %}</td>
+          <td class="num">{{ row.unit.allocated_interest|floatformat:2 }}%</td>
+          {% if show_money %}
+          <td class="{{ row.balance_css }}" data-testid="unit-balance">{{ row.balance|money }}</td>
+          <td>{% if row.past_due %}{% translate "Past due" as l %}{% badge "danger" l %}{% elif row.balance < 0 %}{% translate "Credit" as l %}{% badge "accent" l %}{% elif row.balance > 0 %}{% translate "Due" as l %}{% badge "warn" l %}{% else %}{% translate "Paid" as l %}{% badge "ok" l %}{% endif %}</td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="{% if show_money %}6{% else %}4{% endif %}" class="muted">{% translate "No units yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if rows %}
+  <div class="card-f between">
+    <b>{% translate "Total allocated interest" %}</b>
+    <b class="num" data-testid="interest-total">{{ total|floatformat:2 }}%</b>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

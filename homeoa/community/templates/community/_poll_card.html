@@ -1,0 +1,9 @@
+{% load i18n %}
+{% for poll, units in polls %}
+<section class="card" data-testid="poll-card" aria-labelledby="poll-{{ poll.pk }}-h"><div class="card-b card-pad-t">
+  <p class="small muted">{% translate "Poll · not a vote" %}</p>
+  <h2 class="h-sub" id="poll-{{ poll.pk }}-h">{{ poll.question }}</h2>
+  <p class="small">{% blocktranslate with d=poll.closes_on|date:"M j" %}Open until {{ d }}.{% endblocktranslate %}{% for u, a in units %}{% if a %} {% blocktranslate with unit=u %}{{ unit }} has answered.{% endblocktranslate %}{% endif %}{% endfor %}</p>
+  <a class="btn btn-sm" href="{% url 'community:resident_poll' poll.pk %}">{% translate "Answer" %}</a>
+</div></section>
+{% endfor %}

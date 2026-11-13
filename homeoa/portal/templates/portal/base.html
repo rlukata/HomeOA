@@ -1,0 +1,61 @@
+{% load static i18n homeoa_ui homeoa_access homeoa_notify %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{% if current_tab %}{{ current_tab.label }} · {% endif %}{% endblock %}{% if association %}{{ association.name }}{% else %}{% translate "HomeOA" %}{% endif %}</title>
+<script src="{% static 'homeoa/theme.js' %}"></script>
+<link rel="stylesheet" href="{% static 'homeoa/base.css' %}">
+<link rel="manifest" href="{% url 'ui:manifest' %}">
+<meta name="theme-color" content="#1d6b57">
+<link rel="apple-touch-icon" href="{% static 'homeoa/icons/apple-touch-icon.png' %}">
+<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false}'>
+<script src="{% static 'homeoa/vendor/htmx.min.js' %}" defer></script>
+<style nonce="{{ csp_nonce }}">
+  .me-tabbar { grid-template-columns: repeat({{ tabs|length|default:1 }}, 1fr) !important; }
+  .me-tenant { font-size: 13px; }
+</style>
+</head>
+<body class="me" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<a class="skip" href="#main">{% translate "Skip to content" %}</a>
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="brand" href="{% url 'portal:home' %}">
+      <span class="logo" aria-hidden="true">{% if association %}{{ association.short_name }}{% else %}{% translate "HO" %}{% endif %}</span>
+      <span>{% if association %}{{ association.name }}{% else %}{% translate "HomeOA" %}{% endif %}</span>
+    </a>
+    {% if tabs %}
+    <nav class="hnav" aria-label="{% translate 'Main' %}">
+      {% for tab in tabs %}
+        <a href="{{ tab.url }}" data-tab="{{ tab.id }}" class="{% if tab == current_tab %}on{% endif %}"{% if tab == current_tab %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+      {% endfor %}
+    </nav>
+    {% endif %}
+    <div class="grow"></div>
+    {% notify_bell %}
+    {% has_perm "board.shell" as can_board %}
+    {% if can_board %}<a class="btn btn-ghost btn-sm" href="{% url 'dashboard:index' %}">{% translate "Board workspace" %}</a>{% endif %}
+    <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">{% translate "Sign out" %}</button></form>
+  </div>
+</header>
+<main class="wrap" id="main" tabindex="-1">
+{% include "ui/components/messages.html" %}
+{% if preview %}
+<div class="callout items-center wrap-ok mb-14" role="status" data-testid="preview-banner">
+  <b>{% if preview.persona == "tenant" %}{% blocktranslate with number=preview.unit.number %}Preview of Unit {{ number }} as its tenant{% endblocktranslate %}{% else %}{% blocktranslate with number=preview.unit.number %}Preview of Unit {{ number }} as its owner{% endblocktranslate %}{% endif %}</b>
+  <span class="muted">{% translate "Read-only. Nothing you do here is saved or sent." %}</span>
+  <a class="btn btn-sm btn-ghost" href="{{ preview.exit_url }}">{% translate "Exit preview" %}</a>
+</div>
+{% endif %}
+{% block content %}{% endblock %}
+</main>
+{% if tabs %}
+<nav class="tabbar me-tabbar" aria-label="{% translate 'Hubs' %}">
+  {% for tab in tabs %}
+    <a href="{{ tab.url }}" data-tab="{{ tab.id }}" class="{% if tab == current_tab %}on{% endif %}"{% if tab == current_tab %} aria-current="page"{% endif %}>{% icon tab.icon %}{{ tab.label }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+</body>
+</html>

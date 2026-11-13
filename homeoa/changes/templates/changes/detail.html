@@ -1,0 +1,72 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Change request" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ change.summary }}</h1>
+    <p class="muted">{{ change.kind_label }} · {% blocktranslate with name=change.proposed_by.full_name|default:change.proposed_by.email when=change.proposed_at|date:"M j, Y" %}Proposed by {{ name }} on {{ when }}{% endblocktranslate %}</p>
+  </div>
+  <span class="badge {% if change.status == 'applied' %}ok{% elif change.status == 'pending' %}warn{% else %}danger{% endif %}" data-testid="change-status">{{ change.get_status_display }}</span>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="what-h">
+      <div class="card-h"><h2 id="what-h">{% translate "What would change" %}</h2></div>
+      <div class="table-wrap">
+        <table class="t" data-testid="change-details">
+          <tbody>
+          {% for label, value in change.details %}
+            <tr><th scope="row">{{ label }}</th><td>{{ value|linebreaksbr }}</td></tr>
+          {% empty %}
+            <tr><td class="muted">{% translate "No details." %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if change.reason %}<div class="card-b"><p><strong>{% translate "Why" %}:</strong> {{ change.reason|linebreaksbr }}</p></div>{% endif %}
+      {% if change.status == 'failed' %}<div class="card-b"><p class="callout danger" role="alert">{% blocktranslate with error=change.error %}It was approved but could not be made: {{ error }}. Nothing was changed; propose it again once the problem is fixed.{% endblocktranslate %}</p></div>{% endif %}
+      {% if change.status == 'applied' and change.result_url %}<div class="card-b"><a class="btn" href="{{ change.result_url }}">{% translate "See the result" %}</a></div>{% endif %}
+    </section>
+    {% if can_decide %}
+    <section class="card" aria-labelledby="decide-h">
+      <div class="card-h"><h2 id="decide-h">{% translate "Your decision" %}</h2></div>
+      <div class="card-b stack">
+        <form method="post" action="{% url 'changes:approve' change.pk %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Comment (optional)" %} <textarea name="comment" rows="2"></textarea></label>
+          <div class="form-actions"><button type="submit" class="btn btn-primary" data-testid="change-approve">{% translate "Approve" %}</button></div>
+        </form>
+        <form method="post" action="{% url 'changes:reject' change.pk %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Why are you rejecting it?" %} <textarea name="comment" rows="2" required></textarea></label>
+          <div class="form-actions"><button type="submit" class="btn" data-testid="change-reject">{% translate "Reject" %}</button></div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+    {% if can_withdraw %}
+    <form method="post" action="{% url 'changes:withdraw' change.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-ghost" data-testid="change-withdraw">{% translate "Withdraw this request" %}</button>
+    </form>
+    {% endif %}
+  </div>
+  <aside class="stack">
+    <section class="card" aria-labelledby="appr-h">
+      <div class="card-h"><h2 id="appr-h">{% translate "Approvals" %}</h2></div>
+      <div class="card-b">
+        <p>{% blocktranslate with done=change.approvals required=change.required_approvals %}{{ done }} of {{ required }} approvals{% endblocktranslate %}</p>
+        <ul class="rows">
+        {% for d in decisions %}
+          <li><strong>{{ d.user.full_name|default:d.user.email }}</strong> · {{ d.get_decision_display }} · {{ d.decided_at|date:"M j, Y" }}{% if d.comment %}<br><span class="muted">{{ d.comment }}</span>{% endif %}</li>
+        {% endfor %}
+        </ul>
+        {% if change.is_pending and waiting_on %}
+        <p class="muted">{% translate "Can approve:" %} {% for u in waiting_on %}{{ u.full_name|default:u.email }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}

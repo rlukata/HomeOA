@@ -1,0 +1,36 @@
+{% load i18n ledger_tags %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{{ caption }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{{ who }}</th>
+          {% for key, label, low, high in buckets %}<th scope="col" class="num">{{ label }}</th>{% endfor %}
+          <th scope="col" class="num">{% translate "Total" %}</th>
+          {% if show_credit %}<th scope="col" class="num">{% translate "Prepaid credit" %}</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in aging.rows %}
+        <tr>
+          <th scope="row">{{ row.label }}</th>
+          {% for v in row.cells %}<td class="num">{{ v|money_or_blank }}</td>{% endfor %}
+          <td class="num">{{ row.total|money }}</td>
+          {% if show_credit %}<td class="num">{{ row.credit|money_or_blank }}</td>{% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="{% if show_credit %}{{ aging_cols|add:1 }}{% else %}{{ aging_cols }}{% endif %}" class="muted">{% translate "Nothing is outstanding." %}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">{% translate "Totals" %}</th>
+          {% for v in aging.total_cells %}<td class="num">{{ v|money }}</td>{% endfor %}
+          <td class="num" data-testid="aging-total">{{ aging.total|money }}</td>
+          {% if show_credit %}<td class="num">{{ aging.total_credit|money }}</td>{% endif %}
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>

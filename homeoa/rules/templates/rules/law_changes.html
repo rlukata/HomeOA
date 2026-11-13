@@ -1,0 +1,83 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Law changes" %}{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+  .lc-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .lc-body ul { margin: 0; padding-left: 18px; }
+</style>
+<div class="hero">
+  <div>
+    <h1>{% translate "Law changes" %}</h1>
+    <p class="muted">{% translate "Once a year HomeOA asks which statute sections the rule pack relies on were changed by the legislature since the pack's law was last checked. The values do not change by themselves: a person updates the pack, checks each citation and releases a new pack version." %}</p>
+  </div>
+</div>
+<section class="card" aria-labelledby="lc-pack-h" data-testid="law-pack">
+  <div class="card-h"><h2 id="lc-pack-h">{% translate "Rule pack" %}</h2></div>
+  <div class="lc-body">
+    <p><strong>{{ pack.name }}</strong>{% if version %} · {% blocktranslate %}version {{ version }}{% endblocktranslate %}{% endif %}</p>
+    <p>{% if pack.law_checked_through %}{% blocktranslate with date=pack.law_checked_through|date:"M j, Y" %}Law checked through {{ date }}.{% endblocktranslate %}{% else %}{% translate "The pack does not say when its law was last checked." %}{% endif %}</p>
+    <p class="muted">{% blocktranslate count count=section_count %}The pack relies on {{ count }} statute section.{% plural %}The pack relies on {{ count }} statute sections.{% endblocktranslate %}</p>
+    {% if not pack.change_source %}<p class="callout warn">{% translate "This pack's law cannot be checked automatically." %}</p>{% endif %}
+  </div>
+</section>
+<section class="card" aria-labelledby="lc-check-h" data-testid="law-check">
+  <div class="card-h"><h2 id="lc-check-h">{% translate "Latest check" %}</h2></div>
+  <div class="lc-body">
+    {% if not check %}
+    <p>{% translate "No check has run yet. It runs every year on September 1." %}</p>
+    {% else %}
+    <p><span data-testid="law-check-status">{{ check.get_status_display }}</span> · {% blocktranslate with date=check.run_on|date:"M j, Y" %}run on {{ date }}{% endblocktranslate %}{% if check.pack_version %} · {% blocktranslate with v=check.pack_version %}pack version {{ v }}{% endblocktranslate %}{% endif %}</p>
+    {% if check.status == "failed" %}<p class="callout warn">{{ check.reason }}</p>{% endif %}
+    {% if check.status == "no_source" %}<p class="muted">{% translate "The pack has no change source, so the law was not checked." %}</p>{% endif %}
+    {% if check.reviewed_at %}<p class="muted" data-testid="law-check-reviewed">{% blocktranslate with date=check.reviewed_at|date:"M j, Y" who=check.reviewed_by %}Reviewed on {{ date }} by {{ who }}.{% endblocktranslate %}</p>
+    {% elif check.needs_review %}
+    <form method="post" action="{% url 'rules:law_changes_reviewed' check.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary" data-testid="law-mark-reviewed">{% translate "Mark reviewed" %}</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</section>
+{% if check.findings %}
+<section class="card" aria-labelledby="lc-list-h" data-testid="law-review-list">
+  <div class="card-h"><h2 id="lc-list-h">{% translate "Review list" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Changed sections and the pack places that cite them" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Section" %}</th>
+          <th scope="col">{% translate "Changes" %}</th>
+          <th scope="col">{% translate "Cited by" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for finding in check.findings %}
+        <tr data-section="{{ finding.section }}">
+          <th scope="row">{% blocktranslate with section=finding.section %}RCW {{ section }}{% endblocktranslate %}</th>
+          <td><ul>{% for change in finding.changes %}
+            <li>{% if change.url %}<a href="{{ change.url }}" rel="noopener noreferrer" target="_blank">{{ change.bill|default:_("Bill not named") }}</a>{% else %}{{ change.bill|default:_("Bill not named") }}{% endif %}
+              {% if change.session_law %} · {% blocktranslate with law=change.session_law %}session law {{ law }}{% endblocktranslate %}{% endif %}
+              {% if change.action %} · {{ change.action }}{% endif %}
+              {% if change.effective %} · {% blocktranslate with date=change.effective %}takes effect {{ date }}{% endblocktranslate %}{% else %} · <span class="muted">{% translate "effective date not given" %}</span>{% endif %}</li>
+          {% endfor %}</ul></td>
+          <td><ul>{% for place in finding.places %}<li>{{ place.label }} <span class="muted"><code>{{ place.key }}</code></span></li>{% endfor %}</ul></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% if not_checked %}
+<section class="card" aria-labelledby="lc-other-h" data-testid="law-not-checked">
+  <div class="card-h"><h2 id="lc-other-h">{% translate "Not checked automatically" %}</h2></div>
+  <div class="lc-body">
+    <p class="muted">{% translate "These citations are outside state law (federal law, IRS rules). Check them by hand when the pack is updated." %}</p>
+    <ul>{% for item in not_checked %}<li>{{ item.citation }}: {% for place in item.places %}<code>{{ place.key }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}</li>{% endfor %}</ul>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

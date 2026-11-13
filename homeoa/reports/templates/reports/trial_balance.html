@@ -1,0 +1,61 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags ui %}
+{% block title %}{% translate "Trial balance" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Trial balance" %}</h1>
+    <p class="muted" data-testid="tb-basis">{% if as_of %}{% blocktranslate with d=as_of|date:"M j, Y" %}As of {{ d }}.{% endblocktranslate %}{% else %}{% translate "All posted entries." %}{% endif %}
+      {% if basis == "cash" %}{% translate "Cash basis: only money that moved through the bank; unpaid receivables and payables are left out." %}{% else %}{% translate "Accrual basis." %}{% endif %}</p>
+  </div>
+  {% export_links %}
+</div>
+{% include "reports/_nav.html" %}
+<section class="card" aria-labelledby="tb-filter-h">
+  <h2 id="tb-filter-h" class="sr">{% translate "Filters" %}</h2>
+  <form method="get" class="form-row">
+    <label>{% translate "As of" %}<input type="date" name="as_of" value="{{ as_of|date:'Y-m-d' }}"></label>
+    {% include "reports/_filters.html" with with_basis=True %}
+  </form>
+</section>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Trial balance by account and fund" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Account" %}</th>
+          <th scope="col">{% translate "Name" %}</th>
+          <th scope="col">{% translate "Fund" %}</th>
+          <th scope="col" class="num">{% translate "Debit" %}</th>
+          <th scope="col" class="num">{% translate "Credit" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in tb.rows %}
+        <tr>
+          <td class="nowrap"><a href="{% url 'reports:gl' %}?account={{ row.account.code|urlencode }}&amp;fund={{ row.fund.code }}&amp;basis={{ basis }}{% if as_of %}&amp;end={{ as_of|date:'Y-m-d' }}{% endif %}">{{ row.account.code }}</a></td>
+          <td>{{ row.account.name }}</td>
+          <td>{{ row.fund.name }}</td>
+          <td class="num">{{ row.debit|money_or_blank }}</td>
+          <td class="num">{{ row.credit|money_or_blank }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="muted">{% translate "Nothing has been posted yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row" colspan="3">{% translate "Totals" %}</th>
+          <td class="num">{{ tb.total_debit|money }}</td>
+          <td class="num">{{ tb.total_credit|money }}</td>
+        </tr>
+        <tr>
+          <th scope="row" colspan="3">{% translate "Difference (debits − credits)" %}</th>
+          <td class="num" colspan="2" data-testid="tb-difference">{{ tb.difference|money }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  HOMEOA_DB_HOST: localhost
+  HOMEOA_DB_PORT: "5432"
+  HOMEOA_DB_NAME: homeoa
+  HOMEOA_DB_USER: homeoa
+  HOMEOA_DB_PASSWORD: homeoa
+  HOMEOA_DEFAULT_FROM_EMAIL: homeoa@localhost
+  HOMEOA_PLUGINS: simplefin,rulepack_us_wa
+  # Pango and HarfBuzz render PDFs; gettext is for the message extraction test.
+  APT_PACKAGES: >-
+    gettext libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libharfbuzz-subset0
+    fonts-dejavu-core
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  unit:
+    name: unit (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: homeoa
+          POSTGRES_PASSWORD: homeoa
+          POSTGRES_DB: homeoa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U homeoa" --health-interval 2s
+          --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $APT_PACKAGES
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: pytest
+        run: scripts/ci-shard.sh unit ${{ matrix.shard }} 4 | xargs uv run pytest
+
+  e2e:
+    name: e2e (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: homeoa
+          POSTGRES_PASSWORD: homeoa
+          POSTGRES_DB: homeoa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U homeoa" --health-interval 2s
+          --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends $APT_PACKAGES
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run playwright install --with-deps chromium
+      - name: pytest e2e
+        run: scripts/ci-shard.sh e2e ${{ matrix.shard }} 4 | xargs uv run pytest -p no:django

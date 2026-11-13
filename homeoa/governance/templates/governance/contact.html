@@ -1,0 +1,11 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Contact" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Contact the board, a committee or the system admin" %}</h1>
+  <p class="muted">{% translate "Questions about the app itself go to the system admin." %}</p></div></div>
+<div class="g">
+  <div class="span2 stack">{% include "governance/_contact_form.html" %}</div>
+  <aside class="stack">{% include "governance/_directory.html" %}</aside>
+</div>
+{% endblock %}

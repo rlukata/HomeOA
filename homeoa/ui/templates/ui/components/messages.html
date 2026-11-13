@@ -1,0 +1,4 @@
+{% load ui %}{# Django messages. Rendered once in ui/base.html; an htmx response may include it with oob=True to replace it. #}
+<div id="messages" class="msgs" role="status" aria-live="polite"{% if oob %} hx-swap-oob="true"{% endif %}>
+  {% for message in messages %}<div class="callout {{ message|message_kind }}">{{ message }}</div>{% endfor %}
+</div>

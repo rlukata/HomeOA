@@ -1,0 +1,18 @@
+{% extends "portal/base.html" %}
+{% load i18n ui %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<a href="{% url 'maintenance:my_requests' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Maintenance requests" %}</a>
+<h1 class="h-page">{% translate "New maintenance request" %}</h1>
+<form method="post" enctype="multipart/form-data" class="stack">
+  {% csrf_token %}
+  <section class="card card-pad">
+    <div class="form-grid">
+      {% include "ui/components/form.html" %}
+    </div>
+  </section>
+  <div class="form-actions"><button type="submit" class="btn btn-primary" data-testid="me-maint-submit">{% translate "Send to the board" %}</button></div>
+</form>
+</div>
+{% endblock %}

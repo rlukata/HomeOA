@@ -1,0 +1,71 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Audit log" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Audit log" %}</h1>
+    <p class="muted">{% translate "Every change, who made it and when. Entries can never be edited or removed." %}</p>
+  </div>
+</div>
+<section class="card" aria-labelledby="audit-filter-h">
+  <h2 id="audit-filter-h" class="sr">{% translate "Filters" %}</h2>
+  <form method="get" class="form-row">
+    <label>{% translate "Action" %}<input type="search" name="action" value="{{ filters.action }}"></label>
+    <label>{% translate "Type" %}
+      <select name="object_type">
+        <option value="">{% translate "All types" %}</option>
+        {% for value, label in object_types %}
+          <option value="{{ value }}"{% if value == filters.object_type %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>{% translate "Who" %}<input type="search" name="actor" value="{{ filters.actor }}"></label>
+    <label>{% translate "From" %}<input type="date" name="since" value="{{ filters.since|date:'Y-m-d' }}"></label>
+    <label>{% translate "To" %}<input type="date" name="until" value="{{ filters.until|date:'Y-m-d' }}"></label>
+    <button type="submit" class="btn btn-sm">{% translate "Filter" %}</button>
+    <a class="btn btn-sm btn-ghost" href="{% url 'audit:index' %}">{% translate "Clear" %}</a>
+  </form>
+</section>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Audit events, newest first" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "When" %}</th>
+          <th scope="col">{% translate "Who" %}</th>
+          <th scope="col">{% translate "Action" %}</th>
+          <th scope="col">{% translate "Item" %}</th>
+          <th scope="col">{% translate "Changes" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in page_obj %}
+        <tr>
+          <td class="nowrap"><time datetime="{{ event.created_at|date:'c' }}">{{ event.created_at|date:"Y-m-d H:i" }}</time></td>
+          <td>{{ event.actor_label|default:_("System") }}</td>
+          <td class="nowrap"><b>{{ event.action }}</b></td>
+          <td>{{ event.type_label }}{% if event.object_repr %} <span class="muted">· {{ event.object_repr }}</span>{% endif %}</td>
+          <td>
+            {% if event.change_items %}
+              <ul class="plain small">{% for name, text in event.change_items %}<li><span class="muted">{{ name }}:</span> {{ text }}</li>{% endfor %}</ul>
+            {% endif %}
+            {% if event.message %}<div class="muted">{{ event.message }}</div>{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="muted">{% translate "No audit events match." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page_obj.paginator.num_pages > 1 %}
+  <nav class="card-f row between" aria-label="{% translate 'Pages' %}">
+    {% if page_obj.has_previous %}<a class="btn btn-sm" href="?{{ query }}{% if query %}&amp;{% endif %}page={{ page_obj.previous_page_number }}">{% translate "Newer" %}</a>{% else %}<span></span>{% endif %}
+    <span class="muted">{% blocktranslate with n=page_obj.number total=page_obj.paginator.num_pages %}Page {{ n }} of {{ total }}{% endblocktranslate %}</span>
+    {% if page_obj.has_next %}<a class="btn btn-sm" href="?{{ query }}{% if query %}&amp;{% endif %}page={{ page_obj.next_page_number }}">{% translate "Older" %}</a>{% else %}<span></span>{% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endblock %}

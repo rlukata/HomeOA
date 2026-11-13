@@ -1,0 +1,40 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Submit an architectural request" %}{% endblock %}
+{% block content %}
+<a href="{% url 'arc:index' %}" class="btn btn-ghost btn-sm">{% translate "Architectural requests" %}</a>
+<div class="hero"><div>
+  <h1>{% translate "Submit for a unit" %}</h1>
+  <p class="muted">{% translate "Enter a request the owner gave the board on paper or by email." %}</p>
+</div></div>
+<section class="card"><div class="card-b">
+  <form method="get" action="{{ action_url }}" class="form-grid">
+    <div class="field"><label class="field-l" for="arc-unit">{% translate "Unit" %}</label>
+      <select id="arc-unit" name="unit" required>
+        <option value="">{% translate "Choose…" %}</option>
+        {% for u in units %}<option value="{{ u.pk }}"{% if u == unit %} selected{% endif %}>{{ u }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label class="field-l" for="arc-form">{% translate "Form" %}</label>
+      <select id="arc-form" name="form">
+        {% for f in forms %}<option value="{{ f.pk }}"{% if f == form %} selected{% endif %}>{{ f.name }}</option>{% endfor %}
+      </select></div>
+    <div class="form-actions"><button type="submit" class="btn">{% translate "Continue" %}</button></div>
+  </form>
+</div></section>
+{% if unit and form %}
+<section class="card"><div class="card-h"><h2>{{ form.name }} · {{ unit }}</h2></div><div class="card-b">
+  {% if form.description %}<p class="muted">{{ form.description }}</p>{% endif %}
+  {% if owners %}
+  <form method="post" action="{{ action_url }}" enctype="multipart/form-data" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="unit" value="{{ unit.pk }}">
+    <input type="hidden" name="form" value="{{ form.pk }}">
+    <div class="field full"><label class="field-l" for="arc-person">{% translate "On behalf of" %}</label>
+      <select id="arc-person" name="person">{% for p in owners %}<option value="{{ p.pk }}">{{ p }}</option>{% endfor %}</select></div>
+    {% include "arc/_fields.html" %}
+    <div class="form-actions"><button type="submit" name="submit" value="1" class="btn btn-primary">{% translate "Submit request" %}</button></div>
+  </form>
+  {% else %}<p class="muted">{% translate "This unit has no current owner on record." %}</p>{% endif %}
+</div></section>
+{% endif %}
+{% endblock %}

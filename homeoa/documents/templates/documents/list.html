@@ -1,0 +1,49 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Documents" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Documents" %}</h1>
+    <p class="muted">{% translate "Everything the association keeps, with who can see it" %}</p>
+  </div>
+  {% if can_manage %}<div class="row wrap-ok"><a class="btn btn-primary" href="{% url 'documents:upload' %}" data-testid="doc-upload">{% translate "Upload" %}</a></div>{% endif %}
+</div>
+<form method="get" class="row wrap-ok mb" role="search" aria-label="{% translate 'Filter documents' %}"
+      hx-get="{{ request.path }}" hx-target="#doc-rows" hx-swap="outerHTML" hx-trigger="input changed delay:300ms from:#doc-q, change">
+  <label class="sr" for="doc-q">{% translate "Search documents" %}</label>
+  <input class="search" type="search" id="doc-q" name="q" value="{{ q }}" placeholder="{% translate 'Search titles and text' %}" data-testid="doc-search">
+  <div class="chips" role="radiogroup" aria-label="{% translate 'Category' %}">
+    {% for value, label in categories %}
+    <label class="chip{% if value == category %} on{% endif %}"><input class="sr" type="radio" name="category" value="{{ value }}"{% if value == category %} checked{% endif %}>{{ label }}</label>
+    {% endfor %}
+  </div>
+  <noscript><button type="submit" class="btn">{% translate "Filter" %}</button></noscript>
+</form>
+<div class="g">
+  <section class="card span2">
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "All documents" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "Name" %}</th>
+          <th scope="col">{% translate "Area" %}</th>
+          <th scope="col">{% translate "Visible to" %}</th>
+          <th scope="col">{% translate "Updated" %}</th>
+        </tr></thead>
+        {% include "documents/_rows.html" %}
+      </table>
+    </div>
+  </section>
+  <div class="stack">
+    <section class="card"><div class="card-h"><h2>{% translate "Who sees what" %}</h2></div>
+      <div class="card-b stack-sm small">
+        <div><span class="badge ok">{% translate "Public" %}</span> <span class="muted">{% translate "Anyone with the link, e.g. a rules summary for buyers" %}</span></div>
+        <div><span class="badge accent">{% translate "Owners & tenants" %}</span> <span class="muted">{% translate "Governing documents and rules" %}</span></div>
+        <div><span class="badge info">{% translate "Owners" %}</span> <span class="muted">{% translate "Budgets, financials, minutes, insurance" %}</span></div>
+        <div><span class="badge danger">{% translate "Board only" %}</span> <span class="muted">{% translate "Contracts, executive session, legal" %}</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

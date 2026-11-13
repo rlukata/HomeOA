@@ -1,0 +1,22 @@
+{% extends "portal/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Statements" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Statements" %}</h1>
+{% include "portal/_money_tabs.html" with current="statements" %}
+<section class="card" data-testid="statements-list">
+  {% for st in statements %}
+    <a class="li" href="{% url 'portal:statement_pdf' st.pk %}" target="_blank" rel="noopener">
+      <div class="grow"><div>{% blocktranslate with month=st.period_start|date:"F Y" number=st.unit.number %}{{ month }} · Unit {{ number }}{% endblocktranslate %}</div>
+        <div class="s">{% blocktranslate with closing=st.closing|money %}Closing balance {{ closing }}{% endblocktranslate %}</div>
+        {% if st.autopay_line %}<div class="s" data-testid="statement-autopay-{{ st.pk }}">{{ st.autopay_line }}</div>{% endif %}</div>
+      <span class="btn btn-sm btn-ghost">{% translate "PDF" %}</span>
+    </a>
+  {% empty %}
+    <div class="li"><div class="grow muted">{% translate "No statements yet." %}</div></div>
+  {% endfor %}
+</section>
+</div>
+{% endblock %}

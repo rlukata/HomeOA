@@ -1,0 +1,47 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{{ req.get_kind_display }}{% endblock %}
+{% block content %}
+<a href="{% url 'resale:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Resale certificates" %}</a>
+<div class="hero"><div><h1>{{ req.get_kind_display }}: {{ req.unit }}</h1>
+  <p class="muted" data-testid="resale-status">{{ req.get_status_display }} · {% if req.seller %}{{ req.seller.full_name }}{% else %}{{ req.requester_name }}{% endif %} · {{ req.send_to }} · {% blocktranslate with r=req.received_on|date:"M j, Y" %}Received {{ r }}{% endblocktranslate %}{% if req.due_on %} · <strong>{% blocktranslate with d=req.due_on|date:"M j, Y" %}Due {{ d }}{% endblocktranslate %}</strong>{% endif %}</p>
+  {% if req.note %}<p>{{ req.note }}</p>{% endif %}</div>
+  {% if req.pdf_key %}<div class="row wrap-ok"><a class="btn" href="{% url 'resale:pdf' req.pk %}" data-testid="resale-pdf">{% translate "Download PDF" %}</a></div>{% endif %}
+</div>
+{% if not form %}
+<p class="callout warn">{% translate "The rule pack has no certificate form for this date. Prepare the certificate by hand." %}</p>
+{% else %}
+{% if not form.verified %}<p class="callout small" data-testid="resale-unverified">{% blocktranslate with cite=form.citation|default:_("the generic checklist") %}Item wording is HomeOA's paraphrase of {{ cite }}, not yet checked against the statute. Check it before relying on it.{% endblocktranslate %}</p>{% endif %}
+<form method="post" class="stack" data-testid="resale-answers">{% csrf_token %}
+  <input type="hidden" name="action" value="save">
+  <section class="card"><div class="card-b card-pad-t form-stack">
+  {% for i in items %}
+    <div class="field full"><label class="field-l" for="a-{{ i.key }}">({{ i.key }}) {{ i.label }}{% if i.needs_answer %} <span class="badge warn">{% translate "Needs your answer" %}</span>{% elif i.prefilled %} <span class="badge info">{% translate "pre-filled" %}</span>{% endif %}</label>
+      <textarea id="a-{{ i.key }}" name="a-{{ i.key }}" rows="2"{% if req.status != "open" %} readonly{% endif %}>{{ i.answer }}</textarea></div>
+  {% endfor %}
+  </div></section>
+  {% if req.status == "open" %}<div class="form-actions"><button type="submit" class="btn">{% translate "Save answers" %}</button></div>{% endif %}
+</form>
+{% endif %}
+{% if req.status == "open" %}
+<div class="g">
+  {% if can_issue and form %}
+  <section class="card" aria-labelledby="iss-h"><div class="card-h"><h2 id="iss-h">{% translate "Issue" %}</h2></div>
+    <form method="post" action="{% url 'resale:issue' req.pk %}" class="card-b form-grid" data-testid="resale-issue">{% csrf_token %}
+      <div class="field"><label class="field-l" for="fee">{% translate "Fee charged to the unit owner" %}</label>
+        <input id="fee" name="fee" inputmode="decimal" value="{{ default_fee|default_if_none:'0.00' }}">
+        {% if fee_cap is not None %}<p class="field-help">{% blocktranslate with cap=fee_cap|money %}At most {{ cap }} (rule pack).{% endblocktranslate %}</p>{% endif %}</div>
+      <p class="small muted">{% translate "Save your answers first. Issuing stores the PDF signed in your name, emails it to the requester and the owner, and posts the fee to the owner's account. Board members other than the Treasurer send it for approval." %}</p>
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Issue and send" %}</button></div>
+    </form>
+  </section>
+  {% endif %}
+  <section class="card" aria-labelledby="can-h"><div class="card-h"><h2 id="can-h">{% translate "Cancel" %}</h2></div>
+    <form method="post" action="{% url 'resale:cancel' req.pk %}" class="card-b form-grid">{% csrf_token %}
+      <div class="field"><label class="field-l" for="reason">{% translate "Reason" %}</label><input id="reason" name="reason" maxlength="500"></div>
+      <div class="form-actions"><button type="submit" class="btn btn-ghost">{% translate "Cancel request" %}</button></div>
+    </form>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

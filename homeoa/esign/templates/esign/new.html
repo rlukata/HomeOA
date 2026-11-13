@@ -1,0 +1,30 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Send for signature" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Send for signature" %}</h1></div></div>
+{% if errors %}<div class="card" role="alert" data-testid="errors"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>{% endif %}
+<form method="post" enctype="multipart/form-data" class="card stack">
+  {% csrf_token %}
+  <label>{% translate "Title" %} <input type="text" name="title" value="{{ form.title }}" required maxlength="200"></label>
+  <label>{% translate "PDF to sign" %} <input type="file" name="file" accept="application/pdf,.pdf" required></label>
+  <label>{% translate "Message to signers (optional)" %} <textarea name="message" rows="3">{{ form.message }}</textarea></label>
+  <fieldset>
+    <legend>{% translate "Signing order" %}</legend>
+    {% for value, label in routings %}
+    <label><input type="radio" name="routing" value="{{ value }}"{% if value == form.routing %} checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+  </fieldset>
+  <fieldset>
+    <legend>{% translate "Signers, in order" %}</legend>
+    {% for r in rows %}
+    <div class="row">
+      <label>{% blocktranslate with n=forloop.counter %}Name {{ n }}{% endblocktranslate %} <input type="text" name="name_{{ forloop.counter0 }}" value="{{ r.name }}"></label>
+      <label>{% blocktranslate with n=forloop.counter %}Email {{ n }}{% endblocktranslate %} <input type="email" name="email_{{ forloop.counter0 }}" value="{{ r.email }}"></label>
+    </div>
+    {% endfor %}
+    <p class="muted">{% translate "A signer whose email belongs to a HomeOA account must sign in to sign." %}</p>
+  </fieldset>
+  <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save draft" %}</button></div>
+</form>
+{% endblock %}

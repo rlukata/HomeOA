@@ -1,0 +1,21 @@
+{% extends "portal/base.html" %}
+{% load i18n module_tags %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+  .me-com { display: grid; gap: 14px; max-width: 560px; }
+  .me-com .li { display: flex; gap: 12px; padding: 12px; border-top: 1px solid var(--border); font-size: 14px; }
+  .me-com .li:first-child { border-top: 0; }
+  .me-com .grow { min-width: 0; flex: 1; }
+  .me-com .s { font-size: 12.5px; color: var(--text-2); }
+</style>
+<div class="me-com">
+<h1 class="h-page">{% translate "From the board" %}</h1>
+{% if "announcements"|module_on:request.association %}<section class="card" data-testid="announcements">{% include "community/_announcement_items.html" with full=True %}</section>{% endif %}
+{% if "calendar"|module_on:request.association %}
+<h2 class="h-sub">{% translate "Calendar" %}</h2>
+<section class="card" data-testid="calendar">{% include "community/_events.html" %}<div class="card-gap"></div></section>
+<h2 class="h-sub">{% translate "Subscribe" %}</h2>
+<section class="card">{% include "community/_feed.html" %}</section>
+{% endif %}
+</div>
+{% endblock %}

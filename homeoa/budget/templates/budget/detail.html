@@ -1,0 +1,54 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{{ budget.name }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ budget.name }}</h1>
+    <p class="muted">
+      {% if budget.is_adopted %}{% badge "ok" _("Adopted") %}{% elif budget.is_draft %}{% badge "" _("Draft") %}{% else %}{% badge "" _("Superseded") %}{% endif %}
+      {% if budget.adopted_at %}{% blocktranslate with when=budget.adopted_at|date:"M j, Y" %}Adopted {{ when }}{% endblocktranslate %}{% endif %}
+    </p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn" href="{% url 'budget:actual' budget.pk %}">{% translate "Budget vs actual" %}</a>
+    {% if can_manage and budget.is_draft %}
+    <a class="btn" href="{% url 'budget:lines' budget.pk %}">{% translate "Edit lines" %}</a>
+    <form method="post" action="{% url 'budget:adopt' budget.pk %}">{% csrf_token %}
+      <button type="submit" class="btn btn-primary" data-testid="budget-adopt">{% translate "Adopt budget" %}</button>
+    </form>
+    {% endif %}
+    {% if can_manage and budget.is_adopted %}
+    <a class="btn btn-primary" href="{% url 'budget:dues' budget.pk %}" data-testid="budget-dues">{% translate "Create dues schedule from budget" %}</a>
+    {% endif %}
+  </div>
+</div>
+<section class="card" aria-labelledby="lines-h">
+  <div class="card-h"><h2 id="lines-h">{% translate "Budget lines" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Budget lines" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Line" %}</th><th scope="col">{% translate "Account" %}</th>
+        <th scope="col">{% translate "Fund" %}</th><th scope="col" class="num">{% translate "Annual" %}</th>
+        <th scope="col">{% translate "Note" %}</th></tr></thead>
+      {% for g in groups %}
+      <tbody>
+        <tr class="group-row"><th scope="rowgroup" colspan="5">{{ g.name }}</th></tr>
+        {% for ln in g.lines %}
+        <tr><td>{{ ln.label }}</td><td>{{ ln.account }}</td><td>{{ ln.fund }}</td><td class="num">{{ ln.amount|money }}</td><td>{{ ln.note }}</td></tr>
+        {% endfor %}
+        <tr class="subtotal"><td colspan="3">{% blocktranslate with name=g.name %}Total {{ name }}{% endblocktranslate %}</td><td class="num">{{ g.total|money }}</td><td></td></tr>
+      </tbody>
+      {% empty %}
+      <tbody><tr><td colspan="5" class="empty-row">{% translate "No lines yet." %}</td></tr></tbody>
+      {% endfor %}
+      <tfoot>
+        <tr><th scope="row" colspan="3">{% translate "Total income" %}</th><td class="num">{{ totals.income|money }}</td><td></td></tr>
+        <tr><th scope="row" colspan="3">{% translate "Total expense" %}</th><td class="num">{{ totals.expense|money }}</td><td></td></tr>
+        <tr><th scope="row" colspan="3">{% translate "Net" %}</th><td class="num" data-testid="budget-net">{{ totals.net|money }}</td><td></td></tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+{% endblock %}

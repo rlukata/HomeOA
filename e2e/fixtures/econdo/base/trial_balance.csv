@@ -1,0 +1,8 @@
+Account Number,Account Name,Debit,Credit
+1000,Operating Cash,"14,382.17",
+1010,Reserve Cash,"41,950.00",
+1200,Assessments Receivable,"1,519.98",
+2100,Prepaid Assessments,,50.00
+3000,Opening Balance Equity,,"47,480.07"
+4000,Assessment Income,,"10,297.08"
+4100,Late Fee Income,,25.00

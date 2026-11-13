@@ -1,0 +1,43 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Approval rules" %}{% endblock %}
+{% block content %}
+<a href="{% url 'ap:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "All bills" %}</a>
+<div class="hero">
+  <div>
+    <h1>{% translate "Approval rules" %}</h1>
+    <p class="muted">{% translate "The first active rule, lowest priority first, that matches a bill decides how many approvals it needs. With no matching rule a bill needs one board approval by someone other than whoever entered it." %}</p>
+    {% if reserve_rule.value %}<p class="muted" data-testid="reserve-approvals">{% blocktranslate with n=reserve_rule.value cite=reserve_rule.citation %}A bill paid from a reserve fund needs at least {{ n }} approvals ({{ cite }}).{% endblocktranslate %}</p>{% endif %}
+  </div>
+  <div class="row wrap-ok"><a class="btn btn-primary" href="{% url 'ap:rule_add' %}" data-testid="rule-add">{% translate "Add rule" %}</a></div>
+</div>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Approval rules" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Priority" %}</th>
+        <th scope="col">{% translate "Name" %}</th>
+        <th scope="col">{% translate "Amount" %}</th>
+        <th scope="col">{% translate "Category or vendor" %}</th>
+        <th scope="col" class="num">{% translate "Approvals" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      <tbody>
+      {% for r in rules %}
+        <tr data-testid="rule-row-{{ r.pk }}">
+          <td class="num">{{ r.priority }}</td>
+          <td><a class="inline-link" href="{% url 'ap:rule_edit' r.pk %}">{{ r.name }}</a></td>
+          <td class="nowrap">{{ r.min_amount|money }} – {% if r.max_amount is not None %}{{ r.max_amount|money }}{% else %}{% translate "any" %}{% endif %}</td>
+          <td>{% if r.vendor %}{{ r.vendor.name }}{% elif r.category %}{{ r.category }}{% else %}<span class="muted">{% translate "Any" %}</span>{% endif %}</td>
+          <td class="num">{{ r.required_approvals }}</td>
+          <td>{% if r.active %}{% badge "ok" _("Active") %}{% else %}{% badge "" _("Off") %}{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">{% translate "No rules yet. Every bill needs one board approval." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

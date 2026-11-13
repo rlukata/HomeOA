@@ -1,0 +1,64 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Parallel run" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Parallel run" %}</h1>
+  <p class="muted">{% translate "Each month, load a fresh export from the management company and compare it to HomeOA: every unit's balance and every GL account. The export is kept for comparison only and never changes HomeOA's books." %}</p>
+</div></div>
+{% include "reports/_nav.html" with report="parallel" %}
+{% if can_manage %}
+<section class="card" aria-labelledby="snap-h">
+  <div class="card-h"><h2 id="snap-h">{% translate "Load a management company snapshot" %}</h2></div>
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Upload" %}</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% if pending %}
+<section class="card" aria-labelledby="pending-h">
+  <div class="card-h"><h2 id="pending-h">{% translate "Snapshots ready to compare" %}</h2></div>
+  <ul class="list">
+    {% for s in pending %}
+    <li class="att">
+      <span class="att-main att-t">{% blocktranslate with d=s.as_of|date:"M j, Y" n=s.pk %}Snapshot #{{ n }} as of {{ d }}{% endblocktranslate %}</span>
+      {% if can_manage %}
+      <form method="post" action="{% url 'imports:parallel_run_run' s.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">{% translate "Run diff" %}</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+<section class="card" aria-labelledby="hist-h">
+  <div class="card-h"><h2 id="hist-h">{% translate "Monthly history" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Parallel-run history" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "As of" %}</th>
+        <th scope="col">{% translate "Result" %}</th>
+        <th scope="col">{% translate "Run by" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for r in history %}
+        <tr>
+          <td class="nowrap"><a href="{% url 'imports:parallel_run_detail' r.pk %}">{{ r.as_of|date:"M j, Y" }}</a></td>
+          <td>{% if r.is_clean %}<span class="badge ok">{% translate "Clean" %}</span>{% else %}<span class="badge warn">{% translate "Differences" %}</span>{% endif %}</td>
+          <td>{{ r.created_by.email|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="empty-row">{% translate "No comparisons yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
