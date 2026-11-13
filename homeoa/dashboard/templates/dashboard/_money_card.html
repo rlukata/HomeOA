@@ -1,0 +1,25 @@
+{% load i18n ledger_tags %}
+<section class="card" id="money-card" aria-labelledby="money-card-h"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <div class="card-h"><h2 id="money-card-h">{% translate "Money" %}</h2><a class="btn btn-sm btn-ghost" href="{% url 'dashboard:money' %}">{% translate "Open" %}</a></div>
+  <div class="card-b stack-sm">
+    <div class="stat stat-flat">
+      <div class="stat-l">{% translate "Cash · operating + reserve" %}</div>
+      <div class="stat-v" data-testid="card-cash">{{ money.cash|money }}</div>
+      <div class="stat-s">{% blocktranslate with op=money.operating|money res=money.reserve|money %}{{ op }} operating · {{ res }} reserve{% endblocktranslate %}</div>
+      <div class="stat-s">{% if money.last_sync %}{% blocktranslate with t=money.last_sync|date:"M j, g:i a" %}Bank synced {{ t }}{% endblocktranslate %}{% else %}{% translate "Bank not synced yet" %}{% endif %}</div>
+    </div>
+    {% if money.dues_period %}
+    <div class="stat stat-flat">
+      <div class="stat-l">{% blocktranslate with m=money.dues_period|date:"F" %}{{ m }} dues{% endblocktranslate %}</div>
+      <div class="stat-v">{{ money.collected_pct }}% <span class="of">{% translate "collected" %}</span></div>
+      {% include "dashboard/_bar.html" %}
+      <div class="stat-s"><span data-testid="card-collected">{{ money.collected|money }}</span> {% translate "of" %} <span data-testid="card-billed">{{ money.billed|money }}</span>{% if money.pending_match %} · <span data-testid="card-pending">{{ money.pending_match|money }}</span> {% translate "pending match" %}{% endif %}</div>
+    </div>
+    {% endif %}
+    <div class="stat stat-flat">
+      <div class="stat-l">{% translate "Past due" %}</div>
+      <div class="stat-v{% if money.past_due_total %} danger{% endif %}" data-testid="card-past-due">{{ money.past_due_total|money }}</div>
+      <div class="stat-s">{% for p in money.past_due %}{% if not forloop.first %}, {% endif %}<a href="{% url 'registry:unit' p.unit.number %}">{{ p.unit }}</a> · {% blocktranslate with d=p.since|date:"M j" %}since {{ d }}{% endblocktranslate %}{% empty %}{% translate "Nobody is past due." %}{% endfor %}</div>
+    </div>
+  </div>
+</section>

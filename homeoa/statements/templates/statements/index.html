@@ -1,0 +1,59 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Statements" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Owner statements" %}</h1>
+    <p class="muted">{% translate "One statement per unit and owner each month: opening balance, charges, payments and closing balance, as a PDF. Owners with e-delivery consent get it by email; everyone else by mail." %}</p>
+  </div>
+</div>
+{% if not residents_on %}
+<div class="callout warn" role="note" data-testid="preview-mode">{% translate "Preview mode: residents are not switched on yet, so statements are generated as previews only. Nothing is emailed or mailed; you can open every PDF." %}</div>
+{% endif %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Statement months" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Month" %}</th>
+          <th scope="col" class="num">{% translate "Statements" %}</th>
+          <th scope="col" class="num">{% translate "Total owed" %}</th>
+          <th scope="col">{% translate "Generated" %}</th>
+          <th scope="col"><span class="sr">{% translate "Actions" %}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in months %}
+        <tr>
+          <td>{% if m.run %}<a href="{% url 'statements:statement_run' m.run.pk %}">{{ m.month|date:"F Y" }}</a>{% else %}{{ m.month|date:"F Y" }}{% endif %}</td>
+          <td class="num">{% if m.run %}{{ m.run.n }}{% else %}—{% endif %}</td>
+          <td class="num">{% if m.run %}{{ m.run.total|money }}{% else %}—{% endif %}</td>
+          <td>{% if m.run.generated_at %}{{ m.run.generated_at|date:"M j, Y" }}{% else %}<span class="muted">{% translate "Not yet" %}</span>{% endif %}</td>
+          <td class="num">
+            {% if can_manage %}
+            <form class="inline-form" method="post" action="{% url 'statements:generate' %}">
+              {% csrf_token %}
+              <input type="hidden" name="month" value="{{ m.month|date:'Y-m' }}">
+              <button type="submit" class="btn btn-sm{% if not m.run %} btn-primary{% endif %}" aria-label="{% blocktranslate with month=m.month|date:'F Y' %}Generate statements for {{ month }}{% endblocktranslate %}">{% if m.run %}{% translate "Regenerate" %}{% else %}{% translate "Generate" %}{% endif %}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% for r in older %}
+        <tr>
+          <td><a href="{% url 'statements:statement_run' r.pk %}">{{ r.period_start|date:"F Y" }}</a></td>
+          <td class="num">{{ r.n }}</td>
+          <td class="num">{{ r.total|money }}</td>
+          <td>{{ r.generated_at|date:"M j, Y" }}</td>
+          <td></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="card-f muted">{% translate "Regenerating a month replaces its unsent statements; statements already sent are kept." %}</p>
+</section>
+{% endblock %}

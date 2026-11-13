@@ -1,0 +1,12 @@
+{% load i18n %}{# Simple data table: caption (visually hidden), headers (labels, or (label, "num") pairs), rows (lists of cells), empty (message). For cells with links or badges, write the markup by hand with the same classes. #}
+<div class="table-wrap">
+  <table class="t">
+    <caption class="sr">{{ caption }}</caption>
+    <thead><tr>{% for h in headers %}{% if h.1 == "num" %}<th scope="col" class="num">{{ h.0 }}</th>{% else %}<th scope="col">{{ h }}</th>{% endif %}{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+    {% empty %}<tr><td colspan="{{ headers|length }}" class="empty-row">{% if empty %}{{ empty }}{% else %}{% translate "Nothing here yet." %}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>

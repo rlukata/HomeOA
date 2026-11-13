@@ -1,0 +1,33 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Welcome packet" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Welcome packet" %}</h1>
+  <p class="muted">{% translate "What owners see under More > Welcome packet: your message, the documents below, who's on the board and how to pay and send requests. Home shows it to each owner until they open it. Tenants don't get it." %}</p>
+</div></div>
+<div class="g">
+  <section class="card span2" aria-labelledby="wp-docs-h" data-testid="welcome-documents">
+    <div class="card-h"><h2 id="wp-docs-h">{% translate "Documents in the packet" %}</h2></div>
+    <ul class="rows card-b">
+    {% for d in documents %}
+      <li><a href="{% url 'documents:detail' d.public_id %}">{{ d.title }}</a> · <span class="muted">{{ d.get_visibility_display }}</span></li>
+    {% empty %}
+      <li class="muted">{% translate "No documents yet." %}</li>
+    {% endfor %}
+    </ul>
+    <div class="card-b"><p class="faint">{% translate "To add or remove a document, open it and use “Who can see it”." %}</p></div>
+  </section>
+  <section class="card" aria-labelledby="wp-msg-h">
+    <div class="card-h"><h2 id="wp-msg-h">{% translate "Welcome message" %}</h2></div>
+    {% if can_manage %}
+    <form method="post" class="card-b form-grid" data-testid="welcome-message-form">{% csrf_token %}
+      {% include "ui/components/form.html" with form=form %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save message" %}</button></div>
+    </form>
+    {% else %}
+    <div class="card-b">{% if form.initial.message %}{{ form.initial.message|linebreaks }}{% else %}<p class="muted">{% translate "No message yet." %}</p>{% endif %}</div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

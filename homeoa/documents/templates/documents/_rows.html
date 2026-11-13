@@ -1,0 +1,12 @@
+{% load i18n %}<tbody id="doc-rows">
+{% for d in documents %}
+  <tr data-testid="doc-row-{{ d.public_id }}">
+    <td><a href="{% url 'documents:detail' d.public_id %}"><b>{{ d.title }}</b></a>{% if d.governing_kind %} <span class="faint">· {{ d.get_governing_kind_display }}</span>{% endif %}{% if d.status %} <span class="badge danger" data-testid="doc-status">{{ d.get_status_display }}</span>{% endif %}{% if d.snippet %}<div class="muted small" data-testid="doc-snippet">{% blocktranslate with n=d.found_on_page %}Page {{ n }}:{% endblocktranslate %} {{ d.snippet }}</div>{% endif %}</td>
+    <td class="muted">{{ d.get_category_display }}</td>
+    <td><span class="badge {{ d.badge }}">{{ d.get_visibility_display }}</span></td>
+    <td class="muted nowrap">{{ d.updated_at|date:"M j, Y" }}</td>
+  </tr>
+{% empty %}
+  <tr><td colspan="4" class="muted">{% translate "No documents match." %}</td></tr>
+{% endfor %}
+</tbody>

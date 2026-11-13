@@ -1,0 +1,22 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Monthly board packet" %}{% endblock %}
+{% block content %}
+<a href="{% url 'reports:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Reports" %}</a>
+<div class="hero"><div>
+  <h1>{% translate "Monthly board packet" %}</h1>
+  <p class="muted">{% translate "One PDF for the month: summary, income statement (month and year to date), balance sheet, budget vs actual, receivables aging, bills paid, open work orders and violations, and upcoming deadlines. Closing a month on Money > Close builds it, files it under Documents (board only) and emails it to the board." %}</p>
+</div></div>
+<section class="card"><div class="card-b card-pad-t">
+  <form method="get" class="form-row" data-testid="packet-pick">
+    <label>{% translate "Month" %}
+      <select name="month" data-testid="packet-month">{% for m in months %}<option value="{{ m|date:'Y-m' }}"{% if m|date:'Y-m' == picked %} selected{% endif %}>{{ m|date:"F Y" }}</option>{% endfor %}</select></label>
+    <button type="submit" class="btn btn-sm">{% translate "Show" %}</button>
+  </form>
+  <div class="row wrap-ok mt">
+    <a class="btn" data-testid="packet-download" href="?month={{ picked }}&amp;download=1">{% translate "Download PDF" %}</a>
+    {% if can_send %}<form method="post">{% csrf_token %}<input type="hidden" name="month" value="{{ picked }}">
+      <button type="submit" class="btn btn-primary" data-testid="packet-send">{% translate "File and email to the board" %}</button></form>{% endif %}
+  </div>
+</div></section>
+{% endblock %}

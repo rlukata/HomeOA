@@ -1,0 +1,9 @@
+{% load i18n %}
+<nav class="row" aria-label="{% translate 'Violations' %}">
+  <a class="btn btn-sm btn-ghost" href="{% url 'enforcement:index' %}">{% translate "Violation log" %}</a>
+  <a class="btn btn-sm btn-ghost" href="{% url 'enforcement:categories' %}">{% translate "Categories" %}</a>
+  <a class="btn btn-sm btn-ghost" href="{% url 'enforcement:schedules' %}">{% translate "Fine schedule" %}</a>
+</nav>
+{% if unfurnished %}
+<p class="callout warn" role="alert" data-testid="unfurnished-banner">{% translate "Not yet furnished to owners: fines cannot be imposed" %}</p>
+{% endif %}

@@ -1,0 +1,15 @@
+{% load i18n %}
+<label>{% translate "Fund" %}
+  <select name="fund">
+    <option value="">{% translate "All funds" %}</option>
+    {% for f in funds %}<option value="{{ f.code }}"{% if f == fund %} selected{% endif %}>{{ f.name }}</option>{% endfor %}
+  </select>
+</label>
+{% if with_basis %}
+<label>{% translate "Basis" %}
+  <select name="basis">
+    {% for value, label in bases %}<option value="{{ value }}"{% if value == basis %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+</label>
+{% endif %}
+<button type="submit" class="btn btn-sm">{% translate "Show" %}</button>

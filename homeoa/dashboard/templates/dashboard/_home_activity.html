@@ -1,0 +1,15 @@
+{% load i18n %}{% if show_todos %}
+    <section class="card" aria-labelledby="activity-h">
+      <div class="card-h"><h2 id="activity-h">{% translate "Recent activity" %}</h2></div>
+      {% if activity %}
+      <ul class="list">
+        {% for ev in activity %}
+        <li class="feed-i"><span class="dot" aria-hidden="true"></span><span class="what">{{ ev.actor_label|default:_("System") }} · {{ ev.action }} · {{ ev.object_repr }}</span><span class="when">{% blocktranslate with t=ev.created_at|timesince %}{{ t }} ago{% endblocktranslate %}</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="card-b muted">{% translate "No activity yet." %}</p>
+      {% endif %}
+      <div class="card-gap"></div>
+    </section>
+    {% endif %}

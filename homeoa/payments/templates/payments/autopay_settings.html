@@ -1,0 +1,31 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Autopay" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Autopay" %}</h1>
+    <p class="muted">{% blocktranslate with n=least %}Before each autopay debit, owners get the amount and the debit date at least {{ n }} days ahead. The debit never takes more than the amount in that notice.{% endblocktranslate %}</p>
+  </div>
+  <div class="hero-actions"><a class="btn btn-ghost" href="{% url 'payments:index' %}">{% translate "Payments" %}</a></div>
+</div>
+<section class="card card-pad" aria-labelledby="next-h">
+  <h2 id="next-h">{% translate "Next cycle" %}</h2>
+  <p data-testid="autopay-next-cycle">{% blocktranslate with notice=next_notice_on|date:"M j, Y" debit=next_debit_on|date:"M j, Y" %}Notice on {{ notice }}, debit on {{ debit }}.{% endblocktranslate %}</p>
+</section>
+{% if can_manage %}
+<section class="card card-pad" aria-labelledby="set-h">
+  <h2 id="set-h">{% translate "Debit day and notice" %}</h2>
+  <p class="muted">{% translate "A change applies from the next cycle whose notice has not gone out yet. A cycle already noticed keeps its debit date." %}</p>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save" %}</button></div>
+  </form>
+</section>
+{% endif %}
+<section class="card card-pad" aria-labelledby="hist-h">
+  <h2 id="hist-h">{% translate "Autopay history" %}</h2>
+  {% include "payments/_autopay_history.html" with charges=history show_unit=True show_actions=can_manage %}
+</section>
+{% endblock %}

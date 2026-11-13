@@ -1,0 +1,27 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Change requests" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Change requests" %}</h1>
+    <p class="muted">{% if on_board %}{% translate "Changes to money, vendors' payment details, roles, ownership and policies take effect only after another board member approves them (two approvals when the person asking is not on the board). Nobody approves their own." %}{% else %}{% translate "Changes you asked for. They take effect once two board members approve them." %}{% endif %}</p>
+  </div>
+</div>
+<div class="stack">
+  {% if waiting %}
+  <section class="card" aria-labelledby="wait-h">
+    <div class="card-h"><h2 id="wait-h">{% translate "Waiting for your approval" %}</h2></div>
+    {% include "changes/_rows.html" with rows=waiting testid="changes-waiting" %}
+  </section>
+  {% endif %}
+  <section class="card" aria-labelledby="pend-h">
+    <div class="card-h"><h2 id="pend-h">{% if waiting %}{% translate "Other open requests" %}{% else %}{% translate "Open requests" %}{% endif %}</h2></div>
+    {% if pending %}{% include "changes/_rows.html" with rows=pending testid="changes-pending" %}{% else %}<div class="card-b"><p class="muted">{% translate "Nothing else is waiting." %}</p></div>{% endif %}
+  </section>
+  <section class="card" aria-labelledby="done-h">
+    <div class="card-h"><h2 id="done-h">{% translate "Recently closed" %}</h2></div>
+    {% if closed %}{% include "changes/_rows.html" with rows=closed testid="changes-closed" %}{% else %}<div class="card-b"><p class="muted">{% translate "No closed requests yet." %}</p></div>{% endif %}
+  </section>
+</div>
+{% endblock %}

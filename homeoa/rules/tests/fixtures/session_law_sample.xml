@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SYNTHETIC sample built from the SessionLawService WSDL shape; not a recorded reply. -->
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <GetSessionLawByBillResponse xmlns="http://WSLWebServices.leg.wa.gov/">
+      <GetSessionLawByBillResult>
+        <ChapterNumber>119</ChapterNumber>
+        <Year>2025</Year>
+        <LegislativeSession>2025 Regular Session</LegislativeSession>
+        <LegislatureNumber>69</LegislatureNumber>
+        <EffectiveDate>2025-07-27T00:00:00</EffectiveDate>
+        <MultipleEffectiveDates>false</MultipleEffectiveDates>
+        <BillId>ESSB 9991</BillId>
+        <Biennium>2025-26</Biennium>
+        <BillTitle>Sample bill</BillTitle>
+        <PartialVeto>false</PartialVeto>
+        <Veto>false</Veto>
+        <LegTypeId>1</LegTypeId>
+      </GetSessionLawByBillResult>
+    </GetSessionLawByBillResponse>
+  </soap:Body>
+</soap:Envelope>

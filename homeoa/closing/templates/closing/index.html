@@ -1,0 +1,88 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Period close" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Period close" %}</h1>
+    <p class="muted" data-testid="locked-through">
+      {% if locked_through %}{% blocktranslate with d=locked_through|date:"M j, Y" %}The books are locked through {{ d }}.{% endblocktranslate %}
+      {% else %}{% translate "No period is closed yet." %}{% endif %}
+    </p>
+  </div>
+</div>
+
+<section class="card" aria-labelledby="month-h">
+  <div class="card-h"><h2 id="month-h">{% translate "Close a month" %}</h2></div>
+  <div class="card-b">
+    <form method="get" class="form-row">
+      <label>{% translate "Month" %} <input class="input" type="month" name="month" value="{{ month_value }}"></label>
+      <button type="submit" class="btn btn-sm">{% translate "Check" %}</button>
+    </form>
+    {% include "closing/_checklist.html" with checks=month_checks %}
+    {% if can_manage %}
+    <form method="post" action="{% url 'closing:close_month' %}" class="form-actions">
+      {% csrf_token %}
+      <input type="hidden" name="month" value="{{ month_value }}">
+      <button type="submit" class="btn btn-primary" data-testid="close-month"{% if not month_ready %} disabled{% endif %}>
+        {% blocktranslate with m=month_start|date:"F Y" %}Close {{ m }}{% endblocktranslate %}</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card" aria-labelledby="year-h">
+  <div class="card-h"><h2 id="year-h">{% translate "Year-end close" %}</h2></div>
+  <div class="card-b">
+    <p class="muted">{% blocktranslate with s=year_start|date:"M j, Y" e=year_end|date:"M j, Y" %}Fiscal year {{ s }} – {{ e }}. Closing posts one entry that moves each fund's net income into its fund balance, then locks the year.{% endblocktranslate %}</p>
+    <form method="get" class="form-row">
+      <label>{% translate "Fiscal year starting" %} <input class="input" type="number" name="year" value="{{ fy }}" min="2000" max="2100"></label>
+      <button type="submit" class="btn btn-sm">{% translate "Check" %}</button>
+    </form>
+    {% include "closing/_checklist.html" with checks=year_checks %}
+    {% if can_manage %}
+    <form method="post" action="{% url 'closing:close_year' %}" class="form-actions">
+      {% csrf_token %}
+      <input type="hidden" name="year" value="{{ fy }}">
+      <button type="submit" class="btn btn-primary" data-testid="close-year"{% if not year_ready %} disabled{% endif %}>{% translate "Close the year" %}</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card" aria-labelledby="hist-h">
+  <div class="card-h"><h2 id="hist-h">{% translate "Closed periods" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Closed periods" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Period" %}</th><th scope="col">{% translate "Kind" %}</th>
+        <th scope="col">{% translate "Closed" %}</th><th scope="col">{% translate "Status" %}</th>
+        <th scope="col">{% translate "Action" %}</th></tr></thead>
+      <tbody>
+      {% for c in closes %}
+        <tr data-testid="close-row">
+          <td>{{ c.period_start|date:"M j, Y" }} – {{ c.period_end|date:"M j, Y" }}</td>
+          <td>{{ c.get_kind_display }}</td>
+          <td>{{ c.closed_at|date:"M j, Y" }}{% if c.closed_by %} · {{ c.closed_by.email }}{% endif %}</td>
+          <td>{% if c.is_active %}{% translate "Closed" as st %}{% badge "ok" st %}
+              {% else %}{% translate "Reopened" as st %}{% badge "" st %} {{ c.reopened_at|date:"M j, Y" }}{% if c.reopened_by %} · {{ c.reopened_by.email }}{% endif %}<br><span class="muted">{{ c.reopen_reason }}</span>{% endif %}</td>
+          <td>
+            {% if c.is_active and can_manage %}
+            <form method="post" action="{% url 'closing:reopen' c.pk %}" class="form-row">
+              {% csrf_token %}
+              <label class="sr" for="reason-{{ c.pk }}">{% translate "Reason for reopening" %}</label>
+              <input class="input" id="reason-{{ c.pk }}" name="reason" required placeholder="{% translate 'Reason' %}">
+              <button type="submit" class="btn btn-sm" data-testid="reopen">{% translate "Reopen" %}</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "No closed periods yet." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

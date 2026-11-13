@@ -1,0 +1,48 @@
+# Reverse proxy in front of web. HOMEOA_TLS_MODE selects the site block:
+#   caddy  (default) TLS ends here. HOMEOA_DOMAIN=localhost uses Caddy's local CA for
+#          testing; a real public domain gets an automatic ACME (Let's Encrypt) cert.
+#   tunnel TLS ends at Cloudflare. cloudflared (compose profile "tunnel")
+#          forwards to http://caddy:80; Caddy serves plain HTTP on the internal
+#          network, no ACME, and keeps X-Forwarded-Proto/-For only from the
+#          cloudflared IP (trusted_proxies below).
+{
+	email {$HOMEOA_ACME_EMAIL:admin@localhost}
+	servers {
+		trusted_proxies static {$HOMEOA_CF_TUNNEL_IP:172.31.250.11}/32
+		# The access log's request.client_ip: CF-Connecting-IP, but only when the peer
+		# is the cloudflared IP above; from any other peer (caddy mode, spoofers) the
+		# header is ignored and client_ip is the TCP peer.
+		client_ip_headers CF-Connecting-IP X-Forwarded-For
+	}
+}
+
+(app) {
+	encode zstd gzip
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy web:8000 {
+		health_uri /healthz
+		health_headers {
+			Host {$HOMEOA_DOMAIN:localhost}
+		}
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+(caddy) {
+	{$HOMEOA_DOMAIN:localhost} {
+		import app
+	}
+}
+
+(tunnel) {
+	http://:80 {
+		import app
+	}
+}
+
+import {$HOMEOA_TLS_MODE:caddy}

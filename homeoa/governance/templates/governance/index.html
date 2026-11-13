@@ -1,0 +1,188 @@
+{% extends "ui/base.html" %}
+{% load i18n module_tags %}
+{% block title %}{% translate "Board & committees" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Board & committees" %}</h1>
+    <p class="muted">{% translate "Who serves, their terms, board resolutions and the action items they create. Terms here do not change anyone's login role; assign roles in Settings." %}</p>
+  </div>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="res-h">
+      <div class="card-h"><h2 id="res-h">{% translate "Resolutions" %}</h2></div>
+      {% if resolutions %}
+      <div class="table-wrap">
+        <table class="t" data-testid="resolutions">
+          <thead><tr>
+            <th scope="col">{% translate "Number" %}</th>
+            <th scope="col">{% translate "Title" %}</th>
+            <th scope="col">{% translate "Adopted" %}</th>
+            <th scope="col">{% translate "Status" %}</th>
+          </tr></thead>
+          <tbody>
+            {% for r in resolutions %}
+            <tr>
+              <td class="nowrap"><a href="{% url 'governance:resolution' r.pk %}"><strong>{{ r.number }}</strong></a></td>
+              <td>{{ r.title }}</td>
+              <td class="nowrap">{{ r.adopted_on|date:"M j, Y"|default:"—" }}</td>
+              <td><span class="badge {% if r.status == 'adopted' %}ok{% elif r.status == 'rescinded' %}danger{% else %}warn{% endif %}">{{ r.get_status_display }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-b"><p class="muted">{% translate "No resolutions yet." %}</p></div>
+      {% endif %}
+      {% if can_manage %}
+      <div class="card-b">
+        <form method="post" action="{% url 'governance:resolution_add' %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Title" %} <input type="text" name="title" maxlength="200" required></label>
+          <label>{% translate "Text" %} <textarea name="text" rows="3"></textarea></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "New draft resolution" %}</button></div>
+        </form>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="act-h">
+      <div class="card-h"><h2 id="act-h">{% translate "Action items" %}</h2></div>
+      {% if open_items or closed_items %}
+      <div class="table-wrap">
+        <table class="t" data-testid="action-items">
+          <thead><tr>
+            <th scope="col">{% translate "Due" %}</th>
+            <th scope="col">{% translate "Action" %}</th>
+            <th scope="col">{% translate "Owner" %}</th>
+            <th scope="col">{% translate "Status" %}</th>
+          </tr></thead>
+          <tbody>
+            {% for i in open_items %}{% include "governance/_action_row.html" %}{% endfor %}
+            {% for i in closed_items %}{% include "governance/_action_row.html" %}{% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-b"><p class="muted">{% translate "No action items." %}</p></div>
+      {% endif %}
+      {% if can_manage and board_people %}
+      <div class="card-b">
+        <form method="post" action="{% url 'governance:action_add' %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Title" %} <input type="text" name="title" maxlength="200" required></label>
+          <label>{% translate "Owner" %}
+            <select name="owner">{% for p in board_people %}<option value="{{ p.pk }}">{{ p }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Due date" %} <input type="date" name="due_date"></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Add action item" %}</button></div>
+        </form>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="board-h">
+      <div class="card-h"><h2 id="board-h">{% translate "Board" %}</h2></div>
+      <div class="card-b" data-testid="roster">
+        {% for t in roster %}
+        <div class="person-row">
+          <span class="av">{{ t.person.initials }}</span>
+          <div>
+            <div class="strong">{{ t.person }}</div>
+            <div class="muted small">{{ t.get_office_display }}{% if t.end %} · {% blocktranslate with date=t.end|date:"M Y" %}term to {{ date }}{% endblocktranslate %}{% endif %}</div>
+          </div>
+        </div>
+        {% empty %}
+        <p class="muted">{% translate "No current board terms recorded." %}</p>
+        {% endfor %}
+      </div>
+      {% if can_manage %}
+      <div class="card-b">
+        <details>
+          <summary>{% translate "Add a term" %}</summary>
+          <form method="post" action="{% url 'governance:term_add' %}" class="form-grid">
+            {% csrf_token %}
+            <label>{% translate "Person" %}
+              <select name="person">{% for p in people %}<option value="{{ p.pk }}">{{ p }}</option>{% endfor %}</select>
+            </label>
+            <label>{% translate "Office" %}
+              <select name="office">{% for v, l in offices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+            </label>
+            <label>{% translate "Start" %} <input type="date" name="start" required></label>
+            <label>{% translate "End" %} <input type="date" name="end"></label>
+            <div class="form-actions"><button type="submit" class="btn">{% translate "Add term" %}</button></div>
+          </form>
+        </details>
+        <details>
+          <summary>{% translate "All terms" %}</summary>
+          <ul class="list">
+            {% for t in terms %}
+            <li>
+              {{ t.person }} · {{ t.get_office_display }} · {{ t.start|date:"M j, Y" }} – {{ t.end|date:"M j, Y"|default:"…" }}
+              <form method="post" action="{% url 'governance:term_end' t.pk %}" class="row">
+                {% csrf_token %}
+                <input type="date" name="end" aria-label="{% translate 'End date' %}" value="{{ t.end|date:'Y-m-d' }}">
+                <button type="submit" class="btn btn-sm btn-ghost">{% translate "Set end" %}</button>
+              </form>
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+      </div>
+      {% endif %}
+    </section>
+
+    {% if "committees"|module_on:request.association %}
+    <section class="card" aria-labelledby="com-h">
+      <div class="card-h"><h2 id="com-h">{% translate "Committees" %}</h2></div>
+      <div class="card-b" data-testid="committees">
+        {% for c in committees %}
+        <div class="mt-16">
+          <strong>{{ c.committee.name }}</strong>
+          {% if c.committee.purpose %}<div class="muted small">{{ c.committee.purpose }}</div>{% endif %}
+          <ul class="list">
+            {% for m in c.members %}
+            <li>{{ m.person }}{% if m.is_chair %} <span class="badge info">{% translate "Chair" %}</span>{% endif %}</li>
+            {% empty %}
+            <li class="muted">{% translate "No members." %}</li>
+            {% endfor %}
+          </ul>
+          {% if can_manage %}
+          <details>
+            <summary>{% translate "Add member" %}</summary>
+            <form method="post" action="{% url 'governance:member_add' c.committee.pk %}" class="form-grid">
+              {% csrf_token %}
+              <label>{% translate "Person" %}
+                <select name="person">{% for p in people %}<option value="{{ p.pk }}">{{ p }}</option>{% endfor %}</select>
+              </label>
+              <label>{% translate "Start" %} <input type="date" name="start" value="{{ today|date:'Y-m-d' }}" required></label>
+              <label>{% translate "End" %} <input type="date" name="end"></label>
+              <label><input type="checkbox" name="is_chair"> {% translate "Chair" %}</label>
+              <div class="form-actions"><button type="submit" class="btn btn-sm">{% translate "Add member" %}</button></div>
+            </form>
+          </details>
+          {% endif %}
+        </div>
+        {% empty %}
+        <p class="muted">{% translate "No committees." %}</p>
+        {% endfor %}
+      </div>
+      {% if can_manage %}
+      <div class="card-b">
+        <form method="post" action="{% url 'governance:committee_add' %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Name" %} <input type="text" name="name" maxlength="120" required></label>
+          <label>{% translate "Purpose" %} <input type="text" name="purpose" maxlength="300"></label>
+          <div class="form-actions"><button type="submit" class="btn btn-sm">{% translate "Add committee" %}</button></div>
+        </form>
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "ui/base.html" %}
+{% load i18n homeoa_access %}
+{% block title %}{% translate "Go live" %}{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+  .acc-form { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; max-width: 560px; }
+  .acc-form .acc-check { display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 13.5px; color: var(--text); font-weight: 500; }
+  .acc-form .errorlist { margin: 2px 0 0; padding: 0; list-style: none; color: var(--danger); font-size: 12px; font-weight: 500; }
+  .st-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; margin: 0; }
+  .st-list ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+</style>
+<div class="hero"><div><h1>{% translate "Go live" %}</h1>
+  <p class="muted">{% translate "Until the association goes live, the money jobs wait and owners and tenants cannot sign in, so data can be loaded and checked safely." %}</p></div></div>
+<section class="card" aria-labelledby="gl-status-h" data-testid="go-live-status">
+  <div class="card-h"><h2 id="gl-status-h">{% translate "Status" %}: <span data-testid="status-label">{% if live %}{% blocktranslate with date=go_live_date|date:"M j, Y" %}Live since {{ date }}{% endblocktranslate %}{% else %}{% translate "Setting up" %}{% endif %}</span></h2></div>
+  <div class="st-list">
+    {% if live %}<p>{% translate "The money jobs are running and owners and tenants can be invited. Mistakes are corrected with entries." %}</p>
+    {% else %}<p>{% translate "The association is setting up. Nothing bills owners and residents cannot sign in yet." %}</p>{% endif %}
+  </div>
+</section>
+{% if not live %}
+{% if records_end %}
+<section class="card" aria-labelledby="gl-records-h" data-testid="go-live-records">
+  <div class="card-h"><h2 id="gl-records-h">{% translate "Loaded records" %}</h2></div>
+  <div class="st-list">
+    <p data-testid="records-end">{% blocktranslate with date=records_end|date:"M j, Y" %}The loaded records cover through {{ date }}.{% endblocktranslate %}</p>
+    {% if gap %}
+    <div class="callout warn" data-testid="gap-warning">
+      <p>{% blocktranslate with start=gap_start|date:"M j, Y" end=yesterday|date:"M j, Y" %}There are days between the end of the records and today ({{ start }} to {{ end }}). Going live does not fill them in. The board handles these by hand:{% endblocktranslate %}</p>
+      <ul>
+        {% for d in gap_dues %}
+        <li data-testid="gap-dues">{% blocktranslate with month=d.period|date:"F Y" due=d.due|date:"M j, Y" %}{{ month }} dues (due {{ due }}){% endblocktranslate %}{% if gap_dues|length > 1 %} · {{ d.schedule.name }}{% endif %}: <a href="{% url 'billing:index' %}">{% translate "post them by hand on the Dues page" %}</a></li>
+        {% endfor %}
+        <li data-testid="gap-payments">{% blocktranslate with start=gap_start|date:"M j, Y" end=yesterday|date:"M j, Y" %}Payments owners made to the previous manager between {{ start }} and {{ end }} are not in HomeOA. Record them before or after going live.{% endblocktranslate %}</li>
+        <li data-testid="gap-late-fees">{% translate "Late fees on those dues are not added automatically." %}</li>
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+<section class="card" aria-labelledby="gl-checks-h" data-testid="go-live-checks">
+  <div class="card-h"><h2 id="gl-checks-h">{% translate "Readiness checks" %}</h2>
+    {% has_perm "finance.read" as can_finance %}{% if can_finance %}<a href="{% url 'imports:cutover' %}">{% translate "Cutover page" %}</a>{% endif %}</div>
+  <ul class="list">
+    {% for c in checks %}
+    <li class="att" data-testid="check-{{ c.key }}">
+      <span class="att-main">
+        <span class="att-t">{% if c.ok %}<span class="badge ok">{% translate "Done" %}</span>{% else %}<span class="badge warn">{% translate "To do" %}</span>{% endif %} {{ c.label }}</span>
+        <span class="muted">{{ c.detail }}</span>
+        {% if c.items %}<ul>{% for i in c.items %}<li>{{ i }}</li>{% endfor %}</ul>{% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="muted st-list">{% translate "The checks are for information. They do not stop the button." %}</p>
+</section>
+<section class="card" aria-labelledby="gl-does-h" data-testid="go-live-effects">
+  <div class="card-h"><h2 id="gl-does-h">{% translate "What going live does" %}</h2></div>
+  <div class="st-list">
+    <ul>
+      <li>{% translate "The money jobs start today: dues, late fees and interest, special assessment installments, delinquency notices and autopay." %}</li>
+      <li>{% if paused %}{% translate "Resident access is paused, so owners and tenants still cannot sign in until the pause is lifted on the Association status page." %}{% else %}{% translate "Owners and tenants can be invited and sign in." %}{% endif %}</li>
+      <li>{% translate "It cannot be undone. Later mistakes are corrected with entries." %}</li>
+    </ul>
+  </div>
+</section>
+<section class="card" aria-labelledby="gl-form-h">
+  <div class="card-h"><h2 id="gl-form-h">{% translate "Go live today" %}</h2></div>
+  <form method="post" class="acc-form" data-testid="go-live-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <label class="acc-check">{{ form.confirm }} {{ form.confirm.label }}</label>{{ form.confirm.errors }}
+    <div><button type="submit" class="btn btn-primary">{% translate "Go live" %}</button>
+      <a class="btn btn-ghost" href="{% url 'ui:settings' %}">{% translate "Cancel" %}</a></div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

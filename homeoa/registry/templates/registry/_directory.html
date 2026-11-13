@@ -1,0 +1,18 @@
+{% load i18n %}
+<p class="muted small">{% translate "Unlisted phone numbers, confidential emails, residents' emails and confidential addresses are left out." %}</p>
+{% for g in units %}
+<section class="card" aria-labelledby="dir-u{{ g.unit.pk }}-h" data-testid="directory-unit">
+  <div class="card-h"><h2 id="dir-u{{ g.unit.pk }}-h">{{ g.unit }}</h2></div>
+  <ul class="rows card-b">
+  {% for p in g.people %}
+    <li data-testid="directory-person"><strong>{{ p.name }}</strong> · {{ p.role }}
+      {% if p.email %}<br><a href="mailto:{{ p.email }}">{{ p.email }}</a>{% endif %}
+      {% if p.phone %}<br><a href="tel:{{ p.phone }}">{{ p.phone }}</a>{% endif %}
+      {% if p.address %}<br><span class="muted">{{ p.address }}</span>{% endif %}
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% empty %}
+<section class="card"><div class="card-b"><p class="muted">{% translate "Nobody is listed yet." %}</p></div></section>
+{% endfor %}

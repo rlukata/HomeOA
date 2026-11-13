@@ -1,0 +1,4 @@
+{% load ui %}{# Form body: errors, hidden fields, then every visible field. Wrap in <form class="form-grid"> and end with a <div class="form-actions">. #}
+{% form_errors form %}
+{% for f in form.hidden_fields %}{{ f }}{% endfor %}
+{% for f in form.visible_fields %}{% field f %}{% endfor %}

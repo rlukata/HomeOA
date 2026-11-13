@@ -1,0 +1,29 @@
+{% extends "portal/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Confirm payment" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+{% include "portal/_pay_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Confirm payment" %}</h1>
+<form method="post" action="{% url 'portal:pay_confirm' %}" class="card">
+  {% csrf_token %}
+  <input type="hidden" name="unit" value="{{ pay.unit.number }}">
+  <input type="hidden" name="amount" value="{{ amount }}">
+  <input type="hidden" name="key" value="{{ key }}">
+  <div class="li"><div class="grow"><div>{% blocktranslate with n=pay.unit.number %}Unit {{ n }}{% endblocktranslate %}</div><div class="s">{% translate "Amount" %}</div></div><b class="num" data-testid="confirm-amount">{{ amount|money }}</b></div>
+  {% if fee %}
+  <div class="li"><div class="grow"><div>{% translate "Bank fee" %}</div><div class="s">{% if pay.free_method_required %}{% translate "No fee if you pay by check or send a bank transfer yourself." %}{% endif %}</div></div><b class="num" data-testid="confirm-fee">{{ fee|money }}</b></div>
+  {% endif %}
+  <fieldset class="li plain">
+    <legend class="s legend-pad">{% translate "Pay from" %}</legend>
+    {% for m in pay.chargeable %}
+      <label class="choice"><input type="radio" name="method" value="{{ m.ref }}"{% if forloop.first %} checked{% endif %}> {{ m.label }}</label>
+    {% endfor %}
+  </fieldset>
+  <div class="li auth">{% translate "This debit is made under the bank authorization you accepted when you linked this account. Bank payments take a few business days to clear; if the bank returns it, the amount goes back on your balance." %}</div>
+  <div class="li"><a class="btn btn-ghost" href="{% url 'portal:pay' %}?unit={{ pay.unit.number }}">{% translate "Cancel" %}</a><div class="grow"></div>
+    <button class="btn btn-primary" type="submit">{% blocktranslate with amount=amount|money %}Confirm payment of {{ amount }}{% endblocktranslate %}</button></div>
+</form>
+</div>
+{% endblock %}

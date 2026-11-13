@@ -1,0 +1,75 @@
+{% extends "ui/base.html" %}
+{% load i18n rule_tags %}
+{% block title %}{% translate "Delinquency steps" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Delinquency steps" %}</h1>
+    <p class="muted">{% translate "When each letter is generated, in days after the due date of the oldest unpaid charge. Values come from the rule pack; a board setting overrides them. Every change needs a reason and is recorded in the audit log." %}</p>
+  </div>
+  <a class="btn" href="{% url 'statements:delinquency' %}">{% translate "Delinquency" %}</a>
+</div>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t" data-testid="delinquency-settings">
+      <caption class="sr">{% translate "Current step offsets" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Step" %}</th>
+          <th scope="col">{% translate "Value" %}</th>
+          <th scope="col">{% translate "Source" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for step, r in offsets.items %}
+        <tr data-rule-key="{{ r.key }}">
+          <td><strong>{{ r.label }}</strong></td>
+          <td>{% if r.value is None %}{% translate "Off (not set)" %}{% else %}{% blocktranslate count days=r.value %}{{ days }} day{% plural %}{{ days }} days{% endblocktranslate %}{% endif %}</td>
+          <td>{% if r.source == "override" %}{% translate "Board setting" %}{% elif r.value is None %}{% translate "Board decides" %}{% else %}{% translate "Rule pack" %}{% endif %}
+            {% if r.citation %}<div class="muted">{{ r.citation }}</div>{% endif %}</td>
+          <td>{% rule_badge r %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if statutory_source %}
+<section class="card mt-16" aria-labelledby="statutory-h" data-testid="statutory-notice">
+  <div class="card-b card-pad-t">
+    <h2 id="statutory-h">{% translate "Statutory notice text" %}</h2>
+    <p class="muted">{% blocktranslate with citation=statutory_source.citation %}Printed verbatim at the end of every notice of delinquency ({{ citation }}). It comes from the rule pack and cannot be edited; the cover wording above it is the letter template.{% endblocktranslate %}
+      <a class="inline-link" href="{{ statutory_source.source_url }}" rel="noopener">{% translate "Statute page" %}</a> {% rule_badge statutory_rule %}</p>
+    {% if statutory_rule.next_rule %}<p class="muted">{% blocktranslate with date=statutory_rule.next_rule.effective_from|date:"M j, Y" %}A new version of the text applies from {{ date }}; notices dated from then use it.{% endblocktranslate %}</p>{% endif %}
+    <pre class="locked-text pre-wrap">{{ statutory_text }}</pre>
+  </div>
+</section>
+<section class="card mt-16" aria-labelledby="contacts-h">
+  <div class="card-b card-pad-t">
+    <h2 id="contacts-h">{% translate "Foreclosure-assistance contacts" %}</h2>
+    {% if contacts_missing %}<div class="callout warn" role="note" data-testid="contacts-missing">{% translate "To fill in from the Department of Commerce. Until then notices print a placeholder and are marked." %}</div>{% endif %}
+    {% if can_manage %}
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+      <input type="hidden" name="contacts" value="1">
+      {% include "ui/components/form.html" with form=contacts_form %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save contacts" %}</button></div>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% if can_manage %}
+<section class="card mt-16" aria-labelledby="edit-h">
+  <div class="card-b card-pad-t">
+    <h2 id="edit-h">{% translate "Change the steps" %}</h2>
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=form %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save" %}</button></div>
+    </form>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

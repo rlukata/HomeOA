@@ -1,0 +1,60 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ document.title }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ document.title }}</h1>
+    <p class="muted">{{ document.get_category_display }}{% if document.governing_kind %} · {{ document.get_governing_kind_display }}{% endif %} · <span class="badge {{ document.badge }}" data-testid="doc-visibility">{{ document.get_visibility_display }}</span></p>
+    {% if document.status %}<p data-testid="doc-status"><span class="badge danger">{{ document.get_status_display }}</span> {{ document.status_note }}{% if document.status_link %} · <a href="{{ document.status_link }}">{% translate "View record" %}</a>{% endif %}</p>{% endif %}
+    {% if can_manage and document.current_version and document.current_version.text_status != "read" %}<p class="muted small" data-testid="doc-text-status">{% translate "Text for search:" %} {{ document.current_version.get_text_status_display }}</p>{% endif %}
+  </div>
+  {% if document.current_version %}<div class="row wrap-ok"><a class="btn" href="{% url 'documents:download' document.public_id %}">{% translate "Download current" %}</a></div>{% endif %}
+</div>
+<div class="g">
+  <section class="card span2">
+    <div class="card-h"><h2>{% translate "Versions" %}</h2></div>
+    <div class="table-wrap">
+      <table class="t" data-testid="doc-versions">
+        <thead><tr>
+          <th scope="col">{% translate "Version" %}</th>
+          <th scope="col">{% translate "File" %}</th>
+          <th scope="col">{% translate "Effective" %}</th>
+          <th scope="col">{% translate "Note" %}</th>
+          <th scope="col">{% translate "Uploaded" %}</th>
+        </tr></thead>
+        <tbody>
+        {% for v in versions %}
+          <tr>
+            <td>{{ v.number }}{% if v.pk == document.current_version_id %} <span class="badge ok">{% translate "Current" %}</span>{% endif %}</td>
+            <td><a href="{% url 'documents:download_version' document.public_id v.number %}">{{ v.file_name }}</a> <span class="faint">· {{ v.size|filesizeformat }}</span></td>
+            <td class="nowrap">{{ v.effective_date|date:"M j, Y"|default:"—" }}</td>
+            <td class="muted">{{ v.note|default:"—" }}</td>
+            <td class="muted nowrap">{{ v.uploaded_at|date:"M j, Y" }}{% if v.uploaded_by %} · {{ v.uploaded_by }}{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-b"><p class="faint">{% translate "Older versions are kept and never deleted; only the board can open them." %}</p></div>
+  </section>
+  {% if can_manage %}
+  <div class="stack">
+    <section class="card"><div class="card-h"><h2>{% translate "Upload a new version" %}</h2></div>
+      <form method="post" action="{% url 'documents:new_version' document.public_id %}" enctype="multipart/form-data" class="card-b form-grid">
+        {% csrf_token %}
+        {% include "ui/components/form.html" with form=version_form %}
+        <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Upload version" %}</button></div>
+      </form>
+    </section>
+    <section class="card"><div class="card-h"><h2>{% translate "Who can see it" %}</h2></div>
+      <form method="post" action="{% url 'documents:visibility' document.public_id %}" class="card-b form-grid">
+        {% csrf_token %}
+        {% include "ui/components/form.html" with form=visibility_form %}
+        <div class="form-actions"><button type="submit" class="btn">{% translate "Save" %}</button></div>
+      </form>
+    </section>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

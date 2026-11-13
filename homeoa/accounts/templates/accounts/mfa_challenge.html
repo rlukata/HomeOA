@@ -1,0 +1,27 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n static %}
+{% block title %}{% translate "Two-step sign-in" %}{% endblock %}
+{% block scripts %}<script src="{% static 'accounts/passkeys.js' %}" defer></script>{% endblock %}
+{% block content %}
+<h1>{% translate "Two-step sign-in" %}</h1>
+{% if has_passkey %}
+<p class="muted">{% translate "Confirm it's you with your passkey." %}</p>
+<button type="button" class="btn btn-lg" hidden data-passkey="login" data-testid="passkey-login"
+  data-options="{% url 'accounts:passkey_login_options' %}" data-finish="{% url 'accounts:passkey_login' %}"
+  data-error="passkey-error" data-failed="{% translate 'Passkey sign-in was cancelled or failed. Try again.' %}">{% translate "Use my passkey" %}</button>
+<p class="auth-msg err" id="passkey-error" role="alert" hidden></p>
+{% endif %}
+{% if has_codes %}
+{% if has_totp %}<p class="muted">{% translate "Enter the 6-digit code from your authenticator app, or one of your recovery codes." %}</p>
+{% else %}<p class="muted">{% translate "Lost your passkey? Enter one of your recovery codes." %}</p>{% endif %}
+{% if error %}<p class="auth-msg err" role="alert">{{ error }}</p>{% endif %}
+<form method="post">
+  {% csrf_token %}
+  <div class="auth-field">
+    <label for="id_code">{% translate "Authentication code" %}</label>
+    <input type="text" id="id_code" name="code" autocomplete="one-time-code" inputmode="text" required autofocus>
+  </div>
+  <button type="submit" class="btn btn-primary btn-lg">{% translate "Verify" %}</button>
+</form>
+{% endif %}
+{% endblock %}

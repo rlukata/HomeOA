@@ -1,0 +1,48 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags module_tags %}
+{% block title %}{% translate "Payments" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Payments" %}</h1>
+    <p class="muted">{% translate "Checks and other payments received. HomeOA records payments; it never moves money." %}</p>
+  </div>
+  <div class="hero-actions">
+    {% if can_manage %}
+    <a class="btn btn-primary" href="{% url 'payments:new' %}">{% translate "Record payment" %}</a>
+    <a class="btn" href="{% url 'payments:adjustments' %}">{% translate "Adjustments" %}</a>
+    {% endif %}
+    <a class="btn" href="{% url 'statements:index' %}" data-testid="statements-link">{% translate "Statements" %}</a>
+    {% if "online_payments"|module_on:request.association %}<a class="btn" href="{% url 'payments:autopay_settings' %}" data-testid="autopay-settings-link">{% translate "Autopay" %}</a>{% endif %}
+  </div>
+</div>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Recent payments" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Received" %}</th>
+        <th scope="col">{% translate "Unit" %}</th>
+        <th scope="col">{% translate "Method" %}</th>
+        <th scope="col">{% translate "Reference" %}</th>
+        <th scope="col" class="num">{% translate "Amount" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for r in receipts %}
+        <tr>
+          <td><a href="{% url 'payments:detail' r.pk %}">{{ r.received_date|date:"M j, Y" }}</a></td>
+          <td>{{ r.unit.number }}</td>
+          <td>{{ r.get_method_display }}</td>
+          <td>{{ r.reference }}</td>
+          <td class="num">{{ r.amount|money }}</td>
+          <td>{% if r.status == "void" %}{% badge "danger" _("Void") %}{% else %}{% badge "ok" _("Posted") %}{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-row">{% translate "No payments recorded yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

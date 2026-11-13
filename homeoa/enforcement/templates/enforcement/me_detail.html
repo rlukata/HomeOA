@@ -1,0 +1,52 @@
+{% extends "portal/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{{ v.category }} · {% endblock %}
+{% block content %}
+<a href="{% url 'portal:requests' %}" class="btn btn-ghost btn-sm">{% translate "Requests" %}</a>
+<div class="hero"><div><h1>{{ v.category }}</h1>
+  <p class="muted" data-testid="status"><span class="badge {% if v.status == 'open' %}warn{% else %}ok{% endif %}">{{ v.get_status_display }}</span>
+  {{ v.unit }} · {% blocktranslate with date=v.observed_on|date:"M j, Y" %}Observed {{ date }}{% endblocktranslate %}</p></div></div>
+<div class="stack">
+<section class="card"><div class="card-b card-pad-t">
+  <p><strong>{% translate "Rule" %}:</strong> {{ v.category.rule_citation }}</p>
+  <p data-testid="description">{{ v.description|linebreaksbr }}</p>
+  {% if v.status_note %}<p class="muted">{{ v.status_note }}</p>{% endif %}
+  {% if photos %}<ul class="row wrap-ok" data-testid="photos">{% for p in photos %}<li><a href="{% url 'violations_portal:photo' v.pk p.document_id %}" target="_blank" rel="noopener">{% blocktranslate with n=forloop.counter %}Photo {{ n }}{% endblocktranslate %}</a></li>{% endfor %}</ul>{% endif %}
+</div></section>
+
+<section class="card" aria-labelledby="n-h"><div class="card-h"><h2 id="n-h">{% translate "Notices" %}</h2></div>
+  <ul class="rows card-b" data-testid="notices">
+  {% for s in steps %}<li>{{ s.sent_on|date:"M j, Y" }} · {{ s.get_kind_display }}{% if s.cure_by %} · <strong>{% blocktranslate with date=s.cure_by|date:"M j, Y" %}Fix by {{ date }}{% endblocktranslate %}</strong>{% endif %}{% if owner and s.letter_id %} · <a href="{% url 'violations_portal:letter' v.pk s.pk %}">{% translate "Letter (PDF)" %}</a>{% endif %}</li>{% endfor %}
+  </ul>
+</section>
+
+{% if hearings %}
+<section class="card" aria-labelledby="h-h"><div class="card-h"><h2 id="h-h">{% translate "Hearings" %}</h2></div>
+  <ul class="rows card-b" data-testid="hearings">
+  {% for h in hearings %}<li>{{ h.hearing_on|date:"M j, Y" }}{% if h.hearing_time %}, {{ h.hearing_time|time }}{% endif %} · {{ h.place }}
+    {% if h.cancelled_on %} · {% translate "Cancelled" %}{% endif %}
+    {% if h.outcome %}<br>{% translate "Decision" %}: <strong>{{ h.get_outcome_display }}</strong>{% if owner and h.fine_amount %} · {% blocktranslate with amount=h.fine_amount|money %}Fine {{ amount }}{% endblocktranslate %}{% endif %}{% if h.decision_note %}<br><span class="muted">{{ h.decision_note }}</span>{% endif %}{% endif %}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="r-h"><div class="card-h"><h2 id="r-h">{% translate "Your responses" %}</h2></div><div class="card-b">
+  <ul class="list" data-testid="responses">
+  {% for r in responses %}<li><b>{{ r.get_kind_display }}</b> <span class="muted">{{ r.person.full_name|default:"" }} · {{ r.created_at|date:"M j, Y" }}</span><div>{{ r.message|linebreaksbr }}</div>
+    {% if r.photos.all %}<div class="row wrap-ok">{% for p in r.photos.all %}<a href="{% url 'violations_portal:photo' v.pk p.document_id %}" target="_blank" rel="noopener">{% blocktranslate with n=forloop.counter %}Photo {{ n }}{% endblocktranslate %}</a>{% endfor %}</div>{% endif %}</li>
+  {% empty %}<li class="muted">{% translate "No responses yet." %}</li>{% endfor %}
+  </ul>
+  {% if can_respond %}
+  <form method="post" action="{% url 'violations_portal:respond' v.pk %}" enctype="multipart/form-data" class="form-grid" data-testid="respond-form">{% csrf_token %}
+    <fieldset class="field full"><legend class="field-l">{% translate "Your answer" %}</legend>
+      <div class="choices">{% for value, label in kinds %}<label><input type="radio" name="kind" value="{{ value }}" required{% if forloop.first %} checked{% endif %}> {{ label }}</label>{% endfor %}</div>
+      <p class="field-help">{% translate "“I fixed it”: say what you did and add photos; the board confirms. “I disagree”: explain why; it's kept for a hearing, which the board will offer before any fine." %}</p>
+    </fieldset>
+    <div class="field full"><label class="field-l" for="r-msg">{% translate "Message to the board" %}</label><textarea id="r-msg" name="message" rows="4" required></textarea></div>
+    <div class="field full"><label class="field-l" for="r-photos">{% translate "Photos (optional)" %}</label><input id="r-photos" type="file" name="photos" accept="image/png,image/jpeg" multiple></div>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Send to the board" %}</button></div>
+  </form>
+  {% endif %}
+</div></section>
+</div>
+{% endblock %}

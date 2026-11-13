@@ -1,0 +1,30 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Records requests" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page stack">
+<h1 class="h-page">{% translate "Records requests" %}</h1>
+<p class="muted">{% translate "As an owner you can inspect or get copies of the association's records: minutes, financial records, contracts and more. Documents you can already open are under Docs." %}</p>
+
+<div class="sec-t">{% translate "Your requests" %}</div>
+<section class="card" data-testid="my-records-requests">
+  {% for r in requests %}
+    <div class="li"><div class="grow"><div>{{ r.note|default:_("Records request") }}</div>
+      <div class="s">{% blocktranslate with on=r.received_on|date:"M j, Y" %}Sent {{ on }}{% endblocktranslate %}{% if r.delivery %} · {{ r.get_delivery_display }}{% endif %}{% if not r.fulfilled_on and r.due_on %} · {% blocktranslate with due=r.due_on|date:"M j, Y" %}Due by {{ due }}{% endblocktranslate %}{% endif %}</div></div>
+      {% if r.fulfilled_on %}<span class="badge ok">{% translate "Fulfilled" %}</span>{% else %}<span class="badge warn">{% translate "Open" %}</span>{% endif %}
+    </div>
+  {% empty %}
+    <div class="li"><div class="grow muted">{% translate "You haven't asked for any records yet." %}</div></div>
+  {% endfor %}
+</section>
+
+<div class="sec-t">{% translate "Ask for records" %}</div>
+<section class="card" data-testid="records-request-form"><div class="card-b card-pad-t">
+  <form method="post" class="form-grid">{% csrf_token %}
+    {% include "ui/components/form.html" with form=form %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Send request" %}</button></div>
+  </form>
+</div></section>
+</div>
+{% endblock %}

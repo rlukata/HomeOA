@@ -1,0 +1,53 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Background jobs" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Background jobs" %}</h1>
+  <p class="muted">{% translate "Scheduled work and its history. This page is read-only." %}</p></div></div>
+
+<section class="card" aria-labelledby="periodic-h">
+  <div class="card-h"><h2 id="periodic-h">{% translate "Schedules" %}</h2></div>
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th scope="col">{% translate "Job" %}</th><th scope="col">{% translate "Schedule (local time)" %}</th><th scope="col">{% translate "Description" %}</th></tr></thead>
+    <tbody>
+    {% for job in periodic %}
+      <tr><td>{{ job.name }}</td><td><span class="kbd">{{ job.cron }}</span></td><td class="muted">{{ job.description }}{% if setting_up and job.waits_for_go_live %} <span class="badge warn" data-testid="waits-for-go-live">{% translate "Waits for go-live" %}</span>{% endif %}</td></tr>
+    {% empty %}
+      <tr><td colspan="3" class="muted">{% translate "No scheduled jobs are registered." %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="card" aria-labelledby="runs-h">
+  <div class="card-h"><h2 id="runs-h">{% translate "Scheduled runs" %}</h2></div>
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th scope="col">{% translate "As of" %}</th><th scope="col">{% translate "Job" %}</th><th scope="col">{% translate "Status" %}</th><th scope="col" class="num">{% translate "Attempts" %}</th><th scope="col">{% translate "Finished" %}</th></tr></thead>
+    <tbody>
+    {% for run in runs %}
+      <tr><td class="nowrap">{{ run.as_of|date:"Y-m-d" }}</td><td>{{ run.job_name }}</td>
+        <td><span class="badge {{ run.badge }}">{{ run.get_status_display }}</span></td>
+        <td class="num">{{ run.attempts }}</td><td class="nowrap muted">{{ run.finished_at|default_if_none:"" }}</td></tr>
+    {% empty %}
+      <tr><td colspan="5" class="muted">{% translate "No scheduled runs yet." %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="card" aria-labelledby="queue-h">
+  <div class="card-h"><h2 id="queue-h">{% translate "Recent queued jobs" %}</h2></div>
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th scope="col">{% translate "Task" %}</th><th scope="col">{% translate "Queue" %}</th><th scope="col">{% translate "Status" %}</th><th scope="col" class="num">{% translate "Attempts" %}</th><th scope="col">{% translate "Scheduled" %}</th></tr></thead>
+    <tbody>
+    {% for job in queued %}
+      <tr><td>{{ job.task_name }}</td><td class="muted">{{ job.queue_name }}</td>
+        <td><span class="badge {{ job.badge }}">{{ job.status }}</span></td>
+        <td class="num">{{ job.attempts }}</td><td class="nowrap muted">{{ job.scheduled_at|default_if_none:"" }}</td></tr>
+    {% empty %}
+      <tr><td colspan="5" class="muted">{% translate "No queued jobs yet." %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% load i18n static ledger_tags %}<!doctype html>
+{% get_current_language as LANG %}
+<html lang="{{ LANG }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ wo }} · {{ association.name }}</title>
+<link rel="stylesheet" href="{% static 'homeoa/base.css' %}">
+</head>
+<body>
+<main class="card card-pad" data-testid="wo-print">
+  <h1>{{ association.name }} · {{ wo }}</h1>
+  <dl class="kv mt">
+    <dt>{% translate "Date" %}</dt><dd>{{ wo.created_at|date:"Y-m-d" }}</dd>
+    <dt>{% translate "Vendor" %}</dt><dd>{{ wo.vendor.name }}</dd>
+    {% if wo.request %}<dt>{% translate "Location" %}</dt><dd>{% if wo.request.unit %}{% blocktranslate with n=wo.request.unit.number %}Unit {{ n }}{% endblocktranslate %}{% else %}{% translate "Common area" %}{% endif %}{% if wo.request.location %} · {{ wo.request.location }}{% endif %}</dd>{% endif %}
+    <dt>{% translate "Scope of work" %}</dt><dd>{{ wo.scope|linebreaksbr }}</dd>
+    <dt>{% translate "Scheduled for" %}</dt><dd>{{ wo.scheduled_for|date:"Y-m-d"|default:"—" }}</dd>
+    {% if wo.estimated_cost is not None %}<dt>{% translate "Estimated cost" %}</dt><dd>{{ wo.estimated_cost|money }}</dd>{% endif %}
+  </dl>
+  <p class="muted mt">{% translate "Please send the invoice to the association and quote this work order number." %}</p>
+</main>
+</body>
+</html>

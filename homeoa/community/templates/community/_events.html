@@ -1,0 +1,11 @@
+{% load i18n %}{% for e in events %}
+<div class="ev" data-testid="event">
+  <div class="ev-date" aria-hidden="true"><div class="m">{{ e.start_date|date:"M" }}</div><div class="d">{{ e.start_date|date:"j" }}</div></div>
+  <div>
+    <div class="ev-t">{% if edit and e.event_id %}<a href="{% url 'community:event_edit' e.event_id %}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}</div>
+    <div class="ev-s">{{ e.start_date|date:"D, M j" }}{% if e.all_day %}{% if e.end_date and e.end_date != e.start_date %} – {{ e.end_date|date:"D, M j" }}{% endif %} · {% translate "all day" %}{% else %} · {{ e.start_time|time:"g:i a" }}{% if e.end_time %}–{{ e.end_time|time:"g:i a" }}{% endif %}{% endif %}{% if e.location %} · {{ e.location }}{% endif %}</div>
+  </div>
+</div>
+{% empty %}
+<p class="card-b muted">{% translate "Nothing on the calendar." %}</p>
+{% endfor %}

@@ -1,0 +1,17 @@
+[project]
+name = "homeoa-simplefin"
+version = "0.1.0"
+description = "HomeOA bank feed through SimpleFIN Bridge"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.14"
+dependencies = ["httpx==0.28.1"]
+
+[project.entry-points."homeoa.plugins"]
+simplefin = "homeoa_simplefin.manifest:manifest"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["homeoa_simplefin"]

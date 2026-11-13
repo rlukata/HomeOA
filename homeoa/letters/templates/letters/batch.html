@@ -1,0 +1,69 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{{ batch.name }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p class="muted"><a href="{% url 'letters:batches' %}">{% translate "Mail batches" %}</a></p>
+    <h1>{{ batch.name }}</h1>
+    <p>{% include "letters/_batch_status.html" with status=batch.status label=batch.get_status_display %}{% if batch.certified %} {% translate "Certified" as lbl %}{% badge "violet" lbl %}{% endif %}</p>
+  </div>
+  <div class="form-actions">
+    {% if batch.pdf_key %}<a class="btn" href="{% url 'letters:batch_file' batch.pk 'pdf' %}">{% blocktranslate count pages=batch.pages %}Print file (PDF, {{ pages }} page){% plural %}Print file (PDF, {{ pages }} pages){% endblocktranslate %}</a>{% endif %}
+    {% if batch.manifest_key %}<a class="btn" href="{% url 'letters:batch_file' batch.pk 'csv' %}">{% translate "Manifest (CSV)" %}</a>{% endif %}
+  </div>
+</div>
+{% if batch.status == "draft" %}
+  {% if residents_on %}
+  <form method="post" action="{% url 'letters:batch_send' batch.pk %}" class="card mt-16">
+    <div class="card-b card-pad-t">
+      {% csrf_token %}
+      {% if provider.prints_locally %}
+      <p>{% translate "Sending queues these letters for printing. Print the PDF, mail the letters, then mark the batch mailed." %}</p>
+      <button type="submit" class="btn btn-primary">{% translate "Queue for printing" %}</button>
+      {% else %}
+      <p>{% blocktranslate with provider=provider.name %}Sending hands every letter to {{ provider }}.{% endblocktranslate %}</p>
+      <button type="submit" class="btn btn-primary">{% translate "Send to mail service" %}</button>
+      {% endif %}
+    </div>
+  </form>
+  {% else %}
+  <div class="callout warn" role="note">{% translate "Residents are not switched on yet, so this batch stays a draft. Nothing is mailed." %}</div>
+  {% endif %}
+{% elif batch.status == "ready" %}
+<form method="post" action="{% url 'letters:batch_mailed' batch.pk %}" class="card mt-16">
+  <div class="card-b card-pad-t">
+    {% csrf_token %}
+    <p>{% translate "Once the letters are printed and in the mail, record it here." %}</p>
+    <button type="submit" class="btn btn-primary">{% translate "Mark printed and mailed" %}</button>
+  </div>
+</form>
+{% endif %}
+<section class="card mt-16">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Letters in this batch" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Letter" %}</th>
+          <th scope="col">{% translate "Recipient" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+          <th scope="col">{% translate "Tracking" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.letter.unit.number }}</td>
+          <td><a href="{% url 'letters:download' item.letter.pk %}">{{ item.letter.subject|default:item.letter.template_version.template.name }}</a></td>
+          <td>{{ item.letter.recipient_name }}</td>
+          <td>{% include "letters/_batch_status.html" with status=item.status label=item.get_status_display %}{% if item.error %} <span class="muted">{{ item.error }}</span>{% endif %}</td>
+          <td>{{ item.tracking|default:item.provider_id|default:"–" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

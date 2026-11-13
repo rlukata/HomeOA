@@ -1,0 +1,82 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Reserve withdrawals" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Reserve withdrawals" %}</h1>
+  <p class="muted">{% translate "Money leaving a reserve bank account needs two board members: one asks here, a second approves. Then make the transfer at the bank; matching the bank transaction uses the approval." %}</p>
+</div></div>
+{% if not required %}
+<p class="callout info" role="status">{% translate "Your rule pack does not require two approvals for reserve withdrawals. Approvals recorded here are kept for the record." %}</p>
+{% endif %}
+{% if unapproved %}
+<section class="card" aria-labelledby="unapproved-h" data-testid="reserve-unapproved">
+  <div class="card-h"><h2 id="unapproved-h">{% translate "Withdrawals without two approvals" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Reserve withdrawals matched without two approvals" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Date" %}</th>
+        <th scope="col">{% translate "Description" %}</th>
+        <th scope="col">{% translate "Account" %}</th>
+        <th scope="col" class="num">{% translate "Amount" %}</th>
+        <th scope="col"><span class="sr">{% translate "Actions" %}</span></th>
+      </tr></thead>
+      <tbody>
+        {% for t in unapproved %}
+        <tr>
+          <td class="nowrap">{{ t.date|date:"M j, Y" }}</td>
+          <td><a href="{% url 'banking:txn' t.pk %}">{{ t.description|default:_("(no description)") }}</a></td>
+          <td>{{ t.bank_account.name }}</td>
+          <td class="num">{{ t.amount|money }}</td>
+          <td class="nowrap">{% if form and txn.pk != t.pk %}<a href="?txn={{ t.pk }}">{% translate "Ask for approval" %}</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% if form %}
+<section class="card card-pad" aria-labelledby="ask-h">
+  <h2 id="ask-h">{% if txn %}{% translate "Approve a withdrawal already made" %}{% else %}{% translate "Approve a reserve withdrawal" %}{% endif %}</h2>
+  {% if txn %}<p class="muted">{{ txn.date|date:"M j, Y" }} · {{ txn.description }} · {{ txn.amount|money }} · {{ txn.bank_account.name }}</p>{% endif %}
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Send for approval" %}</button>
+      {% if txn %}<a class="btn btn-ghost" href="{% url 'banking:reserve' %}">{% translate "Cancel" %}</a>{% endif %}
+    </div>
+  </form>
+</section>
+{% endif %}
+<section class="card" aria-labelledby="approved-h">
+  <div class="card-h"><h2 id="approved-h">{% translate "Approved withdrawals" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Approved reserve withdrawals, oldest first" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Approved" %}</th>
+        <th scope="col">{% translate "Purpose" %}</th>
+        <th scope="col">{% translate "Asked by" %}</th>
+        <th scope="col">{% translate "Bank transaction" %}</th>
+        <th scope="col" class="num">{% translate "Amount" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for a in approvals %}
+        <tr data-testid="reserve-approval">
+          <td class="nowrap">{{ a.created_at|date:"M j, Y" }}{% if a.after_the_fact %} {% translate "After the fact" as late %}{% badge "warn" late %}{% endif %}</td>
+          <td>{{ a.purpose }}</td>
+          <td>{{ a.created_by.full_name|default:a.created_by.email|default:"—" }}</td>
+          <td>{% if a.txn %}<a href="{% url 'banking:txn' a.txn.pk %}">{{ a.txn.date|date:"M j, Y" }} {{ a.txn.description }}</a>{% else %}{% translate "Not moved yet" as waiting %}{% badge "info" waiting %}{% endif %}</td>
+          <td class="num">{{ a.amount|money }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "No reserve withdrawals approved yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

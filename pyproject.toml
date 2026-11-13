@@ -1,0 +1,87 @@
+[project]
+name = "homeoa"
+version = "0.1.0"
+description = "Open-source HOA / condo association management platform"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.14"
+dependencies = [
+    "croniter==6.2.4",
+    "cryptography==50.0.2",
+    "django==6.0.9",
+    "django-htmx==1.29.0",
+    "gunicorn==23.0.0",
+    "packaging==26.3",
+    "procrastinate==3.10.0",
+    "psycopg[binary]==3.3.6",
+    "pydantic==2.13.5",
+    "pyotp==2.10.0",
+    "segno==1.6.6",
+    "sentry-sdk[django]==2.71.0",
+    "whitenoise==6.12.0",
+    "homeoa-rulepack-us-wa",
+    "homeoa-simplefin",
+    "homeoa-lob",
+    "homeoa-stripe",
+    "homeoa-tesseract",
+    "homeoa-anthropic",
+    "ofxtools>=1.1.1",
+    "webauthn==3.0.1",
+    "reportlab==4.4.4",
+    "pypdf==6.21.4",
+    "openpyxl==3.1.5",
+    "icalendar==7.3.0",
+]
+
+[dependency-groups]
+dev = [
+    "factory-boy==3.3.3",
+    "hypothesis==6.168.5",
+    "pyotp==2.10.0",
+    "pytest==9.1.1",
+    "pytest-django==4.14.0",
+    "pytest-playwright==0.9.0",
+    "ruff==0.16.10",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+homeoa-rulepack-us-wa = { workspace = true }
+homeoa-simplefin = { workspace = true }
+homeoa-lob = { workspace = true }
+homeoa-stripe = { workspace = true }
+homeoa-tesseract = { workspace = true }
+homeoa-anthropic = { workspace = true }
+
+[tool.uv.workspace]
+members = ["plugins/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S"]
+"tests/**" = ["S"]
+"homeoa/settings/dev.py" = ["S105"]
+"homeoa/settings/test.py" = ["S105"]
+"homeoa/settings/e2e.py" = ["S105"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "homeoa.settings.test"
+python_files = ["test_*.py", "tests.py"]
+# e2e/ is excluded: run it with `uv run pytest e2e -p no:django` (see README).
+testpaths = ["homeoa", "tests", "plugins"]
+# live_simplefin hits the real SimpleFIN demo bridge: opt in with `-m live_simplefin`.
+addopts = "-q -m 'not live_simplefin and not live_stripe'"
+markers = [
+    "deferred_notify: notify_after_commit really waits for commit (default in tests: runs at once)",
+    "live_simplefin: opt-in smoke test against the SimpleFIN beta-bridge demo (never in CI)",
+    "live_stripe: opt-in Stripe test-mode smoke test, needs HOMEOA_STRIPE_SECRET_KEY (never in CI)",
+]

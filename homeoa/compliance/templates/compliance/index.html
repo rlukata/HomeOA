@@ -1,0 +1,120 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Compliance calendar" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Compliance calendar" %}</h1>
+    <p class="muted">{% translate "Recurring legal obligations from the rule pack. For each period, choose how the association meets it (or answer the exemption questions) and record the evidence. Not legal advice." %}</p>
+  </div>
+  {% if can_manage %}
+  <form method="post" action="{% url 'compliance:check' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn">{% translate "Check obligations now" %}</button>
+  </form>
+  {% endif %}
+</div>
+<section class="card" aria-labelledby="cal-h">
+  <div class="card-h"><h2 id="cal-h">{% translate "Deadlines" %}</h2></div>
+  {% if upcoming %}
+  <div class="table-wrap">
+    <table class="t" data-testid="compliance-calendar">
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Due" %}</th>
+          <th scope="col">{% translate "Item" %}</th>
+          <th scope="col">{% translate "Source" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e, overdue in upcoming %}
+        <tr data-kind="{{ e.kind }}">
+          <td class="nowrap">{{ e.due|date:"M j, Y" }}</td>
+          <td><a href="{{ e.url }}">{{ e.title }}</a>{% if e.detail %} <span class="muted">{{ e.detail }}</span>{% endif %}</td>
+          <td class="muted">{% if e.kind == "obligation" %}{% translate "Rule pack" %}{% elif e.kind == "manual" %}{% translate "Board item" %}{% elif e.kind == "insurance" %}{% translate "Insurance (read-only)" %}{% elif e.kind == "maintenance" %}{% translate "Maintenance (read-only)" %}{% else %}{% translate "Vendors (read-only)" %}{% endif %}</td>
+          <td>{% if e.done %}<span class="badge ok">{% translate "Done" %}</span>{% elif overdue %}<span class="badge danger">{% translate "Overdue" %}</span>{% else %}<span class="badge">{% translate "Upcoming" %}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-b"><p class="muted">{% translate "No deadlines in the next year." %}</p></div>
+  {% endif %}
+</section>
+<section class="card mt-16" aria-labelledby="items-h">
+  <div class="card-h"><h2 id="items-h">{% translate "Board items" %}</h2></div>
+  <div class="card-b">
+    <p class="muted">{% translate "Deadlines the rule pack does not track, such as tax filings and the state annual report. Check each date before saving. The insurance renewal comes from the master policy's end date (Documents > Insurance)." %}</p>
+    {% if items %}
+    <ul class="list" data-testid="compliance-items">
+      {% for i, overdue in items %}
+      <li><a href="{% url 'compliance:item' i.pk %}">{{ i.title }}</a> · {{ i.next_due|date:"M j, Y" }} · <span class="muted">{{ i.get_recurrence_display }}</span>{% if overdue %} <span class="badge danger">{% translate "Overdue" %}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if can_manage %}
+    <p>
+      <a class="btn" href="{% url 'compliance:item_add' %}">{% translate "Add item" %}</a>
+      {% for key, label in suggestions %}<a class="btn btn-ghost" href="{% url 'compliance:item_add' %}?suggest={{ key }}">{{ label }}</a> {% endfor %}
+    </p>
+    <form method="post" action="{% url 'compliance:reminders' %}" class="inline">
+      {% csrf_token %}
+      <label for="rem-days">{% translate "Remind the board this many days before each deadline" %}</label>
+      <input id="rem-days" name="days" value="{{ offsets|join:', ' }}" size="10">
+      <button type="submit" class="btn">{% translate "Save" %}</button>
+    </form>
+    {% else %}
+    <p class="muted">{% blocktranslate with d=offsets|join:", " %}Reminders go to the board {{ d }} days before each deadline.{% endblocktranslate %}</p>
+    {% endif %}
+  </div>
+</section>
+<section class="card mt-16" aria-labelledby="open-h">
+  <div class="card-h"><h2 id="open-h">{% translate "Open" %}</h2></div>
+  {% if open_periods %}
+  <div class="table-wrap">
+    <table class="t" data-testid="compliance-open">
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Due" %}</th>
+          <th scope="col">{% translate "Obligation" %}</th>
+          <th scope="col">{% translate "Citation" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in open_periods %}
+        <tr data-obligation="{{ p.obligation_id }}">
+          <td class="nowrap">{{ p.due_date|date:"M j, Y" }}</td>
+          <td><a href="{% url 'compliance:period' p.pk %}"><strong>{{ p.title }}</strong></a> <span class="muted">{{ p.year }}</span></td>
+          <td class="muted">{{ p.citation }}</td>
+          <td>{% if p.missed %}<span class="badge danger">{% translate "Missed deadline" %}</span>{% elif p.path_id %}<span class="badge info">{% translate "Evidence needed" %}</span>{% else %}<span class="badge warn">{% translate "Choose a path" %}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-b"><p class="muted">{% translate "Nothing open. Periods open automatically ahead of each due date." %}</p></div>
+  {% endif %}
+</section>
+{% if closed_periods %}
+<section class="card mt-16" aria-labelledby="closed-h">
+  <div class="card-h"><h2 id="closed-h">{% translate "Closed" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t" data-testid="compliance-closed">
+      <tbody>
+        {% for p in closed_periods %}
+        <tr>
+          <td class="nowrap">{{ p.closed_on|date:"M j, Y" }}</td>
+          <td><a href="{% url 'compliance:period' p.pk %}">{{ p.title }}</a> <span class="muted">{{ p.year }}</span></td>
+          <td><span class="badge ok">{{ p.get_status_display }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

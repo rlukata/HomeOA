@@ -1,0 +1,16 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{{ title }}</h1>{% if needs_approval %}<p class="muted">{% translate "A new vendor, and changes to payment details, tax details (W-9) or active status, take effect once the board approves them." %}</p>{% endif %}</div></div>
+<section class="card">
+  <form method="post" class="form-grid" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+      <a class="btn btn-ghost" href="{% if vendor %}{% url 'vendors:detail' vendor.slug %}{% else %}{% url 'vendors:index' %}{% endif %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

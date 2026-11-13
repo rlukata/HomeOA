@@ -1,0 +1,3 @@
+{% include "dashboard/_todo_card.html" %}
+{% if money %}{% include "dashboard/_money_card.html" with oob=True %}{% endif %}
+{% include "ui/components/messages.html" with oob=True %}

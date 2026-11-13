@@ -1,0 +1,27 @@
+{% load i18n homeoa_ui %}
+<section class="card" id="todo-card" aria-labelledby="todo-h" hx-get="{% url 'dashboard:todos' %}" hx-trigger="todos-changed from:body" hx-swap="outerHTML">
+  <div class="card-h"><h2 id="todo-h">{% translate "To do" %}</h2><span class="count{% if todo_count %} hot{% endif %}" data-testid="todo-count">{{ todo_count }}</span></div>
+  {% for group in todo_groups %}
+    <h3 class="grp-h" id="todo-g-{{ group.key }}"><span>{{ group.label }}</span><span>{{ group.items|length }}</span></h3>
+    {% if group.items %}
+    <ul class="list" aria-labelledby="todo-g-{{ group.key }}">
+      {% for item in group.items %}
+      <li class="att" id="{{ item.dom_id }}">
+        <div class="att-ic {{ item.kind }}">{% icon item.icon %}</div>
+        <div class="att-main"><div class="att-t">{{ item.title }}</div>{% if item.sub %}<div class="att-s">{{ item.sub }}</div>{% endif %}</div>
+        {% if item.due %}<div class="att-due">{% if item.due == today %}{% translate "Today" %}{% else %}{{ item.due|date:"M j" }}{% endif %}</div>{% endif %}
+        {% if item.post_url %}
+          <form method="post" action="{% url 'dashboard:todo_act' item.id %}">{% csrf_token %}
+            <button type="submit" class="btn btn-sm" hx-post="{% url 'dashboard:todo_act' item.id %}" hx-target="#todo-card" hx-swap="outerHTML">{{ item.action|default:_("Do it") }}</button>
+          </form>
+          {% if item.url %}<a class="btn btn-sm btn-ghost" href="{{ item.url }}">{% translate "Details" %}<span class="sr"> · {{ item.title }}</span></a>{% endif %}
+        {% elif item.url %}
+          <a class="btn btn-sm" href="{{ item.url }}">{{ item.action|default:_("Open") }}</a>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  {% endfor %}
+  {% if not todo_count %}<p class="card-b muted">{% translate "Nothing needs you right now." %}</p>{% endif %}
+</section>

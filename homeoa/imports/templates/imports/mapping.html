@@ -1,0 +1,134 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Map columns" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Map columns" %}</h1>
+  <p class="muted">{% blocktranslate with n=run.pk src=run.get_source_display d=run.as_of|date:"M j, Y" %}Import #{{ n }} · {{ src }} · as of {{ d }}{% endblocktranslate %} · {{ run.get_mode_display }}</p>
+  <p class="muted">{% translate "Check which file holds what and which column fills each field. Save the mapping to reuse it next time." %}</p>
+</div></div>
+
+<section class="card card-pad" aria-labelledby="prof-h">
+  <h2 id="prof-h">{% translate "Saved mappings" %}</h2>
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    <div class="field">
+      <label class="field-l" for="id_profile">{% translate "Saved mapping" %}</label>
+      <select class="input" id="id_profile" name="profile">
+        {% if not run.profile %}<option value="">{% translate "Built-in default" %}</option>{% endif %}
+        {% for p in profiles %}<option value="{{ p.pk }}"{% if run.profile_id == p.pk %} selected{% endif %}>{{ p.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-actions"><button type="submit" name="action" value="load" class="btn">{% translate "Load" %}</button></div>
+  </form>
+</section>
+
+<form method="post">
+  {% csrf_token %}
+  <section class="card card-pad" aria-labelledby="files-h">
+    <h2 id="files-h">{% translate "Files" %}</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label class="field-l" for="id_date_format">{% translate "Date format" %}</label>
+        <select class="input" id="id_date_format" name="date_format">
+          {% for value, label in date_formats %}<option value="{{ value }}"{% if run.config.date_format == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    {% for f in files %}
+    <fieldset class="card card-pad" data-testid="import-file">
+      <legend><strong>{{ f.file.name }}</strong> <span class="muted">{% blocktranslate count n=f.row_count %}{{ n }} row{% plural %}{{ n }} rows{% endblocktranslate %}</span></legend>
+      <div class="form-grid">
+        <div class="field">
+          <label class="field-l" for="kind-{{ f.file.pk }}">{% blocktranslate with name=f.file.name %}Contents of {{ name }}{% endblocktranslate %}</label>
+          <select class="input" id="kind-{{ f.file.pk }}" name="kind-{{ f.file.pk }}">
+            <option value="">{% translate "Skip this file" %}</option>
+            {% for value, label in kinds %}<option value="{{ value }}"{% if f.kind == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        {% for fld in f.fields %}
+        <div class="field">
+          <label class="field-l" for="col-{{ f.file.pk }}-{{ fld.name }}">{{ fld.label }}{% if fld.required %} <span class="req" aria-hidden="true">*</span><span class="sr">{% translate "(required)" %}</span>{% endif %}</label>
+          <select class="input" id="col-{{ f.file.pk }}-{{ fld.name }}" name="col-{{ f.file.pk }}-{{ fld.name }}">
+            <option value="">{% translate "Not in this file" %}</option>
+            {% for h in f.headers %}<option value="{{ h }}"{% if fld.value == h %} selected{% endif %}>{{ h }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endfor %}
+    <div class="form-actions"><button type="submit" name="action" value="refresh" class="btn btn-ghost">{% translate "Update columns" %}</button></div>
+  </section>
+
+  {% if account_rows %}
+  <section class="card" aria-labelledby="acct-h">
+    <div class="card-h"><h2 id="acct-h">{% translate "Accounts" %}</h2></div>
+    <p class="muted card-pad">{% translate "Choose the HomeOA account and fund for each account in the export. Your choices are kept for the next import." %}</p>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Account choices" %}</caption>
+        <thead><tr><th scope="col">{% translate "Export account" %}</th><th scope="col">{% translate "HomeOA account" %}</th><th scope="col">{% translate "Fund" %}</th></tr></thead>
+        <tbody>
+        {% for a in account_rows %}
+          <tr>
+            <td>{{ a.code }} {{ a.name }}</td>
+            <td>
+              <label class="sr" for="acct-{{ a.code }}">{% blocktranslate with c=a.code n=a.name %}HomeOA account for {{ c }} {{ n }}{% endblocktranslate %}</label>
+              <select class="input" id="acct-{{ a.code }}" name="acct-{{ a.code }}">
+                <option value="{{ new_account }}"{% if a.account == new_account %} selected{% endif %}>{% translate "Create a new account" %}</option>
+                {% for acc in accounts %}<option value="{{ acc.code }}"{% if a.account == acc.code %} selected{% endif %}>{{ acc.code }} {{ acc.name }}</option>{% endfor %}
+              </select>
+            </td>
+            <td>
+              <label class="sr" for="fund-{{ a.code }}">{% blocktranslate with c=a.code %}Fund for {{ c }}{% endblocktranslate %}</label>
+              <select class="input" id="fund-{{ a.code }}" name="fund-{{ a.code }}">
+                {% for fd in funds %}<option value="{{ fd.code }}"{% if a.fund == fd.code %} selected{% endif %}>{{ fd.name }}</option>{% endfor %}
+              </select>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="card card-pad" aria-labelledby="post-h">
+    <h2 id="post-h">{% translate "Ledger postings" %}</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label class="field-l" for="id_opening_equity">{% translate "Opening balance equity account" %}</label>
+        <select class="input" id="id_opening_equity" name="opening_equity">
+          {% for acc in accounts %}<option value="{{ acc.code }}"{% if run.config.opening_equity == acc.code %} selected{% endif %}>{{ acc.code }} {{ acc.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% for t in history_types %}
+      <div class="field">
+        <input type="hidden" name="histname-{{ forloop.counter }}" value="{{ t.name }}">
+        <label class="field-l" for="hist-{{ forloop.counter }}">{% blocktranslate with t=t.name %}Other side of “{{ t }}” rows{% endblocktranslate %}</label>
+        <select class="input" id="hist-{{ forloop.counter }}" name="hist-{{ forloop.counter }}">
+          <option value="">{% translate "Choose an account" %}</option>
+          {% for acc in accounts %}<option value="{{ acc.code }}"{% if t.account == acc.code %} selected{% endif %}>{{ acc.code }} {{ acc.name }}</option>{% endfor %}
+        </select>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="muted">{% translate "History charges post to the receivable account against the account chosen for their type; payments post to it from cash. Opening balances post on the day before the earliest history row so that HomeOA's books match the export's trial balance and owner balances on the as-of date." %}</p>
+  </section>
+
+  <section class="card card-pad">
+    <div class="form-grid">
+      <div class="field">
+        <label class="field-l" for="id_profile_name">{% translate "Name for this mapping" %}</label>
+        <input class="input" id="id_profile_name" name="profile_name" maxlength="100" value="{{ profile_name }}">
+      </div>
+      <div class="form-actions">
+        <button type="submit" name="action" value="save" class="btn">{% translate "Save mapping" %}</button>
+        <button type="submit" name="action" value="preview" class="btn btn-primary">{% translate "Preview" %}</button>
+        <a class="btn btn-ghost" href="{% url 'imports:index' %}">{% translate "Cancel" %}</a>
+      </div>
+    </div>
+  </section>
+</form>
+{% endblock %}

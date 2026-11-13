@@ -1,0 +1,109 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% blocktranslate with n=run.pk %}Import #{{ n }}{% endblocktranslate %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  {% if run.status == "committed" %}
+  <h1>{% translate "Import complete" %}</h1>
+  {% elif run.status == "stored" %}
+  <h1>{% translate "Snapshot saved for comparison" %}</h1>
+  {% elif run.status == "failed" %}
+  <h1>{% translate "Import failed: nothing was changed" %}</h1>
+  {% else %}
+  <h1>{% translate "Preview" %}</h1>
+  {% endif %}
+  <p class="muted">{% blocktranslate with n=run.pk src=run.get_source_display d=run.as_of|date:"M j, Y" %}Import #{{ n }} · {{ src }} · as of {{ d }}{% endblocktranslate %} · {{ run.get_mode_display }}</p>
+</div></div>
+
+<section class="card card-pad" aria-labelledby="sum-h">
+  <h2 id="sum-h">{% translate "Summary" %}</h2>
+  <ul data-testid="import-summary">{% for s in summary %}<li>{{ s }}</li>{% endfor %}</ul>
+  {% if not comparison %}
+  <p data-testid="import-change-count"><strong>{% if change_count %}{% blocktranslate count n=change_count %}{{ n }} change{% plural %}{{ n }} changes{% endblocktranslate %}{% else %}{% translate "No changes" %}{% endif %}</strong>
+  {% if run.status == "previewed" %}<span class="muted">{% translate "Nothing has been saved yet." %}</span>{% endif %}</p>
+  {% endif %}
+  {% if can_commit %}
+  <form method="post" action="{% url 'imports:commit' run.pk %}" class="form-actions">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">{% if comparison %}{% translate "Save snapshot" %}{% else %}{% translate "Commit import" %}{% endif %}</button>
+    <a class="btn btn-ghost" href="{% url 'imports:mapping' run.pk %}">{% translate "Back to columns" %}</a>
+  </form>
+  {% elif run.status == "previewed" %}
+  <p><a class="btn" href="{% url 'imports:mapping' run.pk %}">{% translate "Fix the columns" %}</a></p>
+  {% endif %}
+</section>
+
+{% if run.status == "committed" %}
+<section class="card card-pad" aria-labelledby="files-h" data-testid="import-files">
+  <h2 id="files-h">{% translate "Uploaded files" %}</h2>
+  <ul>{% for f in files %}<li>{{ f.name }} <span class="muted">{% translate "SHA-256" %} <code>{{ f.sha256|default:"—" }}</code></span></li>{% endfor %}</ul>
+  {% if run.purged_at %}
+  <p class="muted" data-testid="import-purged">{% blocktranslate with d=run.purged_at|date:"M j, Y" %}File contents were purged on {{ d }}. The record, mapping and counts are kept.{% endblocktranslate %}</p>
+  {% else %}
+  <p class="muted">{% blocktranslate count n=retention_days %}File contents are purged automatically {{ n }} day after the import.{% plural %}File contents are purged automatically {{ n }} days after the import.{% endblocktranslate %}</p>
+  {% if can_purge %}
+  <form method="post" action="{% url 'imports:purge' run.pk %}" class="form-actions">
+    {% csrf_token %}
+    <button type="submit" class="btn" data-testid="import-purge">{% translate "Purge now" %}</button>
+  </form>
+  {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+
+{% if problems %}
+<section class="card" aria-labelledby="err-h">
+  <div class="card-h"><h2 id="err-h">{% translate "Problems to fix" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t" data-testid="import-problems">
+      <caption class="sr">{% translate "Problems to fix" %}</caption>
+      <thead><tr><th scope="col">{% translate "File" %}</th><th scope="col" class="num">{% translate "Row" %}</th><th scope="col">{% translate "Column" %}</th><th scope="col">{% translate "Problem" %}</th></tr></thead>
+      <tbody>
+      {% for p in problems %}<tr><td>{{ p.file|default:"—" }}</td><td class="num">{{ p.row|default:"—" }}</td><td>{{ p.column|default:"—" }}</td><td>{{ p.message }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if warnings %}
+<section class="card card-pad" aria-labelledby="warn-h">
+  <h2 id="warn-h">{% translate "Notes" %}</h2>
+  <ul>{% for w in warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if counts %}
+<section class="card" aria-labelledby="counts-h">
+  <div class="card-h"><h2 id="counts-h">{% translate "Records" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Records" %}</caption>
+      <thead><tr><th scope="col">{% translate "Type" %}</th><th scope="col" class="num">{% translate "New" %}</th><th scope="col" class="num">{% translate "Changed" %}</th><th scope="col" class="num">{% translate "Unchanged" %}</th></tr></thead>
+      <tbody>
+      {% for c in counts %}<tr><td>{{ c.section }}</td><td class="num">{{ c.created }}</td><td class="num">{{ c.updated }}</td><td class="num">{{ c.unchanged }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if changes %}
+<section class="card" aria-labelledby="chg-h">
+  <div class="card-h"><h2 id="chg-h">{% translate "Changes" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t" data-testid="import-changes">
+      <caption class="sr">{% translate "Changes" %}</caption>
+      <thead><tr><th scope="col">{% translate "Type" %}</th><th scope="col">{% translate "Record" %}</th><th scope="col">{% translate "Action" %}</th><th scope="col">{% translate "Details" %}</th></tr></thead>
+      <tbody>
+      {% for c in changes %}
+      <tr><td>{{ c.section }}</td><td>{{ c.label }}</td><td>{{ c.action }}</td>
+        <td>{% for k, v in c.fields.items %}<div>{{ k }}: {% if v.0 %}{{ v.0 }} → {% endif %}{{ v.1 }}</div>{% endfor %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+<p><a href="{% url 'imports:index' %}">{% translate "All imports" %}</a></p>
+{% endblock %}

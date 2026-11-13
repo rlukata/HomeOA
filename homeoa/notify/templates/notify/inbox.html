@@ -1,0 +1,35 @@
+{% extends base_template %}
+{% load i18n %}
+{% block title %}{% translate "Notifications" %} · {% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{% translate "Notifications" %}</h1>
+  {% if unread %}
+  <form method="post" action="{% url 'notify:inbox_read_all' %}">{% csrf_token %}
+    <button type="submit" class="btn btn-ghost btn-sm" data-testid="notif-read-all">{% translate "Mark all as read" %}</button>
+  </form>
+  {% endif %}
+</div>
+<section class="card" aria-label="{% translate 'Notifications' %}">
+  {% if rows %}
+  <ul class="notif-list">
+    {% for n in rows %}
+    <li class="card-b notif-row" data-testid="notif-row-{{ n.pk }}">
+      <div class="grow">
+        <p>{% if not n.read_at %}<b>{{ n.subject }}</b> <span class="pill">{% translate "New" %}</span>{% else %}{{ n.subject }}{% endif %}</p>
+        {% if n.body %}<p class="muted notif-body">{{ n.body|truncatechars:400 }}</p>{% endif %}
+        <p class="muted notif-time"><time datetime="{{ n.created_at|date:'c' }}">{{ n.created_at|date:"DATETIME_FORMAT" }}</time></p>
+      </div>
+      {% if not n.read_at %}
+      <form method="post" action="{% url 'notify:inbox_read' n.pk %}">{% csrf_token %}
+        <button type="submit" class="btn btn-ghost btn-sm" aria-label="{% blocktranslate with subject=n.subject %}Mark “{{ subject }}” as read{% endblocktranslate %}">{% translate "Mark read" %}</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="card-b muted" data-testid="notif-empty">{% translate "No notifications yet." %}</p>
+  {% endif %}
+</section>
+{% endblock %}

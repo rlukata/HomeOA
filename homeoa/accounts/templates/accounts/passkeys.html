@@ -1,0 +1,48 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n static %}
+{% block title %}{% translate "Passkeys" %}{% endblock %}
+{% block scripts %}<script src="{% static 'accounts/passkeys.js' %}" defer></script>{% endblock %}
+{% block content %}
+<h1>{% translate "Passkeys" %}</h1>
+{% if required %}<p class="auth-msg err" role="alert">{% translate "Your association requires two-step sign-in for board members. Add a passkey or set up an authenticator app to continue." %}</p>{% endif %}
+<p class="muted">{% translate "A passkey lets you sign in with your fingerprint, face or device PIN instead of an email link." %}</p>
+{% if codes %}
+<div data-testid="passkey-recovery-codes">
+  <h2>{% translate "Recovery codes" %}</h2>
+  <p>{% translate "Save these recovery codes somewhere safe. Each one works once if you lose your passkey. They won't be shown again." %}</p>
+  <ul class="auth-codes">{% for code in codes %}<li>{{ code }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{% if error %}<p class="auth-msg err" role="alert">{{ error }}</p>{% endif %}
+{% if passkeys %}
+<ul class="auth-passkeys" data-testid="passkey-list">
+  {% for pk in passkeys %}
+  <li>
+    <strong>{{ pk.name }}</strong>
+    <div class="meta muted">{% blocktranslate with added=pk.created_at|date:"M j, Y" %}Added {{ added }}{% endblocktranslate %}{% if pk.last_used_at %} · {% blocktranslate with used=pk.last_used_at|date:"M j, Y" %}last used {{ used }}{% endblocktranslate %}{% endif %}</div>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="id" value="{{ pk.pk }}">
+      <label class="sr-only" for="pk-name-{{ pk.pk }}">{% translate "Passkey name" %}</label>
+      <input type="text" id="pk-name-{{ pk.pk }}" name="name" value="{{ pk.name }}" maxlength="100">
+      <button type="submit" name="action" value="rename" class="btn">{% translate "Rename" %}</button>
+      <button type="submit" name="action" value="remove" class="btn btn-ghost">{% translate "Remove" %}</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>{% translate "You have no passkeys yet." %}</p>
+{% endif %}
+<div class="auth-add">{% csrf_token %}
+  <div class="auth-field">
+    <label for="id_passkey_name">{% translate "Name for the new passkey" %}</label>
+    <input type="text" id="id_passkey_name" maxlength="100" placeholder="{% translate 'e.g. My phone' %}">
+  </div>
+  <button type="button" class="btn btn-primary btn-lg" hidden data-passkey="register" data-testid="passkey-add"
+    data-options="{% url 'accounts:passkey_register_options' %}" data-finish="{% url 'accounts:passkey_register' %}"
+    data-name="id_passkey_name" data-error="passkey-error"
+    data-failed="{% translate 'The passkey was not added. Try again.' %}">{% translate "Add a passkey" %}</button>
+  <p class="auth-msg err" id="passkey-error" role="alert" hidden></p>
+</div>
+<p class="auth-links"><a href="{% url 'accounts:mfa_setup' %}">{% translate "Authenticator app" %}</a> · <a href="{% url 'dashboard:index' %}">{% translate "Back to home" %}</a></p>
+{% endblock %}

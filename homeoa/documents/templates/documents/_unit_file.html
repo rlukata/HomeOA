@@ -1,0 +1,7 @@
+{% load i18n homeoa_access %}{% has_perm "board.shell" as board_shell %}{% if board_shell %}
+<section class="card card-pad" aria-labelledby="unitfile-h">
+  <div class="card-h"><h2 id="unitfile-h">{% translate "Unit file" %}</h2>
+    <a class="btn btn-sm" href="{% url 'documents:unit_file' unit.number %}">{% translate "Open unit file" %}</a></div>
+  <p class="muted">{% translate "Ledger, letters, statements and messages for this unit, by date." %}</p>
+</section>
+{% endif %}

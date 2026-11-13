@@ -1,0 +1,41 @@
+{% load i18n homeoa_access %}{% has_perm "units.read" as can_read %}{% if can_read %}{% has_perm "units.manage" as can_manage %}{% residents_on as res_on %}{% unit_invitations unit today as invites %}
+<section class="card card-pad" aria-labelledby="access-h" data-testid="resident-access">
+  <div class="card-h"><h2 id="access-h">{% translate "Resident access" %}</h2>
+    <a class="btn btn-sm" href="{% url 'portal_preview:home' unit.number %}">{% blocktranslate with number=unit.number %}Preview as unit {{ number }}{% endblocktranslate %}</a>
+    {% if tenants %}<a class="btn btn-sm btn-ghost" href="{% url 'portal_preview:home' unit.number %}?as=tenant">{% translate "Preview as tenant" %}</a>{% endif %}
+  </div>
+  {% if not res_on %}<p class="muted" data-testid="invites-held">{% translate "Invitations are held until residents are switched on in Settings." %}</p>{% endif %}
+  {% for person, inv in invites %}
+    <div class="person-row">
+      <div class="grow">{{ person.full_name }} <span class="muted">{% if person.email %}{{ person.email }}{% else %}{% translate "no email" %}{% endif %}</span>
+        {% if inv %}<span class="badge" data-testid="invitation-status">{% if inv.is_expired %}{% translate "Expired" %}{% else %}{{ inv.get_status_display }}{% endif %}</span>
+          {% if inv.expires_at and not inv.is_expired %}<span class="muted">{% blocktranslate with date=inv.expires_at|date:"M j, Y" %}expires {{ date }}{% endblocktranslate %}</span>{% endif %}{% endif %}</div>
+      {% if can_manage and inv %}
+        {% if inv.status == "sent" %}
+        <form method="post" action="{% url 'access_invitations:resend' unit.number inv.pk %}">{% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-ghost"{% if not res_on %} disabled{% endif %}>{% blocktranslate with name=person.full_name %}Resend invitation to {{ name }}{% endblocktranslate %}</button></form>
+        {% endif %}
+        {% if inv.status == "revoked" %}{% if person.email %}
+        <form method="post" action="{% url 'access_invitations:draft' unit.number person.pk %}">{% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-ghost">{% blocktranslate with name=person.full_name %}Draft invitation for {{ name }}{% endblocktranslate %}</button></form>
+        {% endif %}{% else %}
+        <form method="post" action="{% url 'access_invitations:revoke' unit.number inv.pk %}">{% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-ghost">{% blocktranslate with name=person.full_name %}Revoke invitation for {{ name }}{% endblocktranslate %}</button></form>
+        {% endif %}
+      {% endif %}
+      {% if can_manage and not inv and person.email %}
+        <form method="post" action="{% url 'access_invitations:draft' unit.number person.pk %}">{% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-ghost">{% blocktranslate with name=person.full_name %}Draft invitation for {{ name }}{% endblocktranslate %}</button></form>
+      {% endif %}
+    </div>
+  {% empty %}
+    <p class="muted">{% translate "No current owners or occupants." %}</p>
+  {% endfor %}
+  {% if can_manage %}
+  <form class="mt-10" method="post" action="{% url 'access_invitations:send' unit.number %}">{% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-primary"{% if not res_on %} disabled aria-describedby="access-held"{% endif %}>{% translate "Invite drafted residents" %}</button>
+    {% if not res_on %}<span id="access-held" class="muted">{% translate "Residents are switched off." %}</span>{% endif %}
+  </form>
+  {% endif %}
+</section>
+{% endif %}

@@ -1,0 +1,7 @@
+{% load i18n homeoa_access %}{% has_perm "board.shell" as board_shell %}{% if board_shell %}
+<section class="card card-pad" aria-labelledby="comms-h">
+  <div class="card-h"><h2 id="comms-h">{% translate "Communications" %}</h2>
+    <a class="btn btn-sm" href="{% url 'notify:unit_comms' unit.number %}">{% translate "Open communication log" %}</a></div>
+  <p class="muted">{% translate "Every email, letter and preview sent about this unit, with delivery status." %}</p>
+</section>
+{% endif %}

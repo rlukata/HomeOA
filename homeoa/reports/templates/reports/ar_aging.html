@@ -1,0 +1,22 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Receivables aging" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Receivables aging" %}</h1>
+    <p class="muted">{% blocktranslate with d=as_of|date:"M j, Y" %}As of {{ d }}.{% endblocktranslate %} {% translate "Open owner charges by unit, aged from the charge date. Payments apply to the oldest charges first." %}</p>
+  </div>
+  {% export_links %}
+</div>
+{% include "reports/_nav.html" %}
+<section class="card" aria-labelledby="aging-filter-h">
+  <h2 id="aging-filter-h" class="sr">{% translate "Filters" %}</h2>
+  <form method="get" class="form-row">
+    <label>{% translate "As of" %}<input type="date" name="as_of" value="{{ as_of|date:'Y-m-d' }}"></label>
+    {% include "reports/_filters.html" %}
+  </form>
+</section>
+{% translate "Receivables aging" as caption %}{% translate "Unit" as who %}
+{% include "reports/_aging_table.html" with caption=caption who=who show_credit=True %}
+{% endblock %}

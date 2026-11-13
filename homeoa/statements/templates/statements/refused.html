@@ -1,0 +1,7 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Not sent" %}{% endblock %}
+{% block content %}
+<div class="callout warn" role="alert" data-testid="send-refused">{{ message }}</div>
+<p class="mt-16"><a class="btn" href="{% url 'statements:index' %}">{% translate "Back to statements" %}</a></p>
+{% endblock %}

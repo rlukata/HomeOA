@@ -1,0 +1,81 @@
+{% load static i18n homeoa_ui homeoa_notify %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{% if current_hub %}{{ current_hub.label }} · {% endif %}{% if association %}{{ association.name }}{% else %}{% translate "HomeOA" %}{% endif %}{% endblock %}</title>
+<script src="{% static 'homeoa/theme.js' %}"></script>
+<link rel="stylesheet" href="{% static 'homeoa/base.css' %}">
+<link rel="manifest" href="{% url 'ui:manifest' %}">
+<meta name="theme-color" content="#1d6b57">
+<link rel="apple-touch-icon" href="{% static 'homeoa/icons/apple-touch-icon.png' %}">
+<meta name="htmx-config" content='{"includeIndicatorStyles":false,"allowEval":false}'>
+<script src="{% static 'homeoa/vendor/htmx.min.js' %}" defer></script>
+<script src="{% static 'homeoa/shell.js' %}" defer></script>
+</head>
+<body data-announce-error="{% translate 'Something went wrong. Please try again.' %}" data-announce-updated="{% translate 'Updated' %}" data-sw="{% url 'ui:service_worker' %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<a class="skip" href="#main">{% translate "Skip to content" %}</a>
+{% block shell %}
+<header class="hdr">
+  <div class="hdr-in">
+    <a class="brand" href="{% url 'dashboard:index' %}">
+      <span class="logo" aria-hidden="true">{% if association %}{{ association.short_name }}{% else %}{% translate "HO" %}{% endif %}</span>
+      <span>{% if association %}{{ association.name }}{% else %}{% translate "HomeOA" %}{% endif %}</span>
+    </a>
+    <nav class="hnav" aria-label="{% translate 'Main' %}">
+      {% for hub in nav_hubs %}
+        <a href="{{ hub.url }}" data-hub="{{ hub.id }}" class="{{ hub.overflow }}{% if hub == current_hub %} on{% endif %}"{% if hub == current_hub %} aria-current="page"{% endif %}>{{ hub.label }}</a>
+      {% endfor %}
+      {% if nav_more %}
+      <div class="more-dd">
+        <button type="button" class="more-btn{% if current_hub.overflow %} cur-{{ current_hub.overflow }}{% endif %}" id="moreBtn" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu">{% translate "More" %} {% icon "down" %}</button>
+        <div class="menu" id="moreMenu">
+          {% for hub in nav_more %}
+            <a href="{{ hub.url }}" data-hub="{{ hub.id }}" class="{% if hub.overflow == 'ovf2' %}m2{% endif %}{% if hub == current_hub %} on{% endif %}">{% icon hub.icon %}{{ hub.label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </nav>
+    <div class="grow"></div>
+    {% if user.is_authenticated and association %}<a class="icon-btn" href="{% url 'search:results' %}" aria-label="{% translate 'Search' %}" data-testid="search-button">{% icon "search" %}</a>{% endif %}
+    {% notify_bell %}
+    <a class="icon-btn hide-sm" href="{% url 'ui:settings' %}" aria-label="{% translate 'Settings' %}">{% icon "cog" %}</a>
+  </div>
+  {% if subtabs %}
+  <div class="sub">
+    <nav class="tabs" aria-label="{% blocktranslate with hub=current_hub.label %}{{ hub }} sections{% endblocktranslate %}">
+      {% for tab in subtabs %}{% if tab.url not in nav_hidden_urls %}
+        <a href="{{ tab.url }}" class="{% if tab.on %}on{% endif %}"{% if tab.on %} aria-current="page"{% endif %}>{{ tab.label }}</a>
+      {% endif %}{% endfor %}
+    </nav>
+  </div>
+  {% endif %}
+</header>
+{% endblock %}
+<main class="wrap" id="main" tabindex="-1">
+{% if sandbox_mode %}<div class="callout sandbox-banner" role="note" data-testid="sandbox-banner">{% if sandbox_real_email %}{% translate "Sandbox: this is demo data. Banks, postal mail and payments use fakes or test mode, but email is really sent: use your own address or none." %}{% else %}{% translate "Sandbox: this is demo data. Banks, email, postal mail and payments use fakes or test mode; nothing real is sent." %}{% endif %}</div>{% endif %}
+{% include "ui/components/messages.html" %}
+{% block content %}{% endblock %}
+</main>
+<div id="sr-announce" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+<nav class="tabbar" aria-label="{% translate 'Hubs' %}">
+  {% for hub in nav_tabbar %}
+    <a href="{{ hub.url }}" data-hub="{{ hub.id }}" class="{% if hub == current_hub %}on{% endif %}"{% if hub == current_hub %} aria-current="page"{% endif %}>{% icon hub.icon %}{{ hub.label }}</a>
+  {% endfor %}
+  <a href="#more-sheet" id="tabMore" class="{% if current_hub and not current_hub.tabbar %}on{% endif %}" aria-haspopup="dialog" aria-controls="sheet">{% icon "menu" %}{% translate "More" %}</a>
+</nav>
+<div id="sheetWrap">
+  <div class="sheet-bg" id="sheetBg"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="{% translate 'More' %}" hidden>
+    <div class="grab" aria-hidden="true"></div>
+    {% for hub in nav_sheet %}
+      <a href="{{ hub.url }}" data-hub="{{ hub.id }}" class="{% if hub == current_hub %}on{% endif %}">{% icon hub.icon %}{{ hub.label }}</a>
+    {% endfor %}
+    <hr>
+    <a href="{% url 'ui:settings' %}">{% icon "cog" %}{% translate "Settings" %}</a>
+  </div>
+</div>
+</body>
+</html>

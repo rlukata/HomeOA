@@ -1,0 +1,65 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{{ title }}</h1>
+  <p class="muted">{% translate "Saving keeps a draft. Submitting books the bill to accounts payable; after that it can only be voided." %}</p></div></div>
+{% if invoice_reader %}
+<section class="card mb" aria-labelledby="reader-h" data-testid="invoice-reader">
+  <div class="card-h"><h2 id="reader-h">{% translate "Fill in from an invoice" %}</h2></div>
+  <form method="post" enctype="multipart/form-data" action="{% url 'assist:bill_from_invoice' %}" class="card-b row wrap-ok">
+    {% csrf_token %}
+    <label class="sr" for="reader-file">{% translate "Invoice file (PDF or image)" %}</label>
+    <input type="file" id="reader-file" name="invoice" accept=".pdf,.png,.jpg,.jpeg" required>
+    <button type="submit" class="btn">{% translate "Fill in from invoice" %}</button>
+    <p class="muted small">{% translate "AI reads the invoice and fills in the form below for you to check. The file is sent to the AI provider; nothing is saved until you save the bill." %}</p>
+  </form>
+</section>
+{% endif %}
+<form method="post" enctype="multipart/form-data" class="stack">
+  {% csrf_token %}
+  {% if proposal %}<div class="callout warn" role="status" data-testid="bill-prefilled"><p>{{ proposal.note }}</p>{% if proposal.warnings %}<ul>{% for w in proposal.warnings %}<li>{{ w }}</li>{% endfor %}</ul>{% endif %}</div>{% endif %}
+  {% if held_file %}<input type="hidden" name="held_file" value="{{ held_file }}">
+  <p class="muted" data-testid="bill-held-file">{% blocktranslate with name=held_name %}{{ name }} will be attached when you save, unless you choose another file.{% endblocktranslate %}</p>{% endif %}
+  {% if work_order %}<input type="hidden" name="work_order" value="{{ work_order.pk }}">
+  <p class="callout" data-testid="bill-from-work-order">{% blocktranslate with wo=work_order %}Creating a bill from {{ wo }}. It is linked to the work order when saved.{% endblocktranslate %}</p>{% endif %}
+  <section class="card">
+    <div class="form-grid">
+      {% include "ui/components/form.html" %}
+    </div>
+  </section>
+  <section class="card" aria-labelledby="lines-h">
+    <div class="card-h"><h2 id="lines-h">{% translate "Lines" %}</h2></div>
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<div class="callout" role="alert">{{ formset.non_form_errors|join:" " }}</div>{% endif %}
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Bill lines" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "Expense account" %}</th>
+          <th scope="col">{% translate "Fund" %}</th>
+          <th scope="col" class="num">{% translate "Amount" %}</th>
+          <th scope="col">{% translate "Memo" %}</th>
+          <th scope="col">{% translate "Remove" %}</th>
+        </tr></thead>
+        <tbody>
+        {% for f in formset %}
+          <tr data-testid="bill-line-form">
+            <td>{{ f.id }}{% field f.account hide_label=True %}</td>
+            <td>{% field f.fund hide_label=True %}</td>
+            <td class="num">{% field f.amount hide_label=True %}</td>
+            <td>{% field f.memo hide_label=True %}</td>
+            <td>{% if f.instance.pk %}{% field f.DELETE hide_label=True %}{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <div class="form-actions">
+    <button type="submit" class="btn" name="save" data-testid="bill-save">{% translate "Save draft" %}</button>
+    <button type="submit" class="btn btn-primary" name="submit" data-testid="bill-submit">{% translate "Submit bill" %}</button>
+    <a class="btn btn-ghost" href="{% if bill.pk %}{% url 'ap:detail' bill.pk %}{% else %}{% url 'ap:index' %}{% endif %}">{% translate "Cancel" %}</a>
+  </div>
+</form>
+{% endblock %}

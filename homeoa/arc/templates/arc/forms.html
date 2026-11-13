@@ -1,0 +1,34 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Architectural forms" %}{% endblock %}
+{% block content %}
+<a href="{% url 'arc:index' %}" class="btn btn-ghost btn-sm">{% translate "Architectural requests" %}</a>
+<div class="hero"><div><h1>{% translate "Forms & reviewers" %}</h1></div>
+  {% if can_decide %}<a class="btn btn-primary" href="{% url 'arc:form_new' %}">{% translate "New form" %}</a>{% endif %}
+</div>
+<div class="g">
+  <section class="card span2"><div class="card-h"><h2>{% translate "Forms" %}</h2></div>
+    <div class="table-wrap"><table class="t" data-testid="arc-forms">
+      <thead><tr><th scope="col">{% translate "Name" %}</th><th scope="col">{% translate "Fields" %}</th><th scope="col">{% translate "Status" %}</th></tr></thead>
+      <tbody>{% for f in forms %}<tr>
+        <td>{% if can_decide %}<a href="{% url 'arc:form_edit' f.pk %}">{{ f.name }}</a>{% else %}{{ f.name }}{% endif %}</td>
+        <td>{{ f.fields|length }}</td>
+        <td>{% if f.active %}<span class="badge ok">{% translate "In use" %}</span>{% else %}<span class="badge">{% translate "Retired" %}</span>{% endif %}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+  <section class="card"><div class="card-h"><h2>{% translate "Reviewers" %}</h2></div><div class="card-b">
+    {% if can_decide %}
+    <form method="post" action="{% url 'arc:reviewers' %}" class="form-grid">
+      {% csrf_token %}
+      <div class="field full"><label class="field-l" for="r-com">{% translate "Who votes on requests" %}</label>
+        <select id="r-com" name="committee">
+          <option value="">{% translate "The board" %}</option>
+          {% for c in committees %}<option value="{{ c.pk }}"{% if c == committee %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        </select>
+        <p class="field-help">{% translate "Committees are set up under Governance > Board & committees." %}</p></div>
+      <div class="form-actions"><button type="submit" class="btn">{% translate "Save" %}</button></div>
+    </form>
+    {% else %}<p>{% if committee %}{{ committee.name }}{% else %}{% translate "The board" %}{% endif %}</p>{% endif %}
+  </div></section>
+</div>
+{% endblock %}

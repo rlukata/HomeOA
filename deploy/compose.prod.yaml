@@ -1,0 +1,155 @@
+# Production stack (OPS-01). Provider-neutral: any VPS with Docker Compose,
+# any S3-compatible bucket, any SMTP server. See deploy/RUNBOOK.md.
+#
+#   cp deploy/prod.env.example deploy/prod.env   # fill in real values
+#   docker compose -f deploy/compose.prod.yaml --env-file deploy/prod.env up -d --build
+name: homeoa-prod
+
+x-app: &app
+  image: ${HOMEOA_IMAGE:-homeoa:local}
+  env_file: prod.env
+  environment:
+    HOMEOA_DB_HOST: db
+    HOMEOA_TRUSTED_PROXIES: ${HOMEOA_PROXY_IP:-172.31.250.10}
+    # CF-Connecting-IP is honoured only via this connector (tunnel profile). The tunnel
+    # token is NOT in prod.env: only cloudflared reads it, from tunnel.env.
+    HOMEOA_CF_TUNNEL_PROXIES: ${HOMEOA_CF_TUNNEL_IP:-172.31.250.11}
+    HOMEOA_BACKUP_STATUS_DIR: /status
+  restart: unless-stopped
+  networks: [internal]
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${HOMEOA_DB_USER:-homeoa}
+      POSTGRES_PASSWORD: ${HOMEOA_DB_PASSWORD:?set HOMEOA_DB_PASSWORD}
+      POSTGRES_DB: ${HOMEOA_DB_NAME:-homeoa}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${HOMEOA_DB_USER:-homeoa}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    networks: [internal]
+
+  # One-shot: applies migrations; a failure stops web and worker from starting.
+  migrate:
+    <<: *app
+    # The image is built once, here; web and worker reuse it.
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["migrate"]
+    restart: "no"
+    healthcheck: {disable: true}
+    depends_on:
+      db: {condition: service_healthy}
+
+  web:
+    <<: *app
+    command: ["web"]
+    volumes:
+      - media:/data/media
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+  worker:
+    <<: *app
+    command: ["worker"]
+    healthcheck: {disable: true}
+    volumes:
+      - media:/data/media
+      # Read by the daily ops.backup_check job (stale/failed backups email ADMINS).
+      - backup_status:/status:ro
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      # backup mounts backup_status first, so the new volume gets its writable /status.
+      # Optional: a demo install can run without the backup profile.
+      backup: {condition: service_started, required: false}
+
+  # Nightly encrypted backup to the S3-compatible bucket (OPS-02). Profile "backup":
+  # production enables it with COMPOSE_PROFILES=backup in prod.env (prod.env.example);
+  # a demo install without a bucket leaves the profile off.
+  backup:
+    profiles: [backup]
+    image: ${HOMEOA_BACKUP_IMAGE:-homeoa-backup:local}
+    build:
+      context: ..
+      dockerfile: deploy/backup.Dockerfile
+    env_file: prod.env
+    environment:
+      PGHOST: db
+      PGUSER: ${HOMEOA_DB_USER:-homeoa}
+      PGPASSWORD: ${HOMEOA_DB_PASSWORD}
+      PGDATABASE: ${HOMEOA_DB_NAME:-homeoa}
+      BACKUP_MEDIA_DIR: /data/media
+      BACKUP_STATUS_DIR: /status
+    volumes:
+      - media:/data/media:ro
+      - backup_status:/status
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+    networks: [internal]
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "${HOMEOA_HTTP_PORT:-80}:80"
+      - "${HOMEOA_HTTPS_PORT:-443}:443"
+    environment:
+      HOMEOA_DOMAIN: ${HOMEOA_DOMAIN:-localhost}
+      HOMEOA_ACME_EMAIL: ${HOMEOA_ACME_EMAIL:-admin@localhost}
+      # caddy (default): TLS + ACME here. tunnel: plain HTTP for cloudflared.
+      HOMEOA_TLS_MODE: ${HOMEOA_TLS_MODE:-caddy}
+      HOMEOA_CF_TUNNEL_IP: ${HOMEOA_CF_TUNNEL_IP:-172.31.250.11}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: {condition: service_healthy}
+    restart: unless-stopped
+    networks:
+      internal:
+        # Fixed address: the app trusts X-Forwarded-For only from this IP.
+        ipv4_address: ${HOMEOA_PROXY_IP:-172.31.250.10}
+
+  # Cloudflare Tunnel: `--profile tunnel`, HOMEOA_TLS_MODE=tunnel and
+  # TUNNEL_TOKEN in deploy/tunnel.env (root, 600; read by this service only). TLS ends at Cloudflare and cloudflared dials out,
+  # so nothing needs to be reachable from outside: bind Caddy to loopback with
+  # HOMEOA_HTTP_PORT=127.0.0.1:8080 and HOMEOA_HTTPS_PORT=127.0.0.1:8443.
+  # Remotely managed tunnel: in the Cloudflare dashboard, public hostname
+  # <your domain> -> service http://caddy:80 (Caddy keeps the 25 MB body
+  # limit and access log; it forwards to web:8000).
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.7
+    profiles: [tunnel]
+    command: ["tunnel", "--no-autoupdate", "run"]
+    # Only this service gets the token; prod.env (shared by web/worker/backup) has none.
+    env_file:
+      - path: tunnel.env
+        required: false
+    depends_on:
+      caddy: {condition: service_started}
+    restart: unless-stopped
+    networks:
+      internal:
+        # Fixed address: the app honours CF-Connecting-IP only from this IP.
+        ipv4_address: ${HOMEOA_CF_TUNNEL_IP:-172.31.250.11}
+
+networks:
+  internal:
+    ipam:
+      config:
+        - subnet: ${HOMEOA_PROXY_SUBNET:-172.31.250.0/24}
+
+volumes:
+  pgdata:
+  media:
+  backup_status:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,7 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Signed out" %}{% endblock %}
+{% block content %}
+<h1>{% translate "You're signed out" %}</h1>
+<a class="btn btn-primary btn-lg" href="{% url 'accounts:login' %}">{% translate "Sign in again" %}</a>
+{% endblock %}

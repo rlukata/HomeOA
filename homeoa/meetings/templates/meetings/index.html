@@ -1,0 +1,62 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Meetings" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Meetings" %}</h1>
+    <p class="muted">{% translate "Board and owner meetings, their agendas and the notice sent for each." %}</p>
+  </div>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="up-h">
+      <div class="card-h"><h2 id="up-h">{% translate "Upcoming" %}</h2></div>
+      {% include "meetings/_table.html" with rows=upcoming testid="meetings-upcoming" empty_text=_("No meetings scheduled.") %}
+    </section>
+    <section class="card" aria-labelledby="past-h">
+      <div class="card-h"><h2 id="past-h">{% translate "Past" %}</h2></div>
+      {% include "meetings/_table.html" with rows=past testid="meetings-past" empty_text=_("No past meetings.") %}
+    </section>
+  </div>
+  {% if can_manage %}
+  <div class="stack">
+    <section class="card" aria-labelledby="new-h">
+      <div class="card-h"><h2 id="new-h">{% translate "Schedule meeting" %}</h2></div>
+      <div class="card-b">
+        <form method="post" action="{% url 'meetings:add' %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Kind" %}
+            <select name="kind" required>
+              {% for value, label in kinds %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>{% translate "Title (optional)" %} <input type="text" name="title" maxlength="200"></label>
+          <label>{% translate "Date" %} <input type="date" name="date" required></label>
+          <label>{% translate "Start time" %} <input type="time" name="start_time"></label>
+          <label>{% translate "Location" %} <input type="text" name="location" maxlength="300"></label>
+          <label>{% translate "Video link" %} <input type="url" name="video_url" maxlength="500"></label>
+          <label>{% translate "Join by phone (number and code)" %} <input type="text" name="dial_in" maxlength="200"></label>
+          <div class="form-actions"><button type="submit" class="btn primary">{% translate "Schedule meeting" %}</button></div>
+        </form>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="live-h">
+      <div class="card-h"><h2 id="live-h">{% translate "Owner notices" %}</h2></div>
+      <div class="card-b">
+        <p data-testid="owner-notices-live">
+          {% if live %}<span class="badge ok">{% translate "On" %}</span> {% translate "Notices go to every owner by email or mail." %}
+          {% else %}<span class="badge warn">{% translate "Off" %}</span> {% translate "Before cutover, notices go only to the board or into a print-only batch you mail by hand." %}{% endif %}
+        </p>
+        {% if not residents_on %}<p class="muted">{% translate "Residents are not switched on yet; owner notices also need that." %}</p>{% endif %}
+        <form method="post" action="{% url 'meetings:live' %}">
+          {% csrf_token %}
+          <input type="hidden" name="on" value="{% if live %}0{% else %}1{% endif %}">
+          <button type="submit" class="btn">{% if live %}{% translate "Switch owner notices off" %}{% else %}{% translate "Switch owner notices on" %}{% endif %}</button>
+        </form>
+      </div>
+    </section>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

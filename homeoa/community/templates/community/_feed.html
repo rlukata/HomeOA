@@ -1,0 +1,13 @@
+{% load i18n %}<div class="card-b" data-testid="ical-feed">
+  {% if feed_url %}
+  <p class="small">{% translate "Add this private link to your calendar app (Google, Apple, Outlook) to subscribe. Anyone with the link can see your calendar, so keep it to yourself." %}</p>
+  <label class="sr" for="ical-url">{% translate "Calendar link" %}</label>
+  <input id="ical-url" class="search" type="text" readonly value="{{ feed_url }}" data-testid="ical-url" data-select-on-click>
+  <div class="row wrap-ok mb">
+    <form method="post" action="{% url 'community:feed_reset' %}">{% csrf_token %}<button class="btn btn-sm" type="submit">{% translate "Make a new link" %}</button></form>
+    <form method="post" action="{% url 'community:feed_revoke' %}">{% csrf_token %}<button class="btn btn-sm btn-ghost" type="submit" data-testid="ical-revoke">{% translate "Turn off link" %}</button></form>
+  </div>
+  {% else %}
+  <form method="post" action="{% url 'community:feed_reset' %}">{% csrf_token %}<button class="btn btn-sm" type="submit" data-testid="ical-create">{% translate "Get iCal link" %}</button></form>
+  {% endif %}
+</div>

@@ -1,0 +1,7 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Signing link" %}{% endblock %}
+{% block content %}
+<h1>{% translate "This link can't be used" %}</h1>
+<p data-testid="link-invalid">{{ reason }}</p>
+{% endblock %}

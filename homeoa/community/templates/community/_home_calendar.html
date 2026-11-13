@@ -1,0 +1,5 @@
+{% load i18n %}{% if show %}<section class="card" aria-labelledby="coming-h" data-testid="home-calendar">
+  <div class="card-h"><h2 id="coming-h">{% translate "Coming up" %}</h2><a class="btn btn-sm btn-ghost" href="{% url 'community:calendar' %}">{% translate "Calendar" %}</a></div>
+  {% include "community/_events.html" %}
+  <div class="card-gap"></div>
+</section>{% endif %}

@@ -1,0 +1,9 @@
+Account Number,Account Name,Account Type,Fund
+1000,Operating Cash,Asset,Operating
+1010,Reserve Cash,Asset,Reserve
+1200,Assessments Receivable,Asset,Operating
+2100,Prepaid Assessments,Liability,Operating
+3000,Opening Balance Equity,Equity,Operating
+4000,Assessment Income,Income,Operating
+4100,Late Fee Income,Income,Operating
+4900,Other Income,Income,Operating

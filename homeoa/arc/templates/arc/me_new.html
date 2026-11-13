@@ -1,0 +1,30 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block content %}
+<a href="{% url 'arc:mine' %}" class="btn btn-ghost btn-sm">{% translate "Architectural requests" %}</a>
+<div class="hero"><h1>{% translate "New architectural request" %}</h1></div>
+{% if forms|length > 1 %}
+<section class="card"><div class="card-b card-pad-t">
+  <form method="get" action="{{ action_url }}" class="form-grid">
+    <div class="field"><label class="field-l" for="arc-form">{% translate "Form" %}</label>
+      <select id="arc-form" name="form">{% for f in forms %}<option value="{{ f.pk }}"{% if f == form %} selected{% endif %}>{{ f.name }}</option>{% endfor %}</select></div>
+    <div class="form-actions"><button type="submit" class="btn">{% translate "Choose form" %}</button></div>
+  </form>
+</div></section>
+{% endif %}
+{% if form %}
+<section class="card"><div class="card-h"><h2>{{ form.name }}</h2></div><div class="card-b">
+  {% if form.description %}<p class="muted">{{ form.description }}</p>{% endif %}
+  <form method="post" action="{{ action_url }}" enctype="multipart/form-data" class="form-grid">
+    {% csrf_token %}
+    <input type="hidden" name="form" value="{{ form.pk }}">
+    {% if owned_units|length > 1 %}
+    <div class="field full"><label class="field-l" for="arc-unit">{% translate "Unit" %}</label>
+      <select id="arc-unit" name="unit" required>{% for u in owned_units %}<option value="{{ u.pk }}"{% if u == unit %} selected{% endif %}>{{ u }}</option>{% endfor %}</select></div>
+    {% elif unit %}<input type="hidden" name="unit" value="{{ unit.pk }}">{% endif %}
+    {% include "arc/_fields.html" %}
+    <div class="form-actions"><button type="submit" name="submit" value="1" class="btn btn-primary">{% translate "Send to the board" %}</button></div>
+  </form>
+</div></section>
+{% endif %}
+{% endblock %}

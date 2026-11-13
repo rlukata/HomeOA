@@ -1,0 +1,139 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ vote.title }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p class="muted"><a href="{% url 'votes:index' %}">{% translate "Owner votes" %}</a></p>
+    <h1>{{ vote.title }}</h1>
+    <p class="muted">{{ vote.get_kind_display }} · {{ vote.opens_at|date:"M j, Y H:i" }} – {{ vote.closes_at|date:"M j, Y H:i" }} · {{ vote.get_weighting_display }}{% if vote.secret %} · {% translate "Secret ballot" %}{% endif %}</p>
+    {% if vote.description %}<p>{{ vote.description|linebreaksbr }}</p>{% endif %}
+  </div>
+  <div class="row">
+    <span class="badge {% if is_open %}ok{% elif is_draft %}warn{% endif %}" data-testid="vote-status">{{ vote.get_status_display }}</span>
+    {% if is_draft %}
+    <form method="post" action="{% url 'votes:open' vote.pk %}">{% csrf_token %}<button type="submit" class="btn">{% translate "Open vote and send ballots" %}</button></form>
+    {% elif is_open %}
+    <form method="post" action="{% url 'votes:close' vote.pk %}">{% csrf_token %}<button type="submit" class="btn">{% translate "Close vote and record result" %}</button></form>
+    {% endif %}
+  </div>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="res-h">
+      <div class="card-h">
+        <h2 id="res-h">{% if vote.status == "closed" %}{% translate "Result" %}{% else %}{% translate "Running tally" %}{% endif %}</h2>
+        <span class="badge" data-testid="turnout">{% blocktranslate with v=turnout.voted e=turnout.eligible %}{{ v }} of {{ e }} units voted{% endblocktranslate %}</span>
+      </div>
+      <div class="card-b stack">
+        <p class="muted small">
+          {% translate "Quorum" %}: {% if tally.quorum_rule.percent is None %}{% translate "none" %}{% else %}{{ tally.quorum_rule.percent }}% · {% if tally.quorum_met %}{% translate "met" %}{% else %}{% translate "not met" %}{% endif %}{% endif %}
+          · {% translate "Threshold" %}: {% if tally.threshold_rule.comparison == "more_than" %}{% translate "more than" %}{% else %}{% translate "at least" %}{% endif %} {{ tally.threshold_rule.percent }}%
+          {% if tally.threshold_rule.source != "majority" and tally.threshold_rule.source != "default" and not tally.threshold_rule.verified %}<span class="badge warn">{% translate "unverified" %}</span>{% endif %}
+        </p>
+        {% if vote.secret and vote.status != "closed" %}
+        <p class="muted" data-testid="tally-hidden">{% translate "Secret ballot: totals are shown when the vote closes." %}</p>
+        {% else %}
+        {% for r in results %}
+        <div data-testid="question-result">
+          <h3>{{ r.question.text }}</h3>
+          <table class="t">
+            <tbody>
+              {% for c, w in r.choices %}<tr><td>{{ c.label }}</td><td class="num">{{ w }}</td></tr>{% endfor %}
+            </tbody>
+          </table>
+          {% if r.passed is not None %}<p><span class="badge {% if r.passed %}ok{% else %}danger{% endif %}">{% if r.passed %}{% translate "Passes" %}{% else %}{% translate "Does not pass" %}{% endif %}</span></p>{% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% if verified is not None %}
+        <p class="small" data-testid="ballots-hash">{% translate "Ballots hash" %}: <code>{{ vote.ballots_hash }}</code> · {% if verified %}<span class="badge ok">{% translate "ballots unchanged since close" %}</span>{% else %}<span class="badge danger">{% translate "ballots changed since close" %}</span>{% endif %}</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="ballots-h">
+      <div class="card-h"><h2 id="ballots-h">{% translate "Ballots" %}</h2></div>
+      {% if ballots %}
+      <div class="table-wrap">
+        <table class="t" data-testid="ballots">
+          <thead><tr>
+            <th scope="col">{% translate "Unit" %}</th>
+            <th scope="col">{% translate "Owner" %}</th>
+            <th scope="col">{% translate "Channel" %}</th>
+            <th scope="col">{% translate "Cast" %}</th>
+            {% if not vote.secret %}{% for q in questions %}<th scope="col">{{ q.text|truncatechars:30 }}</th>{% endfor %}{% endif %}
+            <th scope="col">{% translate "Receipt" %}</th>
+          </tr></thead>
+          <tbody>
+            {% for b in ballots %}
+            <tr{% if not b.ballot.active %} class="muted"{% endif %}>
+              <td>{{ b.ballot.unit.number }}</td>
+              <td>{{ b.ballot.person }}</td>
+              <td>{{ b.ballot.get_channel_display }}{% if b.ballot.scan_file_name %} · {{ b.ballot.scan_file_name }}{% endif %}</td>
+              <td class="nowrap">{{ b.ballot.cast_at|date:"M j, Y H:i" }}{% if not b.ballot.active %} · {% translate "replaced" %}{% endif %}</td>
+              {% if b.answers is not None %}{% for c in b.answers %}<td>{{ c.label|default:"—" }}</td>{% endfor %}{% endif %}
+              <td><code>{{ b.receipt }}</code></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-b"><p class="muted">{% translate "No ballots yet." %}</p></div>
+      {% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="audit-h">
+      <div class="card-h"><h2 id="audit-h">{% translate "Audit trail" %}</h2></div>
+      <div class="card-b">
+        <ul class="list" data-testid="audit-trail">
+          {% for e in audit_events %}
+          <li><span class="muted small">{{ e.created_at|date:"M j, Y H:i" }}</span> · {{ e.label }} · {{ e.object_repr }}{% if e.actor_label %} · {{ e.actor_label }}{% endif %}</li>
+          {% empty %}
+          <li class="muted">{% translate "Nothing recorded yet." %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="units-h">
+      <div class="card-h"><h2 id="units-h">{% translate "Units" %}</h2></div>
+      <div class="card-b">
+        <ul class="list" data-testid="unit-turnout">
+          {% for row in roster %}
+          <li>{{ row.unit.number }} · {% if row.voted %}<span class="badge ok">{% translate "voted" %}</span>{% else %}<span class="badge">{% translate "outstanding" %}</span>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+    {% if is_open %}
+    <section class="card" aria-labelledby="paper-h">
+      <div class="card-h"><h2 id="paper-h">{% translate "Enter a paper ballot" %}</h2></div>
+      <div class="card-b">
+        <form method="post" action="{% url 'votes:paper' vote.pk %}" enctype="multipart/form-data" class="form-grid" data-testid="paper-form">
+          {% csrf_token %}
+          <label>{% translate "Unit" %}
+            <select name="unit">{% for row in roster %}<option value="{{ row.unit.pk }}">{{ row.unit.number }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Signed by" %}
+            <select name="person">{% for row in roster %}{% for p in row.owners %}<option value="{{ p.pk }}">{{ row.unit.number }} · {{ p }}</option>{% endfor %}{% endfor %}</select>
+          </label>
+          {% for q in questions %}
+          <label>{{ q.text }}
+            <select name="q{{ q.pk }}">{% for c in q.choices.all %}<option value="{{ c.pk }}">{{ c.label }}</option>{% endfor %}</select>
+          </label>
+          {% endfor %}
+          <label>{% translate "Received on" %} <input type="date" name="received" value="{{ today|date:'Y-m-d' }}"></label>
+          <label>{% translate "Scan of the signed ballot" %} <input type="file" name="scan" required></label>
+          <label class="row"><input type="checkbox" name="replace"> {% translate "Replace another owner's ballot for this unit" %}</label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Record paper ballot" %}</button></div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

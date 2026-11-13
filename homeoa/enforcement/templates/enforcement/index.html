@@ -1,0 +1,83 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Violations" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Violations" %}</h1>
+    <p class="muted">{% translate "Log rule violations with photos, tied to a category and its rule citation." %}</p>
+  </div>
+</div>
+{% include "enforcement/_subnav.html" %}
+{% if not schedule %}<p class="callout" data-testid="no-schedule">{% translate "No fine schedule is in force today." %}</p>{% endif %}
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="log-h">
+      <div class="card-h"><h2 id="log-h">{% translate "Violation log" %}</h2></div>
+      <div class="card-b">
+        <form method="get" class="row" aria-label="{% translate 'Filter' %}">
+          <label>{% translate "Status" %}
+            <select name="status"><option value="">{% translate "All" %}</option>
+              {% for value, label in statuses %}<option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>{% translate "Unit" %}
+            <select name="unit"><option value="">{% translate "All" %}</option>
+              {% for u in units %}<option value="{{ u.pk }}"{% if u.pk == unit_id %} selected{% endif %}>{{ u }}</option>{% endfor %}
+            </select>
+          </label>
+          <button type="submit" class="btn btn-sm">{% translate "Filter" %}</button>
+        </form>
+      </div>
+      {% if violations %}
+      <div class="table-wrap">
+        <table class="t" data-testid="violations">
+          <thead><tr>
+            <th scope="col">{% translate "Observed" %}</th>
+            <th scope="col">{% translate "Unit" %}</th>
+            <th scope="col">{% translate "Category" %}</th>
+            <th scope="col">{% translate "Status" %}</th>
+          </tr></thead>
+          <tbody>
+            {% for v in violations %}
+            <tr>
+              <td class="nowrap"><a href="{% url 'enforcement:detail' v.pk %}">{{ v.observed_on|date:"M j, Y" }}</a></td>
+              <td>{{ v.unit }}</td>
+              <td>{{ v.category }}</td>
+              <td><span class="badge {% if v.status == 'open' %}warn{% elif v.status == 'cured' or v.status == 'closed' %}ok{% endif %}">{{ v.get_status_display }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-b"><p class="muted">{% translate "No violations match." %}</p></div>
+      {% endif %}
+    </section>
+  </div>
+  <div class="stack">
+    <section class="card" aria-labelledby="new-h">
+      <div class="card-h"><h2 id="new-h">{% translate "Log a violation" %}</h2></div>
+      <div class="card-b">
+        {% if categories %}
+        <form method="post" action="{% url 'enforcement:add' %}" enctype="multipart/form-data" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Unit" %}
+            <select name="unit" required>{% for u in units %}<option value="{{ u.pk }}">{{ u }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Category" %}
+            <select name="category" required>{% for c in categories %}<option value="{{ c.pk }}">{{ c }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Observed on" %} <input type="date" name="observed_on" value="{{ today|date:'Y-m-d' }}" required></label>
+          <label>{% translate "Description" %} <textarea name="description" rows="3" required></textarea></label>
+          <label>{% translate "Photos (PNG or JPEG)" %} <input type="file" name="photos" accept="image/png,image/jpeg" multiple required></label>
+          <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Log violation" %}</button></div>
+        </form>
+        {% else %}
+        <p class="muted">{% translate "Add a violation category first." %} <a href="{% url 'enforcement:categories' %}">{% translate "Categories" %}</a></p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

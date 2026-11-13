@@ -1,0 +1,17 @@
+{% load static i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% translate "Offline" %} · {% translate "HomeOA" %}</title>
+<link rel="stylesheet" href="{% static 'homeoa/base.css' %}">
+</head>
+<body>
+<main class="wrap" id="main">
+  <h1>{% translate "You're offline" %}</h1>
+  <p>{% translate "HomeOA needs a connection. Nothing is stored on this device. Check your connection and try again." %}</p>
+  <p><a class="btn" href="{% url 'dashboard:index' %}">{% translate "Try again" %}</a></p>
+</main>
+</body>
+</html>

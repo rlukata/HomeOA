@@ -1,0 +1,17 @@
+[project]
+name = "homeoa-rulepack-us-wa"
+version = "0.1.0"
+description = "HomeOA rule pack for Washington condominiums (statute-checked 2026-10-08; not legal advice)"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.14"
+dependencies = []
+
+[project.entry-points."homeoa.plugins"]
+rulepack_us_wa = "homeoa_rulepack_us_wa.manifest:manifest"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["homeoa_rulepack_us_wa"]

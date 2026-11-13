@@ -1,0 +1,1 @@
+{% load ui %}{% if status == "draft" or status == "pending" %}{% badge "" label %}{% elif status == "ready" or status == "queued_for_print" or status == "submitted" or status == "in_transit" %}{% badge "info" label %}{% elif status == "failed" or status == "returned" %}{% badge "danger" label %}{% else %}{% badge "ok" label %}{% endif %}

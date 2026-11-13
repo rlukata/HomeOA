@@ -1,0 +1,12 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Master policy" %}{% endblock %}
+{% block content %}
+<a href="{% url 'insurance:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Insurance" %}</a>
+<div class="hero"><div><h1>{% if editing %}{% translate "Edit the master policy" %}{% else %}{% translate "Add a master policy term" %}{% endif %}</h1>
+  <p class="muted">{% translate "Add each renewal as a new term so the history is kept. Upload the certificate under Documents first (category Insurance) to link it here." %}</p></div></div>
+<section class="card"><form method="post" class="card-b card-pad-t form-grid" data-testid="policy-form">{% csrf_token %}
+  {% include "ui/components/form.html" with form=form %}
+  <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save policy" %}</button></div>
+</form></section>
+{% endblock %}

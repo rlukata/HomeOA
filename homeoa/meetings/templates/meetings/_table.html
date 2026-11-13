@@ -1,0 +1,24 @@
+{% load i18n %}{% if rows %}
+<div class="table-wrap">
+  <table class="t" data-testid="{{ testid }}">
+    <thead><tr>
+      <th scope="col">{% translate "Date" %}</th>
+      <th scope="col">{% translate "Meeting" %}</th>
+      <th scope="col">{% translate "Details" %}</th>
+      <th scope="col">{% translate "Status" %}</th>
+    </tr></thead>
+    <tbody>
+      {% for m in rows %}
+      <tr>
+        <td class="nowrap">{{ m.date|date:"M j, Y" }}{% if m.start_time %} {{ m.start_time|time:"g:i A" }}{% endif %}</td>
+        <td><a href="{% url 'meetings:detail' m.pk %}"><strong>{{ m.display_title }}</strong></a></td>
+        <td>{{ m.location|default:"" }}{% if m.location and m.video_url %} · {% endif %}{% if m.video_url %}{% translate "video" %}{% endif %}</td>
+        <td><span class="badge {% if m.status == 'noticed' or m.status == 'held' %}ok{% elif m.status == 'cancelled' %}danger{% else %}warn{% endif %}">{{ m.get_status_display }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card-b"><p class="muted">{{ empty_text }}</p></div>
+{% endif %}

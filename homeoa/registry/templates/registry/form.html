@@ -1,0 +1,16 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{{ title }}</h1></div></div>
+<section class="card">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+      <a class="btn btn-ghost" href="{% if back %}{% if back.number %}{% url 'registry:unit' back.number %}{% else %}{% url 'registry:person' back.pk %}{% endif %}{% else %}{% url 'registry:index' %}{% endif %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

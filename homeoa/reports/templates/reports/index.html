@@ -1,0 +1,49 @@
+{% extends "ui/base.html" %}
+{% load i18n homeoa_access module_tags %}
+{% block title %}{% translate "Reports" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Reports" %}</h1>
+    <p class="muted">{% translate "Reports from posted entries. Accrual basis, with a cash view." %}</p>
+  </div>
+</div>
+<section class="card" aria-labelledby="statements-h">
+  <div class="card-h"><h2 id="statements-h">{% translate "Financial statements" %}</h2></div>
+  <ul class="list">
+    <li class="att"><a class="att-main att-t" href="{% url 'reports:income_statement' %}">{% translate "Income statement" %}</a></li>
+    <li class="att"><a class="att-main att-t" href="{% url 'reports:balance_sheet' %}">{% translate "Balance sheet" %}</a></li>
+    <li class="att"><a class="att-main att-t" href="{% url 'reports:cash_flow' %}">{% translate "Cash flow" %}</a></li>
+    {% if "board_packet"|module_on:request.association %}<li class="att"><a class="att-main att-t" data-testid="board-packet-link" href="{% url 'reports:board_packet' %}">{% translate "Monthly board packet" %}</a></li>{% endif %}
+  </ul>
+</section>
+<section class="card" aria-labelledby="reports-h">
+  <div class="card-h"><h2 id="reports-h">{% translate "Ledger" %}</h2></div>
+  <ul class="list">
+    <li class="att"><a class="att-main att-t" href="{% url 'reports:trial_balance' %}">{% translate "Trial balance" %}</a></li>
+    <li class="att"><a class="att-main att-t" href="{% url 'reports:gl' %}">{% translate "General ledger detail" %}</a></li>
+    <li class="att"><a class="att-main att-t" href="{% url 'reports:ar_aging' %}">{% translate "Receivables aging (by unit)" %}</a></li>
+    <li class="att"><a class="att-main att-t" href="{% url 'reports:ap_aging' %}">{% translate "Payables aging (by vendor)" %}</a></li>
+    <li class="att"><a class="att-main att-t" href="{% url 'imports:parallel_run' %}">{% translate "Parallel run (management company comparison)" %}</a></li>
+  </ul>
+</section>
+{% has_perm "finance.manage" as can_manage %}{% has_perm "reports.cpa_package" as is_cpa %}
+{% if can_manage or is_cpa %}
+<section class="card" aria-labelledby="cpa-h">
+  <div class="card-h"><h2 id="cpa-h">{% translate "Year end" %}</h2></div>
+  <ul class="list">
+    <li class="att"><a class="att-main att-t" data-testid="cpa-package-link" href="{% url 'reports:cpa_package' %}">{% translate "Year-end CPA package" %}</a></li>
+    <li class="att"><a class="att-main att-t" data-testid="tax-1120h-link" href="{% url 'reports:tax_1120h' %}">{% translate "Form 1120-H worksheet" %}</a></li>
+  </ul>
+</section>
+{% endif %}
+{% if record_exports %}
+<section class="card" aria-labelledby="exports-h">
+  <div class="card-h"><h2 id="exports-h">{% translate "Exports" %}</h2></div>
+  <p class="muted">{% translate "Each feature's records as a spreadsheet (CSV), also after the feature is turned off." %}</p>
+  <ul class="list">
+    {% for e in record_exports %}<li class="att"><a class="att-main att-t" data-testid="export-{{ e.slug }}" href="{% url 'reports:module_export' e.slug %}">{{ e.label }}</a></li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

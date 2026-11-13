@@ -1,0 +1,4 @@
+{% load i18n %}{% autoescape off %}{{ body }}
+
+--
+{% blocktranslate with name=association.name %}Sent by {{ name }} through HomeOA.{% endblocktranslate %}{% endautoescape %}

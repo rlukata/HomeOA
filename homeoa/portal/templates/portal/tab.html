@@ -1,0 +1,8 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block content %}
+<div class="hero"><h1>{{ current_tab.label }}</h1></div>
+<section class="card"><div class="card-b card-pad-t">
+  <p class="muted">{% translate "This page is coming soon." %}</p>
+</div></section>
+{% endblock %}

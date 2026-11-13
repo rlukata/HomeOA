@@ -1,0 +1,8 @@
+{% load i18n ledger_tags %}
+<div class="sec-t">{% translate "The association's insurance" %}</div>
+<section class="card" data-testid="owner-insurance"><div class="card-b card-pad-t">
+  <p><strong>{{ insurance.policy.carrier }}</strong> · {% blocktranslate with start=insurance.policy.start_date|date:"M j, Y" end=insurance.policy.end_date|date:"M j, Y" %}{{ start }} to {{ end }}{% endblocktranslate %}</p>
+  {% if insurance.policy.deductible %}<p>{% blocktranslate with amount=insurance.policy.deductible|money %}Master policy deductible: <strong>{{ amount }}</strong>.{% endblocktranslate %}
+    <span class="muted small">{% translate "Ask your agent whether your own condo (HO-6) policy should cover it, in case a loss starts in your unit." %}</span></p>{% endif %}
+  {% if insurance.certificate %}<p><a href="{% url 'documents:download' insurance.certificate.public_id %}" target="_blank" rel="noopener">{% translate "Certificate of insurance" %}</a></p>{% endif %}
+</div></section>

@@ -1,0 +1,75 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Parallel run" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% blocktranslate with d=result.as_of|date:"M j, Y" %}Parallel run as of {{ d }}{% endblocktranslate %}</h1>
+  <p class="muted">{% translate "The management company's snapshot compared to HomeOA's books on the same date. Tolerance $0.00. Difference = management company − HomeOA." %}
+    {% if result.is_clean %}<span class="badge ok">{% translate "Clean" %}</span>{% else %}<span class="badge warn">{% translate "Differences" %}</span>{% endif %}</p>
+</div></div>
+{% include "reports/_nav.html" with report="parallel" %}
+{% for w in result.warnings %}
+<div class="callout warn mb" role="note"><span>{{ w }}</span></div>
+{% endfor %}
+
+<section class="card" aria-labelledby="units-h">
+  <div class="card-h"><h2 id="units-h">{% translate "Owner balances" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Owner balances" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Unit" %}</th>
+        <th scope="col" class="num">{% translate "HomeOA" %}</th>
+        <th scope="col" class="num">{% translate "Management company" %}</th>
+        <th scope="col" class="num">{% translate "Difference" %}</th>
+        <th scope="col">{% translate "Explanation" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for ln in units %}
+        <tr>
+          <td class="nowrap"><a href="{% url 'imports:parallel_run_line' ln.pk %}">{% blocktranslate with n=ln.key %}Unit {{ n }}{% endblocktranslate %}</a> <span class="muted">{{ ln.label }}</span></td>
+          <td class="num">{{ ln.homeoa|money }}</td>
+          <td class="num">{{ ln.appfolio|money }}</td>
+          <td class="num">{{ ln.difference|money }}</td>
+          <td>{% if ln.explained %}<span class="badge ok">{% translate "Explained" %}</span> {{ ln.note }} <span class="muted">— {{ ln.explained_by.email|default:"" }}</span>{% else %}<a href="{% url 'imports:parallel_run_line' ln.pk %}">{% translate "Investigate" %}</a>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "Every unit matched." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if units %}<p class="muted">{% blocktranslate count n=result.units_matched %}All other {{ n }} unit matched.{% plural %}All other {{ n }} units matched.{% endblocktranslate %}</p>{% endif %}
+</section>
+
+<section class="card" aria-labelledby="gl-h">
+  <div class="card-h"><h2 id="gl-h">{% translate "GL accounts" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "GL accounts" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Account" %}</th>
+        <th scope="col" class="num">{% translate "HomeOA" %}</th>
+        <th scope="col" class="num">{% translate "Management company" %}</th>
+        <th scope="col" class="num">{% translate "Difference" %}</th>
+        <th scope="col">{% translate "Explanation" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for ln in accounts %}
+        <tr>
+          <td><a href="{% url 'imports:parallel_run_line' ln.pk %}">{{ ln.key }}</a> {{ ln.label }}</td>
+          <td class="num">{{ ln.homeoa|money }}</td>
+          <td class="num">{{ ln.appfolio|money }}</td>
+          <td class="num">{{ ln.difference|money }}</td>
+          <td>{% if not ln.counted %}<span class="muted">{% translate "Same as the owner-balance differences above." %}</span>{% elif ln.explained %}<span class="badge ok">{% translate "Explained" %}</span> {{ ln.note }} <span class="muted">— {{ ln.explained_by.email|default:"" }}</span>{% else %}<a href="{% url 'imports:parallel_run_line' ln.pk %}">{% translate "Investigate" %}</a>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "Every account matched." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if accounts %}<p class="muted">{% blocktranslate count n=result.accounts_matched %}{{ n }} other account agrees.{% plural %}{{ n }} other accounts agree.{% endblocktranslate %}</p>{% endif %}
+</section>
+<p><a href="{% url 'imports:parallel_run' %}">{% translate "Back to parallel run" %}</a></p>
+{% endblock %}

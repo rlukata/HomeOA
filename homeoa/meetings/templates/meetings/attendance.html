@@ -1,0 +1,85 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Attendance" %} · {{ meeting.display_title }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p><a href="{% url 'meetings:detail' meeting.pk %}">{{ meeting.display_title }}</a></p>
+    <h1>{% translate "Attendance and quorum" %}</h1>
+    <p class="muted">{{ meeting.date|date:"l, F j, Y" }} · {{ meeting.get_kind_display }}</p>
+  </div>
+</div>
+<div class="stack">
+  {% include "meetings/_attendance.html" %}
+
+  {% if meeting.is_owner_meeting %}
+  <section class="card" aria-labelledby="proxies-h">
+    <div class="card-h"><h2 id="proxies-h">{% translate "Proxies" %}</h2></div>
+    {% if proxies %}
+    <div class="table-wrap">
+      <table class="t" data-testid="proxies">
+        <thead><tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Holder" %}</th>
+          <th scope="col">{% translate "Dated" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+          <th scope="col"><span class="sr-only">{% translate "Actions" %}</span></th>
+        </tr></thead>
+        <tbody>
+          {% for p in proxies %}
+          <tr>
+            <td>{{ p.unit.number }}</td>
+            <td>{{ p.holder }}{% if p.document %} · <a class="inline-link" href="{% url 'documents:detail' p.document.document.public_id %}">{% translate "copy" %}</a>{% endif %}</td>
+            <td class="nowrap">{{ p.granted_on|date:"M j, Y" }}</td>
+            <td>{% if p.active %}<span class="badge ok">{% translate "Active" %}</span>{% else %}<span class="badge">{% blocktranslate with d=p.revoked_on|date:"M j, Y" %}Revoked {{ d }}{% endblocktranslate %}</span>{% endif %}</td>
+            <td>{% if can_manage and can_revoke and p.active %}
+              <form method="post" action="{% url 'meetings:proxy_revoke' meeting.pk p.pk %}" class="inline">{% csrf_token %}
+                <button type="submit" class="btn sm">{% translate "Revoke" %}</button>
+              </form>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card-b"><p class="muted">{% translate "No proxies recorded." %}</p></div>
+    {% endif %}
+    {% if can_manage and meeting.status != 'cancelled' %}
+    <div class="card-b">
+      <form method="post" action="{% url 'meetings:proxy_add' meeting.pk %}" enctype="multipart/form-data" class="form-grid">
+        {% csrf_token %}
+        <label>{% translate "Grantor unit" %}
+          <select name="unit" required>
+            {% for u in units %}<option value="{{ u.pk }}">{{ u.number }}</option>{% endfor %}
+          </select></label>
+        <label>{% translate "Proxy holder" %} <input type="text" name="holder" maxlength="200" required></label>
+        <label>{% translate "Dated" %} <input type="date" name="granted_on" required value="{{ today|date:'Y-m-d' }}"></label>
+        <label>{% translate "Signed proxy (optional)" %} <input type="file" name="file"></label>
+        <div class="form-actions"><button type="submit" class="btn">{% translate "Record proxy" %}</button></div>
+      </form>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if can_manage %}
+  <section class="card" aria-labelledby="qset-h">
+    <div class="card-h"><h2 id="qset-h">{% blocktranslate with kind=meeting.get_kind_display %}Quorum for: {{ kind }}{% endblocktranslate %}</h2></div>
+    <div class="card-b">
+      <form method="post" action="{% url 'meetings:quorum_setting' meeting.pk %}" class="form-grid">
+        {% csrf_token %}
+        <label>{% translate "Basis" %}
+          <select name="basis">
+            <option value=""{% if not basis %} selected{% endif %}>{% if meeting.is_owner_meeting %}{% translate "Rule pack default" %}{% else %}{% translate "None" %}{% endif %}</option>
+            <option value="percent"{% if basis == 'percent' %} selected{% endif %}>{% translate "Percent of all votes" %}</option>
+            <option value="count"{% if basis == 'count' %} selected{% endif %}>{% if meeting.is_owner_meeting %}{% translate "Number of units present" %}{% else %}{% translate "Number of board members present" %}{% endif %}</option>
+          </select></label>
+        <label>{% translate "Value" %} <input type="number" name="value" min="0" step="0.01" value="{{ value|default_if_none:'' }}"></label>
+        <p class="muted">{% translate "Take this from your bylaws. It applies to every meeting of this kind." %}</p>
+        <div class="form-actions"><button type="submit" class="btn">{% translate "Save" %}</button></div>
+      </form>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% load i18n %}
+<nav class="chips mb" aria-label="{% translate 'Reports' %}">
+  <a class="chip{% if report == 'is' %} on{% endif %}" href="{% url 'reports:income_statement' %}"{% if report == 'is' %} aria-current="page"{% endif %}>{% translate "Income statement" %}</a>
+  <a class="chip{% if report == 'bs' %} on{% endif %}" href="{% url 'reports:balance_sheet' %}"{% if report == 'bs' %} aria-current="page"{% endif %}>{% translate "Balance sheet" %}</a>
+  <a class="chip{% if report == 'cf' %} on{% endif %}" href="{% url 'reports:cash_flow' %}"{% if report == 'cf' %} aria-current="page"{% endif %}>{% translate "Cash flow" %}</a>
+  <a class="chip{% if report == 'tb' %} on{% endif %}" href="{% url 'reports:trial_balance' %}"{% if report == 'tb' %} aria-current="page"{% endif %}>{% translate "Trial balance" %}</a>
+  <a class="chip{% if report == 'gl' %} on{% endif %}" href="{% url 'reports:gl' %}"{% if report == 'gl' %} aria-current="page"{% endif %}>{% translate "General ledger" %}</a>
+  <a class="chip{% if report == 'ar' %} on{% endif %}" href="{% url 'reports:ar_aging' %}"{% if report == 'ar' %} aria-current="page"{% endif %}>{% translate "Receivables aging" %}</a>
+  <a class="chip{% if report == 'ap' %} on{% endif %}" href="{% url 'reports:ap_aging' %}"{% if report == 'ap' %} aria-current="page"{% endif %}>{% translate "Payables aging" %}</a>
+  <a class="chip{% if report == 'parallel' %} on{% endif %}" href="{% url 'imports:parallel_run' %}"{% if report == 'parallel' %} aria-current="page"{% endif %}>{% translate "Parallel run" %}</a>
+  <a class="chip{% if report == 'cutover' %} on{% endif %}" href="{% url 'imports:cutover' %}"{% if report == 'cutover' %} aria-current="page"{% endif %}>{% translate "Cutover" %}</a>
+</nav>

@@ -1,0 +1,10 @@
+{% load i18n %}
+<section class="card" aria-labelledby="msg-h">
+  <div class="card-h"><h2 id="msg-h">{% translate "Send a message" %}</h2></div>
+  <form method="post" class="card-b form-grid" data-testid="contact-form">
+    {% csrf_token %}
+    <p class="muted full">{% translate "Your message is emailed to the people you pick. They see your name and email and can reply to you directly." %}</p>
+    {% include "ui/components/form.html" %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary" data-testid="contact-send">{% translate "Send" %}</button></div>
+  </form>
+</section>

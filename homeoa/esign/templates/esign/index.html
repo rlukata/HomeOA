@@ -1,0 +1,38 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Signatures" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Signatures" %}</h1>
+    <p class="muted">{% translate "Send a PDF to named signers. Each signs with a single-use emailed link; the signed PDF gets a signature certificate page." %}</p>
+  </div>
+  {% if can_manage %}<a class="btn btn-primary" href="{% url 'esign:new' %}">{% translate "Send for signature" %}</a>{% endif %}
+</div>
+<section class="card">
+  {% if envelopes %}
+  <div class="table-wrap">
+    <table class="t" data-testid="esign-list">
+      <thead><tr>
+        <th scope="col">{% translate "Document" %}</th>
+        <th scope="col">{% translate "Signers" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+        <th scope="col">{% translate "Created" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for e in envelopes %}
+        <tr>
+          <td><a href="{% url 'esign:detail' e.pk %}"><strong>{{ e.title }}</strong></a></td>
+          <td>{% for s in e.signers.all %}{{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+          <td><span class="badge{% if e.status == 'completed' %} ok{% elif e.status == 'sent' %} info{% elif e.status != 'draft' %} danger{% endif %}">{{ e.get_status_display }}</span></td>
+          <td class="nowrap">{{ e.created_at|date:"M j, Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">{% translate "Nothing has been sent for signature yet." %}</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,2 @@
+{# Collected / pending progress bar. Needs money (MoneySummary). Decorative: the text next to it carries the numbers. #}
+<svg class="bar-svg" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="done" x="0" y="0" height="6" width="{{ money.collected_pct }}"></rect><rect class="pending" x="{{ money.collected_pct }}" y="0" height="6" width="{{ money.pending_pct }}"></rect></svg>

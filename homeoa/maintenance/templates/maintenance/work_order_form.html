@@ -1,0 +1,19 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+{% if wo %}<a href="{% url 'maintenance:work_order' wo.pk %}" class="btn btn-ghost btn-sm btn-back">{{ wo }}</a>
+{% elif req %}<a href="{% url 'maintenance:detail' req.pk %}" class="btn btn-ghost btn-sm btn-back">{{ req.title }}</a>
+{% else %}<a href="{% url 'maintenance:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Maintenance" %}</a>{% endif %}
+<div class="hero"><div><h1>{{ title }}</h1>
+  {% if req %}<p class="muted">{% blocktranslate with t=req.title %}For request: {{ t }}{% endblocktranslate %}</p>{% endif %}</div></div>
+<form method="post" class="stack">
+  {% csrf_token %}
+  <section class="card card-pad">
+    <div class="form-grid">
+      {% include "ui/components/form.html" %}
+    </div>
+  </section>
+  <div class="form-actions"><button type="submit" class="btn btn-primary" data-testid="wo-save">{% translate "Save work order" %}</button></div>
+</form>
+{% endblock %}

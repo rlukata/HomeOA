@@ -1,0 +1,92 @@
+{% extends "portal/base.html" %}
+{% load i18n ledger_tags homeoa_ui portal_parts %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+  .me-home { display: grid; gap: 14px; max-width: 560px; }
+  .bal { padding: 16px; border-radius: 16px; background: var(--accent); color: var(--accent-ink); }
+  .bal .l { font-size: 12.5px; opacity: .85; }
+  .bal .v { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin: 2px 0; }
+  .bal .s { font-size: 12.5px; opacity: .85; }
+  .bal .btn { margin-top: 12px; width: 100%; justify-content: center; height: 42px; background: var(--accent-ink); color: var(--accent); border: 0; font-size: 14.5px; }
+  .sec-t { font-size: 13px; font-weight: 650; color: var(--text-2); margin: 4px 2px -4px; }
+  .li { display: flex; align-items: center; gap: 12px; padding: 12px; border-top: 1px solid var(--border); font-size: 14px; }
+  .li:first-child { border-top: 0; }
+  .li .grow { min-width: 0; flex: 1; }
+  .li .s { font-size: 12.5px; color: var(--text-2); }
+  .qa { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .qa a { border: 1px solid var(--border); background: var(--surface); border-radius: 14px; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; font-weight: 600; font-size: 13.5px; color: var(--text); box-shadow: var(--shadow); text-decoration: none; }
+  .qa a svg { color: var(--accent); }
+  .tenant-note { font-size: 12.5px; padding: 10px 12px; border-radius: 10px; background: var(--violet-soft); color: var(--text); }
+  .unit-switch { display: flex; gap: 6px; flex-wrap: wrap; }
+</style>
+<div class="me-home">
+<h1 class="h-page">{% translate "Home" %}</h1>
+{% if read_only %}<p class="callout" data-testid="read-only-note">{% translate "Preview: this is what the unit's residents see. Nothing here can be changed." %}</p>{% endif %}
+{% if consent_prompt %}<section class="card" data-testid="consent-prompt" aria-labelledby="consent-h"><div class="card-b card-pad-t">
+  <h2 class="h-sub" id="consent-h">{% translate "How should we send you official notices?" %}</h2>
+  <p class="small">{% translate "The association mails official notices unless you agree in writing to get them by email. Read the terms below and choose." %}</p>
+  {% include "portal/_consent_form.html" with consent_context="invite" agree_id="agree-invite" %}
+</div></section>{% endif %}
+
+{% if welcome_prompt %}<section class="card" data-testid="welcome-prompt" aria-labelledby="welcome-h"><div class="card-b card-pad-t">
+  <h2 class="h-sub" id="welcome-h">{% translate "Welcome! Start with your welcome packet" %}</h2>
+  <p class="small">{% translate "The governing documents, who's on the board, and how to pay and send requests." %}</p>
+  <a class="btn btn-primary" href="{% url 'documents:portal_welcome' %}">{% translate "Open welcome packet" %}</a>
+</div></section>{% endif %}
+
+{% if switch_units|length > 1 %}
+<nav class="unit-switch" aria-label="{% translate 'Your units' %}" data-testid="unit-switcher">
+  {% for u in switch_units %}
+    <a class="btn btn-sm {% if u == unit %}btn-primary{% else %}btn-ghost{% endif %}" href="?unit={{ u.number|urlencode }}"{% if u == unit %} aria-current="page"{% endif %}>{% blocktranslate with number=u.number %}Unit {{ number }}{% endblocktranslate %}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+{% if not unit %}
+  <section class="card"><div class="card-b card-pad-t">
+    <p class="muted" data-testid="no-units">{% translate "You are not listed as a current owner or tenant of any unit." %}</p>
+  </div></section>
+{% elif show_money %}
+  <section class="bal" aria-labelledby="bal-label">
+    <div class="l" id="bal-label">{{ money.label }}</div>
+    <div class="v" data-testid="balance">{{ money.balance|money }}</div>
+    <div class="s" data-testid="due-line">
+      {% if money.due_date %}
+        {% if money.overdue %}{% blocktranslate with date=money.due_date|date:"D, M j" %}Past due since {{ date }}{% endblocktranslate %}
+        {% else %}{% blocktranslate with date=money.due_date|date:"D, M j" %}Due {{ date }}{% endblocktranslate %}{% endif %}
+      {% elif money.balance < 0 %}{% translate "You have a credit on your account." %}
+      {% else %}{% translate "You're all paid up." %}{% endif %}
+    </div>
+    {% if not read_only and money.balance > 0 %}<a class="btn" href="{% url 'portal:pay' %}">{% blocktranslate with amount=money.balance|money %}Pay {{ amount }}{% endblocktranslate %}</a>{% endif %}
+  </section>
+
+  {% if quick_links %}
+  <div class="qa" data-testid="quick-links">
+    {% for label, url, ic in quick_links %}<a href="{{ url }}">{% icon ic %}{{ label }}</a>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="sec-t">{% translate "Recent activity" %}</div>
+  <section class="card" data-testid="recent-activity">
+    {% for row in money.recent %}
+      <div class="li"><div class="grow"><div>{{ row.description }}</div><div class="s">{{ row.date|date:"M j, Y" }}</div></div>
+        <span>{% if row.charge %}{{ row.charge|money }}{% else %}−{{ row.payment|money }}{% endif %}</span></div>
+    {% empty %}
+      <div class="li"><div class="grow muted">{% translate "No activity yet." %}</div></div>
+    {% endfor %}
+  </section>
+{% else %}
+  <p class="tenant-note" data-testid="tenant-note"><b>{% translate "Tenant access" %}</b> ·
+    {% if owner_names %}{% blocktranslate with number=unit.number owner=owner_names %}You're listed as the tenant of Unit {{ number }} (owner: {{ owner }}).{% endblocktranslate %}
+    {% else %}{% blocktranslate with number=unit.number %}You're listed as the tenant of Unit {{ number }}.{% endblocktranslate %}{% endif %}
+    {% translate "Dues, votes and the owner directory are only visible to owners." %}</p>
+{% endif %}
+
+{% if unit %}
+<div class="sec-t">{% translate "From the board" %}</div>
+{% portal_parts "home" %}
+<div class="sec-t">{% translate "Building rules" %}</div>
+<section class="card" data-testid="rules"><div class="li"><div class="grow muted">{% translate "Rules and governing documents will appear under Docs." %}</div></div></section>
+{% endif %}
+</div>
+{% endblock %}

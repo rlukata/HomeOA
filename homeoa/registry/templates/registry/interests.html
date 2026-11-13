@@ -1,0 +1,32 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Allocated interests" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Allocated interests" %}</h1>
+    <p class="muted">{% blocktranslate with total=current_total|floatformat:2 %}Shares must add up to exactly 100%. Current total: {{ total }}%.{% endblocktranslate %}</p>
+  </div>
+</div>
+{% if posted_total is not None %}
+<div class="callout mb" role="alert">
+  {% blocktranslate with total=posted_total|floatformat:4 %}These shares add up to {{ total }}%, not 100%. Correct them, or tick the box to save anyway.{% endblocktranslate %}
+</div>
+{% endif %}
+<section class="card">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% form_errors form %}
+    {% for unit, f in form.unit_fields %}
+      {% with lbl=f.label|add:" (%)" %}{% field f label=lbl %}{% endwith %}
+    {% endfor %}
+    {% if posted_total is not None %}
+    {% field form.save_anyway full=True %}
+    {% endif %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+      <a class="btn btn-ghost" href="{% url 'registry:index' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

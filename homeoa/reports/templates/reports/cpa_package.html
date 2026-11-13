@@ -1,0 +1,24 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Year-end CPA package" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Year-end CPA package" %}</h1>
+    <p class="muted">{% translate "One zip of CSV files for the fiscal year: trial balance (accrual and cash), general ledger, completed bank reconciliations, receivables and payables aging at year end, income statement, balance sheet, 1099 vendor totals and the Form 1120-H worksheet. Each download is recorded in the audit log." %}</p>
+  </div>
+</div>
+<section class="card" aria-labelledby="cpa-h">
+  <h2 id="cpa-h" class="sr">{% translate "Fiscal year" %}</h2>
+  <form method="get" class="form-row">
+    <label>{% translate "Fiscal year" %}
+      <select name="year" data-testid="cpa-year">
+        {% for y in years %}<option value="{{ y }}"{% if y == fy %} selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="btn btn-sm">{% translate "Show" %}</button>
+  </form>
+  <p>{% blocktranslate with s=start|date:"M j, Y" e=end|date:"M j, Y" %}Covers {{ s }} to {{ e }}.{% endblocktranslate %}</p>
+  <a class="btn btn-primary" data-testid="cpa-download" href="?year={{ fy }}&amp;download=1">{% translate "Download zip" %}</a>
+</section>
+{% endblock %}

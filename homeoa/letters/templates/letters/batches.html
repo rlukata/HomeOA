@@ -1,0 +1,56 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Mail batches" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Mail batches" %}</h1>
+    <p class="muted">{% blocktranslate with provider=provider.name %}Generated letters go out by postal mail in batches. Sent through: {{ provider }}.{% endblocktranslate %}</p>
+  </div>
+  <a class="btn" href="{% url 'letters:index' %}">{% translate "Letter templates" %}</a>
+</div>
+{% if not residents_on %}
+<div class="callout warn" role="note">{% translate "Residents are not switched on yet. Batches stay drafts and nothing is mailed; you can still download the print file to check it." %}</div>
+{% endif %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Mail batches" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Batch" %}</th>
+          <th scope="col" class="num">{% translate "Letters" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+          <th scope="col">{% translate "Created" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in batches %}
+        <tr>
+          <td><a href="{% url 'letters:batch' b.pk %}">{{ b.name }}</a>{% if b.certified %} {% translate "Certified" as lbl %}{% badge "violet" lbl %}{% endif %}</td>
+          <td class="num">{{ b.n }}</td>
+          <td>{% include "letters/_batch_status.html" with status=b.status label=b.get_status_display %}</td>
+          <td>{{ b.created_at|date:"M j, Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty-row">{% translate "No mail batches yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card mt-16" aria-labelledby="new-batch-h">
+  <div class="card-b card-pad-t">
+    <h2 id="new-batch-h">{% translate "New batch" %}</h2>
+    {% if form.fields.letters.queryset.exists %}
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=form %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Create draft batch" %}</button></div>
+    </form>
+    {% else %}
+    <p class="muted">{% translate "Every generated letter is already in a batch. Generate letters from a template first." %}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

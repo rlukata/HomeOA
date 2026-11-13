@@ -1,0 +1,12 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Poll" %}{% endblock %}
+{% block content %}
+<a href="{% url 'community:polls' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Polls" %}</a>
+<div class="hero"><div><h1>{{ poll.question }}</h1>
+  <p class="muted">{{ poll.opens_on|date:"M j" }} – {{ poll.closes_on|date:"M j, Y" }} · {% if poll.include_tenants %}{% translate "Owners and tenants" %}{% else %}{% translate "Owners" %}{% endif %}{% if open_now %} · <span class="badge ok">{% translate "Open" %}</span>{% endif %}</p>
+  {% if poll.details %}<p>{{ poll.details|linebreaksbr }}</p>{% endif %}</div>
+  {% if open_now %}<form method="post" action="{% url 'community:poll_close' poll.pk %}">{% csrf_token %}<button type="submit" class="btn">{% translate "Close now" %}</button></form>{% endif %}</div>
+<section class="card" data-testid="poll-results"><div class="card-h"><h2>{% blocktranslate with a=results.answered u=results.units %}Results: {{ a }} of {{ u }} units answered{% endblocktranslate %}</h2></div>
+  <ul class="rows card-b">{% for c, n, pct in results.rows %}<li><strong>{{ c }}</strong>: {{ n }} ({{ pct }}%)</li>{% endfor %}</ul></section>
+{% endblock %}

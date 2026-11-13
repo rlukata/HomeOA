@@ -1,0 +1,5 @@
+extend = "../pyproject.toml"
+
+[lint]
+# The harness opens local test URLs and runs manage.py/uv as subprocesses by design.
+extend-ignore = ["S310", "S603", "S607"]

@@ -1,0 +1,48 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Form 1120-H worksheet" %}{% endblock %}
+{% block content %}
+<a href="{% url 'reports:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Reports" %}</a>
+<div class="hero"><div>
+  <h1>{% translate "Form 1120-H worksheet" %}</h1>
+  <p class="muted">{% translate "The homeowners association tax election for the fiscal year, from the ledger (accrual basis). A starting point for your CPA, not tax advice; HomeOA files nothing. It is also in the year-end CPA package." %}</p>
+</div></div>
+<form method="get" class="form-row mb"><label>{% translate "Fiscal year" %}
+  <select name="year" data-testid="tax-year">{% for y in years %}<option value="{{ y }}"{% if y == fy %} selected{% endif %}>{{ y }}</option>{% endfor %}</select></label>
+  <button type="submit" class="btn btn-sm">{% translate "Show" %}</button></form>
+<p class="callout small">{% translate "The 60% and 90% tests, the $100 deduction and the 30% rate come from the rule pack and are not yet checked against the current IRS instructions." %}</p>
+<div class="g">
+  <section class="card" aria-labelledby="sum-h" data-testid="tax-summary">
+    <div class="card-h"><h2 id="sum-h">{% blocktranslate with s=ws.start|date:"M j, Y" e=ws.end|date:"M j, Y" %}{{ s }} to {{ e }}{% endblocktranslate %}</h2></div>
+    <dl class="card-b kv">
+      <dt>{% translate "Exempt function income" %}</dt><dd>{{ ws.exempt_income|money }}</dd>
+      <dt>{% translate "Other income (taxable)" %}</dt><dd>{{ ws.other_income|money }}</dd>
+      <dt>{% translate "Income test" %}</dt><dd data-testid="income-test">{% if ws.income_test is None %}—{% else %}{{ ws.exempt_pct }}% {% if ws.income_test %}<span class="badge ok">{% translate "Passes" %}</span>{% else %}<span class="badge danger">{% translate "Fails" %}</span>{% endif %} ({% blocktranslate with p=ws.exempt_min_pct %}at least {{ p }}%{% endblocktranslate %}){% endif %}</dd>
+      <dt>{% translate "Spending test" %}</dt><dd data-testid="spending-test">{% if ws.spending_test is None %}—{% else %}{{ ws.property_pct }}% {% if ws.spending_test %}<span class="badge ok">{% translate "Passes" %}</span>{% else %}<span class="badge danger">{% translate "Fails" %}</span>{% endif %} ({% blocktranslate with p=ws.expenditure_min_pct %}at least {{ p }}%{% endblocktranslate %}){% endif %}</dd>
+      <dt>{% translate "Deductions" %}</dt><dd>{{ ws.deductions|money }} + {{ ws.specific_deduction|money }} {% translate "specific deduction" %}</dd>
+      <dt>{% translate "Taxable income" %}</dt><dd>{{ ws.taxable_income|money }}</dd>
+      <dt>{% translate "Tax" %}</dt><dd data-testid="tax-due"><strong>{{ ws.tax|money|default:"—" }}</strong>{% if ws.rate is not None %} ({{ ws.rate }}%){% endif %}</dd>
+    </dl>
+  </section>
+  <section class="card span2" aria-labelledby="cls-h">
+    <div class="card-h"><h2 id="cls-h">{% translate "How each account counts" %}</h2></div>
+    {% if can_edit %}<form method="post" class="card-b form-stack" data-testid="tax-classes">{% csrf_token %}
+      <input type="hidden" name="year" value="{{ fy }}">{% else %}<div class="card-b form-stack" data-testid="tax-classes">{% endif %}
+      <div class="table-wrap"><table class="t">
+        <caption class="sr">{% translate "Income and expense accounts" %}</caption>
+        <thead><tr><th scope="col">{% translate "Account" %}</th><th scope="col" class="num">{% translate "Amount" %}</th><th scope="col">{% translate "Counts as" %}</th></tr></thead>
+        <tbody>
+        {% for ln in ws.income %}<tr><td>{{ ln.account.code }} · {{ ln.account.name }}</td><td class="num">{{ ln.amount|money }}</td>
+          <td><label class="sr" for="inc-{{ ln.account.code }}">{{ ln.account.name }}</label><select id="inc-{{ ln.account.code }}" name="inc-{{ ln.account.code }}"{% if not can_edit %} disabled{% endif %}>{% for v, label in income_classes %}<option value="{{ v }}"{% if v == ln.cls %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td></tr>{% endfor %}
+        {% for ln in ws.expenses %}<tr><td>{{ ln.account.code }} · {{ ln.account.name }}</td><td class="num">{{ ln.amount|money }}</td>
+          <td><label class="sr" for="exp-{{ ln.account.code }}">{{ ln.account.name }}</label><select id="exp-{{ ln.account.code }}" name="exp-{{ ln.account.code }}"{% if not can_edit %} disabled{% endif %}>{% for v, label in expense_classes %}<option value="{{ v }}"{% if v == ln.cls %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+      <p class="faint">{% translate "Late fees and fines start as taxable income; ask your CPA whether they count as exempt function income." %}</p>
+      <div class="field"><label class="field-l" for="deductions">{% translate "Deductions directly connected with other income" %}</label>
+        <input id="deductions" name="deductions" inputmode="decimal" value="{{ ws.deductions }}"{% if not can_edit %} disabled{% endif %}></div>
+      {% if can_edit %}<div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save" %}</button></div>
+    </form>{% else %}</div>{% endif %}
+  </section>
+</div>
+{% endblock %}

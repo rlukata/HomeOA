@@ -1,0 +1,29 @@
+{% load i18n %}
+<div class="field full{% if title_error %} has-error{% endif %}">
+  <label class="field-l" for="arc-title">{% translate "Short title" %} <span class="req" aria-hidden="true">*</span><span class="sr">{% translate "(required)" %}</span></label>
+  <input type="text" id="arc-title" name="title" maxlength="200" required value="{{ values.title|default:'' }}">
+  {% if title_error %}<ul class="field-err"><li>{{ title_error }}</li></ul>{% endif %}
+</div>
+{% for f in rows %}
+{% if f.kind == "checkbox" %}
+<div class="field check full{% if f.error %} has-error{% endif %}">
+  <label for="arc-{{ f.key }}"><input type="checkbox" id="arc-{{ f.key }}" name="{{ f.key }}"{% if f.value %} checked{% endif %}{% if f.required %} required{% endif %}> <span>{{ f.label }}</span></label>
+{% else %}
+<div class="field full{% if f.error %} has-error{% endif %}">
+  <label class="field-l" for="arc-{{ f.key }}">{{ f.label }}{% if f.required %} <span class="req" aria-hidden="true">*</span><span class="sr">{% translate "(required)" %}</span>{% endif %}</label>
+  {% if f.kind == "textarea" %}<textarea id="arc-{{ f.key }}" name="{{ f.key }}" rows="4"{% if f.required %} required{% endif %}>{{ f.value }}</textarea>
+  {% elif f.kind == "date" %}<input type="date" id="arc-{{ f.key }}" name="{{ f.key }}" value="{{ f.value }}"{% if f.required %} required{% endif %}>
+  {% elif f.kind == "choice" %}<select id="arc-{{ f.key }}" name="{{ f.key }}"{% if f.required %} required{% endif %}>
+    <option value="">{% translate "Choose…" %}</option>
+    {% for c in f.choices %}<option value="{{ c }}"{% if c == f.value %} selected{% endif %}>{{ c }}</option>{% endfor %}
+  </select>
+  {% else %}<input type="text" id="arc-{{ f.key }}" name="{{ f.key }}" maxlength="300" value="{{ f.value }}"{% if f.required %} required{% endif %}>{% endif %}
+{% endif %}
+  {% if f.help %}<p class="field-help">{{ f.help }}</p>{% endif %}
+  {% if f.error %}<ul class="field-err"><li>{{ f.error }}</li></ul>{% endif %}
+</div>
+{% endfor %}
+<div class="field full">
+  <label class="field-l" for="arc-files">{% translate "Plans, photos or quotes" %}</label>
+  <input type="file" id="arc-files" name="files" multiple>
+</div>

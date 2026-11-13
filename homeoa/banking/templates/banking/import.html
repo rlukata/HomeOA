@@ -1,0 +1,27 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Import bank statement" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Import bank statement" %}</h1>
+  <p class="muted">{% translate "Upload a statement file from your bank. Transactions already imported are skipped, so overlapping files are safe." %}</p>
+</div></div>
+<section class="card card-pad">
+  {% if no_accounts %}
+    {% url 'banking:account_new' as add_url %}
+    {% translate "Add a bank account before importing." as empty_msg %}
+    {% translate "Add bank account" as add_label %}
+    {% include "ui/components/empty.html" with message=empty_msg action_url=add_url action_label=add_label %}
+  {% else %}
+  <form method="post" enctype="multipart/form-data" class="form-stack">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Upload and import" %}</button>
+      <a class="btn btn-ghost" href="{% url 'banking:index' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+  <p class="muted">{% translate "CSV files use the account's saved column mapping. The first time, it is detected from the header row; change it under CSV mapping." %}</p>
+  {% endif %}
+</section>
+{% endblock %}

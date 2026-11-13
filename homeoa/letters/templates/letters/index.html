@@ -1,0 +1,53 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Letters" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Letter templates" %}</h1>
+    <p class="muted">{% translate "Letters and notices with merge fields, printed as PDFs for a #10 window envelope." %}</p>
+  </div>
+  <div class="form-actions">
+    <a class="btn" href="{% url 'letters:batches' %}">{% translate "Mail batches" %}</a>
+    <a class="btn btn-primary" href="{% url 'letters:new' %}">{% translate "New template" %}</a>
+  </div>
+</div>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Letter templates" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Name" %}</th>
+          <th scope="col">{% translate "Kind" %}</th>
+          <th scope="col" class="num">{% translate "Version" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in templates %}
+        <tr>
+          <td><a href="{% url 'letters:edit' t.pk %}">{{ t.name }}</a></td>
+          <td>{{ t.get_kind_display }}</td>
+          <td class="num">{{ t.current_version.number|default:"–" }}</td>
+          <td>{% if t.draft_wording %}{% translate "Draft wording, not legal advice" as lbl %}{% badge "warn" lbl %}{% else %}{% translate "Reviewed" as lbl %}{% badge "ok" lbl %}{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty-row">{% translate "No templates yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card mt-16" aria-labelledby="lh-h">
+  <div class="card-b card-pad-t">
+    <h2 id="lh-h">{% translate "Letterhead" %}</h2>
+    <p class="muted">{% blocktranslate with name=head.name %}Printed at the top of every letter under “{{ name }}”.{% endblocktranslate %}</p>
+    <form method="post" action="{% url 'letters:letterhead' %}" class="form-grid">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=letterhead_form %}
+      <div class="form-actions"><button type="submit" class="btn">{% translate "Save letterhead" %}</button></div>
+    </form>
+  </div>
+</section>
+{% endblock %}

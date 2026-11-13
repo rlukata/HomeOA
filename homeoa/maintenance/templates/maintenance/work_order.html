@@ -1,0 +1,82 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{{ wo }}{% endblock %}
+{% block content %}
+{% if wo.request %}<a href="{% url 'maintenance:detail' wo.request.pk %}" class="btn btn-ghost btn-sm btn-back">{{ wo.request.title }}</a>
+{% else %}<a href="{% url 'maintenance:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "Maintenance" %}</a>{% endif %}
+<div class="stack">
+  <section class="card card-pad" aria-labelledby="wo-h">
+    <div class="between wrap-ok">
+      <div>
+        <h1 id="wo-h">{{ wo }} · {{ wo.vendor.name }}</h1>
+        <div class="muted"><span data-testid="wo-status">{% badge wo.badge wo.get_status_display %}</span>{% if wo.overdue %} {% badge "danger" _("Past scheduled date") %}{% endif %}</div>
+      </div>
+      <div class="row wrap-ok">
+        <a class="btn" href="{% url 'maintenance:work_order_print' wo.pk %}" target="_blank" rel="noopener">{% translate "Print / PDF" %}</a>
+        <a class="btn" href="{% url 'maintenance:work_order_edit' wo.pk %}">{% translate "Edit" %}</a>
+      </div>
+    </div>
+    <dl class="kv mt">
+      <dt>{% translate "Vendor" %}</dt><dd><a href="{% url 'vendors:detail' wo.vendor.slug %}">{{ wo.vendor.name }}</a></dd>
+      {% if wo.request %}<dt>{% translate "Request" %}</dt><dd><a href="{% url 'maintenance:detail' wo.request.pk %}">{{ wo.request.title }}</a>{% if wo.request.unit %} <span class="muted">· {% blocktranslate with n=wo.request.unit.number %}Unit {{ n }}{% endblocktranslate %}</span>{% endif %}</dd>{% endif %}
+      <dt>{% translate "Scope of work" %}</dt><dd>{{ wo.scope|linebreaksbr }}</dd>
+      <dt>{% translate "Scheduled for" %}</dt><dd>{{ wo.scheduled_for|date:"Y-m-d"|default:"—" }}</dd>
+      <dt>{% translate "Estimated cost" %}</dt><dd class="num">{% if wo.estimated_cost is not None %}{{ wo.estimated_cost|money }}{% else %}—{% endif %}</dd>
+      <dt>{% translate "Actual cost" %}</dt><dd class="num" data-testid="wo-actual"><b>{{ wo.actual_cost|money }}</b> <span class="muted">{% translate "(sum of linked bills)" %}</span></dd>
+    </dl>
+  </section>
+
+  <section class="card" aria-labelledby="bills-h">
+    <div class="card-h"><h2 id="bills-h">{% translate "Bills" %}</h2><a class="btn btn-sm" href="{{ create_bill_url }}" data-testid="wo-create-bill">{% translate "Create bill from work order" %}</a></div>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Linked bills" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "Invoice" %}</th>
+          <th scope="col">{% translate "Bill date" %}</th>
+          <th scope="col" class="num">{% translate "Amount" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+          <th scope="col"><span class="sr">{% translate "Action" %}</span></th>
+        </tr></thead>
+        <tbody>
+        {% for b in bills %}
+          <tr data-testid="wo-bill-{{ b.pk }}">
+            <td><a href="{% url 'ap:detail' b.pk %}">{{ b.invoice_number }}</a></td>
+            <td>{{ b.bill_date|date:"Y-m-d" }}</td>
+            <td class="num">{{ b.total|money }}</td>
+            <td>{{ b.get_status_display }}</td>
+            <td><form method="post" action="{% url 'maintenance:unlink_bill' wo.pk b.pk %}">{% csrf_token %}<button type="submit" class="btn btn-sm btn-ghost">{% translate "Unlink" %}</button></form></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="muted">{% translate "No bills linked yet." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-pad">
+      {% if link_form.fields.bill.queryset.exists %}
+      <form method="post" action="{% url 'maintenance:link_bill' wo.pk %}" class="form-grid">
+        {% csrf_token %}
+        {% include "ui/components/form.html" with form=link_form %}
+        <div class="form-actions"><button type="submit" class="btn" data-testid="wo-link-bill">{% translate "Link bill" %}</button></div>
+      </form>
+      {% else %}
+      <p class="muted">{% blocktranslate with v=wo.vendor.name %}No other bills from {{ v }} to link.{% endblocktranslate %}</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="card card-pad" aria-labelledby="status-h">
+    <h2 id="status-h">{% translate "Update status" %}</h2>
+    {% for c in pending_approvals %}<p class="callout warn" data-testid="wo-pending-approval">{% translate "Waiting for board approval:" %} <a href="{% url 'changes:detail' c.pk %}">{{ c.summary }}</a></p>{% endfor %}
+    {% if wo.status == "draft" %}<p class="muted">{% blocktranslate with limit=oneoff_limit|money %}Jobs estimated at {{ limit }} or less can be sent, scheduled or started right away. A job with a higher estimate, or no estimate, needs board approval first.{% endblocktranslate %}</p>{% endif %}
+    <form method="post" action="{% url 'maintenance:work_order_status' wo.pk %}" class="form-grid mt">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=status_form %}
+      <div class="form-actions"><button type="submit" class="btn" data-testid="wo-status-save">{% translate "Update" %}</button></div>
+    </form>
+  </section>
+
+  {% include "maintenance/_history.html" with show_actor=True %}
+</div>
+{% endblock %}

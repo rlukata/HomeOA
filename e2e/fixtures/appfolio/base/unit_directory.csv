@@ -1,0 +1,10 @@
+Unit,Building,Address,Parcel ID,Allocated Interest %,Status
+A,,"14207 Cedar Row Ln #A, Olympia, WA 98501",,11.5556,Owner Occupied
+B,,"14207 Cedar Row Ln #B, Olympia, WA 98501",,11.5556,Owner Occupied
+C,,"14207 Cedar Row Ln #C, Olympia, WA 98501",,11.5556,Owner Occupied
+D,,"14207 Cedar Row Ln #D, Olympia, WA 98501",,10.6667,Owner Occupied
+E,,"14207 Cedar Row Ln #E, Olympia, WA 98501",,11.5556,Tenant Occupied
+F,,"14207 Cedar Row Ln #F, Olympia, WA 98501",,11.1111,Tenant Occupied
+G,,"14207 Cedar Row Ln #G, Olympia, WA 98501",,10.2221,Owner Occupied
+H,,"14207 Cedar Row Ln #H, Olympia, WA 98501",,10.2221,Tenant Occupied
+I,,"14207 Cedar Row Ln #I, Olympia, WA 98501",,11.5556,Owner Occupied

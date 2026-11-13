@@ -1,0 +1,49 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% blocktranslate with n=unit.number %}Unit {{ n }} file{% endblocktranslate %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p class="muted"><a href="{% url 'registry:unit' unit.number %}">{% blocktranslate with n=unit.number %}Unit {{ n }}{% endblocktranslate %}</a></p>
+    <h1>{% translate "Unit file" %}</h1>
+    <p class="muted">{% blocktranslate count n=rows|length %}{{ n }} item{% plural %}{{ n }} items{% endblocktranslate %}</p>
+  </div>
+  {% if can_export %}
+  <form method="post" action="{% url 'documents:ledger_export' unit.number %}">{% csrf_token %}
+    <button class="btn" type="submit" data-testid="ledger-export">{% translate "Export itemized ledger" %}</button>
+    <p class="muted small">{% translate "PDF and CSV for mediation: every charge and payment for the longer of 12 months or since the account became past due." %}</p>
+  </form>
+  {% endif %}
+</div>
+
+<nav class="row wrap-ok mb" aria-label="{% translate 'Filter unit file' %}">
+  <a class="btn btn-sm{% if not kind %} btn-primary{% endif %}" href="?"{% if not kind %} aria-current="page"{% endif %}>{% translate "All" %}</a>
+  {% for key, label in kinds %}<a class="btn btn-sm{% if kind == key %} btn-primary{% endif %}" href="?kind={{ key }}"{% if kind == key %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+
+<section class="card" data-testid="unit-file">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% blocktranslate with n=unit.number %}Unit {{ n }} file, newest first{% endblocktranslate %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Date" %}</th>
+        <th scope="col">{% translate "Type" %}</th>
+        <th scope="col">{% translate "Item" %}</th>
+        <th scope="col">{% translate "Detail" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for e in rows %}
+        <tr data-kind="{{ e.kind }}">
+          <td>{{ e.date|date:"M j, Y" }}</td>
+          <td>{{ e.kind_label }}</td>
+          <td>{% if e.url %}<a href="{{ e.url }}">{{ e.title }}</a>{% else %}{{ e.title }}{% endif %}</td>
+          <td class="muted">{{ e.detail }}{% if e.extra_url %} · <a href="{{ e.extra_url }}">{{ e.extra_label }}</a>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">{% translate "Nothing filed for this unit yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

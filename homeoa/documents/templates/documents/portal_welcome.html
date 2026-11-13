@@ -1,0 +1,33 @@
+{% extends "portal/base.html" %}
+{% load i18n homeoa_ui portal_parts %}
+{% block title %}{% translate "Welcome packet" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page stack">
+<h1 class="h-page">{% blocktranslate with name=request.association.name %}Welcome to {{ name }}{% endblocktranslate %}</h1>
+{% if message %}<section class="card" data-testid="welcome-message"><div class="card-b card-pad-t">{{ message|linebreaks }}</div></section>{% endif %}
+
+<div class="sec-t">{% translate "Documents to read" %}</div>
+<section class="card" data-testid="welcome-documents">
+  {% for d in documents %}
+    <a class="li" href="{% url 'documents:download' d.public_id %}" target="_blank" rel="noopener">
+      <div class="grow"><div>{{ d.title }}</div><div class="s">{{ d.get_category_display }}</div></div>{% icon "right" %}
+    </a>
+  {% empty %}
+    <div class="li"><div class="grow muted">{% translate "The board hasn't added documents yet. Everything you can see is under Docs." %}</div></div>
+  {% endfor %}
+</section>
+
+<div class="sec-t">{% translate "How things work" %}</div>
+<section class="card" data-testid="welcome-how">
+  <a class="li" href="{% url 'portal:pay' %}"><div class="grow"><div>{% translate "Pay dues" %}</div><div class="s">{% translate "Pay by bank transfer or set up autopay." %}</div></div>{% icon "right" %}</a>
+  <a class="li" href="{% url 'portal:requests' %}"><div class="grow"><div>{% translate "Report a problem or ask for an exterior change" %}</div><div class="s">{% translate "Maintenance and architectural requests go to the board." %}</div></div>{% icon "right" %}</a>
+  <a class="li" href="{% url 'portal:profile' %}#notices"><div class="grow"><div>{% translate "Choose how you get official notices" %}</div><div class="s">{% translate "By postal mail unless you agree to email." %}</div></div>{% icon "right" %}</a>
+  {% portal_parts "welcome_how" %}
+</section>
+
+<div class="sec-t">{% translate "Who runs the association" %}</div>
+{% include "governance/_directory.html" %}
+<p><a class="btn" href="{% url 'contacts:portal' %}">{% translate "Message the board" %}</a></p>
+</div>
+{% endblock %}

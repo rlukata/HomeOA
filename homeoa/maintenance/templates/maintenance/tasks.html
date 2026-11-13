@@ -1,0 +1,20 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Preventive maintenance" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Preventive maintenance" %}</h1>
+  <p class="muted">{% translate "Recurring upkeep. Before each due date HomeOA opens a draft work order for the usual vendor; completing it schedules the next one. Tasks without a vendor show on Home instead. The dates are also on the compliance calendar." %}</p></div>
+  <div class="row wrap-ok"><a class="btn btn-primary" href="{% url 'maintenance:task_add' %}" data-testid="task-add">{% translate "Add task" %}</a></div></div>
+<section class="card"><div class="table-wrap"><table class="t" data-testid="tasks">
+  <caption class="sr">{% translate "Preventive tasks" %}</caption>
+  <thead><tr><th scope="col">{% translate "Task" %}</th><th scope="col">{% translate "Every" %}</th><th scope="col">{% translate "Next due" %}</th><th scope="col">{% translate "Vendor" %}</th><th scope="col">{% translate "Last done" %}</th></tr></thead>
+  <tbody>
+  {% for t in tasks %}<tr{% if not t.active %} class="muted"{% endif %}>
+    <td><a href="{% url 'maintenance:task_edit' t.pk %}">{{ t.title }}</a>{% if t.component %}<div class="small muted">{{ t.component }}</div>{% endif %}</td>
+    <td>{% blocktranslate count n=t.every_months %}{{ n }} month{% plural %}{{ n }} months{% endblocktranslate %}</td>
+    <td class="nowrap">{{ t.next_due|date:"M j, Y" }}</td>
+    <td>{{ t.vendor|default:"—" }}</td>
+    <td class="nowrap">{{ t.last_done_on|date:"M j, Y"|default:"—" }}</td>
+  </tr>{% empty %}<tr><td colspan="5" class="muted">{% translate "No tasks yet." %}</td></tr>{% endfor %}
+  </tbody></table></div></section>
+{% endblock %}

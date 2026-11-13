@@ -1,0 +1,45 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<p class="muted"><a href="{% url 'votes_portal:index' %}">{% translate "Owner votes" %}</a></p>
+<h1 class="h-page">{{ vote.title }}</h1>
+{% if vote.description %}<p>{{ vote.description|linebreaksbr }}</p>{% endif %}
+<p class="muted small">{% blocktranslate with date=vote.closes_at|date:"M j, Y H:i" %}Closes {{ date }}{% endblocktranslate %}{% if vote.secret %} · {% translate "Secret ballot: the board sees that you voted, not how." %}{% endif %}</p>
+{% if current %}
+<p data-testid="already-voted"><span class="badge ok">{% blocktranslate with unit=unit.number date=current.cast_at|date:"M j, Y H:i" %}Unit {{ unit }} voted on {{ date }}{% endblocktranslate %}</span>{% if is_open %} {% translate "You can change the ballot until the vote closes." %}{% endif %}</p>
+{% endif %}
+{% if is_open %}
+<section class="card">
+  <div class="card-b">
+    <form method="post" class="form-grid" data-testid="ballot-form">
+      {% csrf_token %}
+      {% if my_units|length > 1 %}
+      <label>{% translate "Unit" %}
+        <select name="unit">{% for u in my_units %}<option value="{{ u.pk }}"{% if u.pk == unit.pk %} selected{% endif %}>{{ u.number }}</option>{% endfor %}</select>
+      </label>
+      {% else %}
+      <input type="hidden" name="unit" value="{{ unit.pk }}">
+      <p>{% blocktranslate with unit=unit.number %}Ballot for unit {{ unit }}{% endblocktranslate %}</p>
+      {% endif %}
+      {% for q in questions %}
+      <fieldset>
+        <legend class="strong">{{ q.text }}</legend>
+        {% for c in q.choices.all %}
+        <label class="row"><input type="radio" name="q{{ q.pk }}" value="{{ c.pk }}" required{% if c.pk in mine %} checked{% endif %}> {{ c.label }}</label>
+        {% endfor %}
+      </fieldset>
+      {% endfor %}
+      {% if ask_replace %}
+      <label class="row"><input type="checkbox" name="replace" value="1"> {% translate "Replace the other owner's ballot for this unit" %}</label>
+      {% endif %}
+      <div class="form-actions"><button type="submit" class="btn">{% if current %}{% translate "Change my ballot" %}{% else %}{% translate "Cast ballot" %}{% endif %}</button></div>
+    </form>
+  </div>
+</section>
+{% else %}
+<p class="muted">{% translate "This vote is closed." %}</p>
+{% endif %}
+</div>
+{% endblock %}

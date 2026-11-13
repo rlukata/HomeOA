@@ -1,0 +1,77 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Owner votes" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Owner votes" %}</h1>
+    <p class="muted">{% translate "Votes and written consents of the owners. Opening a vote emails a ballot link to owners who consented to email and prepares paper ballot letters for the rest." %}</p>
+  </div>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="votes-h">
+      <div class="card-h"><h2 id="votes-h">{% translate "Votes" %}</h2></div>
+      {% if rows %}
+      <div class="table-wrap">
+        <table class="t" data-testid="votes">
+          <thead><tr>
+            <th scope="col">{% translate "Title" %}</th>
+            <th scope="col">{% translate "Closes" %}</th>
+            <th scope="col">{% translate "Turnout" %}</th>
+            <th scope="col">{% translate "Status" %}</th>
+          </tr></thead>
+          <tbody>
+            {% for r in rows %}
+            <tr>
+              <td><a href="{% url 'votes:detail' r.vote.pk %}"><strong>{{ r.vote.title }}</strong></a></td>
+              <td class="nowrap">{{ r.vote.closes_at|date:"M j, Y" }}</td>
+              <td class="nowrap">{% blocktranslate with v=r.turnout.voted e=r.turnout.eligible %}{{ v }} of {{ e }} units{% endblocktranslate %}</td>
+              <td><span class="badge {% if r.vote.status == 'open' %}ok{% elif r.vote.status == 'draft' %}warn{% endif %}">{{ r.vote.get_status_display }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="card-b"><p class="muted">{% translate "No votes yet." %}</p></div>
+      {% endif %}
+    </section>
+  </div>
+  <div class="stack">
+    <section class="card" aria-labelledby="new-h">
+      <div class="card-h"><h2 id="new-h">{% translate "New vote" %}</h2></div>
+      <div class="card-b">
+        <form method="post" action="{% url 'votes:create' %}" class="form-grid" data-testid="new-vote">
+          {% csrf_token %}
+          <label>{% translate "Title" %} <input name="title" required maxlength="200"></label>
+          <label>{% translate "Description" %} <textarea name="description" rows="2"></textarea></label>
+          <label>{% translate "Kind" %}
+            <select name="kind">{% for v, l in kinds %}<option value="{{ v }}"{% if v == "written" %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Opens" %} <input type="datetime-local" name="opens_at" required></label>
+          <label>{% translate "Closes" %} <input type="datetime-local" name="closes_at" required></label>
+          <label>{% translate "Questions (one per line; each is answered Yes, No or Abstain)" %}
+            <textarea name="questions" rows="3" required></textarea>
+          </label>
+          <label>{% translate "Weighting" %}
+            <select name="weighting">{% for v, l in weightings %}<option value="{{ v }}"{% if v == default_weighting %} selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Passes with" %}
+            <select name="threshold">{% for v, l in thresholds %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Rule-pack vote (for a rule-pack threshold)" %}
+            <select name="pack_kind"><option value="">—</option>{% for v, l in pack_kinds %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Quorum" %}
+            <select name="quorum">{% for v, l in quorums %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+          </label>
+          <label>{% translate "Custom quorum (%)" %} <input type="number" name="quorum_percent" min="0" max="100" step="0.01"></label>
+          <label class="row"><input type="checkbox" name="secret"> {% translate "Secret ballot (the board sees who voted, not how)" %}</label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Save draft" %}</button></div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

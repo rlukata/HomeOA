@@ -1,0 +1,39 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ budget.name }}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{{ budget.name }}</h1>
+  <p class="muted">{% translate "Annual amounts, positive in the account's direction: income lines as income, expense lines as spending. Transfers to reserve and insurance are expense lines on their transfer accounts." %}</p>
+</div></div>
+<section class="card">
+  <form method="post">
+    {% csrf_token %}
+    {{ formset.management_form }}
+    {{ formset.non_form_errors }}
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Budget lines" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "Group" %}</th><th scope="col">{% translate "Line" %}</th>
+          <th scope="col">{% translate "Account" %}</th><th scope="col">{% translate "Fund" %}</th>
+          <th scope="col">{% translate "Annual amount" %}</th><th scope="col">{% translate "Note" %}</th>
+          <th scope="col">{% translate "Order" %}</th><th scope="col">{% translate "Delete" %}</th></tr></thead>
+        <tbody>
+          {% for f in formset %}
+          <tr>
+            {% for field in f.visible_fields %}
+            <td>{{ field.errors }}<label class="sr" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</td>
+            {% endfor %}
+            {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="form-actions card-pad">
+      <button type="submit" class="btn btn-primary">{% translate "Save lines" %}</button>
+      <a class="btn btn-ghost" href="{% url 'budget:detail' budget.pk %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

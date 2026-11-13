@@ -1,0 +1,79 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags homeoa_ui %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Money" %}</h1>
+    <div class="muted">{% translate "Operating and reserve funds" %} · {% if money.last_sync %}{% blocktranslate with t=money.last_sync|date:"M j, g:i a" %}bank synced {{ t }}{% endblocktranslate %}{% else %}{% translate "bank not synced yet" %}{% endif %}</div>
+  </div>
+  <div class="row wrap-ok">
+    <a class="btn" href="{% url 'payments:new' %}">{% translate "Record payment" %}</a>
+    <a class="btn" href="{% url 'banking:index' %}">{% translate "Bank & deposits" %}</a>
+  </div>
+</div>
+<div class="kpis">
+  <div class="card stat">
+    <div class="stat-l">{% icon "bank" %}{% translate "Operating cash" %}</div>
+    <div class="stat-v" data-testid="kpi-operating">{{ money.operating|money }}</div>
+    <div class="stat-s">{% if money.last_sync %}{% blocktranslate with t=money.last_sync|date:"M j, g:i a" %}Bank synced {{ t }}{% endblocktranslate %}{% else %}{% translate "From the books" %}{% endif %}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-l">{% icon "bank" %}{% translate "Reserve fund" %}</div>
+    <div class="stat-v" data-testid="kpi-reserve">{{ money.reserve|money }}</div>
+    <div class="stat-s">{% translate "From the books" %}</div>
+  </div>
+  <div class="card stat">
+    {% if money.dues_period %}
+    <div class="stat-l">{% icon "money" %}{% blocktranslate with m=money.dues_period|date:"F" %}{{ m }} dues collected{% endblocktranslate %}</div>
+    <div class="stat-v"><span data-testid="kpi-collected">{{ money.collected|money }}</span> <span class="of">{% translate "of" %} <span data-testid="kpi-billed">{{ money.billed|money }}</span></span></div>
+    {% include "dashboard/_bar.html" %}
+    <div class="stat-s">{{ money.collected_pct }}% · {% blocktranslate with p=money.pending_match|money %}{{ p }} waiting to be matched{% endblocktranslate %}</div>
+    {% else %}
+    <div class="stat-l">{% icon "money" %}{% translate "Dues collected" %}</div>
+    <div class="stat-v">—</div>
+    <div class="stat-s"><a href="{% url 'billing:index' %}">{% translate "No dues posted yet" %}</a></div>
+    {% endif %}
+  </div>
+  <div class="card stat">
+    <div class="stat-l">{% icon "alert" %}{% translate "Past due" %}</div>
+    <div class="stat-v{% if money.past_due_total %} danger{% endif %}" data-testid="kpi-past-due">{{ money.past_due_total|money }}</div>
+    <div class="stat-s">{% for p in money.past_due %}{% if not forloop.first %}, {% endif %}<a href="{% url 'registry:unit' p.unit.number %}">{{ p.unit }}</a>{% empty %}{% translate "Nobody is past due." %}{% endfor %}</div>
+  </div>
+</div>
+<section class="card mt-16" aria-labelledby="story-h" data-testid="money-story">
+  <div class="card-h"><h2 id="story-h">{% blocktranslate with m=today|date:"F" %}{{ m }} so far{% endblocktranslate %}</h2></div>
+  <div class="card-b">{% for s in story %}<p>{{ s }}</p>{% endfor %}</div>
+</section>
+<div class="g mt-16">
+  <section class="card span2" aria-labelledby="pastdue-h">
+    <div class="card-h"><h2 id="pastdue-h">{% translate "Past due by unit" %}</h2><a class="btn btn-sm btn-ghost" href="{% url 'payments:ledger' %}">{% translate "Dues & ledger" %}</a></div>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Past due by unit" %}</caption>
+        <thead><tr><th scope="col">{% translate "Unit" %}</th><th scope="col">{% translate "Oldest open charge" %}</th><th scope="col" class="num">{% translate "Past due" %}</th></tr></thead>
+        <tbody>
+        {% for p in money.past_due %}
+          <tr><td><a href="{% url 'registry:unit' p.unit.number %}">{{ p.unit }}</a></td><td class="nowrap">{{ p.since|date:"M j, Y" }}</td><td class="num">{{ p.amount|money }}</td></tr>
+        {% empty %}
+          <tr><td colspan="3" class="empty-row">{% translate "Nobody is past due." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card" aria-labelledby="deposits-h">
+    <div class="card-h"><h2 id="deposits-h">{% translate "Deposits to match" %}</h2><span class="count{% if deposits %} hot{% endif %}">{{ deposits|length }}</span></div>
+    {% if deposits %}
+    <ul class="list">
+      {% for item in deposits %}
+      <li class="att"><div class="att-ic {{ item.kind }}">{% icon item.icon %}</div>
+        <div class="att-main"><div class="att-t">{{ item.title }}</div><div class="att-s">{{ item.sub }}</div></div>
+        {% if item.url %}<a class="btn btn-sm" href="{{ item.url }}">{{ item.action|default:_("Open") }}</a>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="card-b muted">{% translate "No deposits waiting." %}</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

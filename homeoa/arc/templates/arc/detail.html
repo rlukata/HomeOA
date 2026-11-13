@@ -1,0 +1,102 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ req.title }}{% endblock %}
+{% block content %}
+<a href="{% url 'arc:index' %}" class="btn btn-ghost btn-sm">{% translate "Architectural requests" %}</a>
+<div class="hero"><div>
+  <h1>{{ req.unit }} · {{ req.title }}</h1>
+  <p class="muted" data-testid="status">
+    <span class="badge {% if req.status == 'denied' %}danger{% elif req.status in 'approved approved_with_conditions' %}ok{% elif req.status == 'info_requested' %}warn{% else %}info{% endif %}">{{ req.get_status_display }}</span>
+    {% blocktranslate with who=req.submitted_by date=req.submitted_on|date:"M j, Y" form=req.form.name %}{{ form }} from {{ who }}, submitted {{ date }}{% endblocktranslate %}
+    {% if req.decided_on %} · {% blocktranslate with date=req.decided_on|date:"M j, Y" %}Decided {{ date }}{% endblocktranslate %}{% endif %}
+    {% if req.deemed %} <span class="badge warn" data-testid="deemed">{% translate "Approved by law: not denied in time" %}</span>{% endif %}
+  </p>
+  {% if req.is_open and req.decide_by %}<p data-testid="decide-by">
+    {% if req.status == 'info_requested' %}<span class="badge">{% translate "Clock restarts when the owner answers" %}</span>
+    {% elif overdue %}<span class="badge danger">{% translate "Overdue" %}</span>
+    {% else %}<span class="badge warn">{% translate "Due" %}</span>{% endif %}
+    {% blocktranslate with date=req.decide_by|date:"M j, Y" %}Decide by {{ date }}{% endblocktranslate %}</p>
+    {% if req.deny_by %}<p data-testid="deny-by"><span class="badge danger">{% translate "Set by law" %}</span>
+      {% blocktranslate with date=req.deny_by|date:"M j, Y" %}Deny in writing by {{ date }}, or the request is approved by law the next day.{% endblocktranslate %}
+      {% if req.status == 'info_requested' %}{% translate "Paused while waiting for the owner's answer." %}{% endif %}</p>
+    {% elif deemed_approved %}<p class="muted" data-testid="deemed-note">{% translate "Under the declaration, a request not decided by this date may be deemed approved. HomeOA does not approve it on its own: record the decision." %}</p>{% endif %}
+  {% endif %}
+  {% if req.is_open and can_decide %}<form method="post" action="{% url 'arc:act' req.pk %}" class="form-row" data-testid="statutory-kind">
+    {% csrf_token %}<input type="hidden" name="action" value="statutory_kind">
+    <label>{% translate "Deadline set by law" %}<select name="statutory_kind">{% for value, label in statutory_kinds %}<option value="{{ value }}"{% if value == req.statutory_kind %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <button type="submit" class="btn btn-sm">{% translate "Update" %}</button>
+  </form>{% endif %}
+</div></div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card"><div class="card-h"><h2>{% translate "Request" %}</h2></div><div class="card-b">
+      {% include "arc/_answers.html" %}
+      {% if req.decision_note %}<h3>{% translate "Decision note" %}</h3><p>{{ req.decision_note|linebreaksbr }}</p>{% endif %}
+      {% if req.citations %}<h3>{% translate "Citations" %}</h3><p>{{ req.citations|linebreaksbr }}</p>{% endif %}
+      {% if req.decision_letter_id %}<p data-testid="decision-letter"><a href="{% url 'letters:download' req.decision_letter_id %}">{% translate "Decision letter (PDF)" %}</a></p>
+      {% elif req.decided_on %}<p class="muted" data-testid="decision-letter">{% translate "The decision letter has not been generated yet." %}</p>{% endif %}
+      {% if attachments %}<h3>{% translate "Attachments" %}</h3><ul class="list" data-testid="attachments">
+        {% for a in attachments %}<li><a href="{% url 'arc:file' req.pk a.pk %}">{{ a.version.file_name }}</a></li>{% endfor %}</ul>{% endif %}
+    </div></section>
+
+    <section class="card" aria-labelledby="c-h"><div class="card-h"><h2 id="c-h">{% translate "Comments" %}</h2></div><div class="card-b">
+      <ul class="list" data-testid="comments">
+        {% for c in comments %}<li><b>{{ c.author_name|default:_("Unknown") }}</b> <span class="muted">{{ c.created_at|date:"M j, Y" }}</span>
+          {% if c.internal %}<span class="badge">{% translate "Reviewers only" %}</span>{% else %}<span class="badge info">{% translate "Visible to owner" %}</span>{% endif %}
+          <div>{{ c.body|linebreaksbr }}</div></li>
+        {% empty %}<li class="muted">{% translate "No comments yet." %}</li>{% endfor %}
+      </ul>
+      <form method="post" action="{% url 'arc:act' req.pk %}" class="form-grid">
+        {% csrf_token %}<input type="hidden" name="action" value="comment">
+        <div class="field full"><label class="field-l" for="c-body">{% translate "Add a comment" %}</label><textarea id="c-body" name="body" rows="3" required></textarea></div>
+        <div class="field check full"><label for="c-vis"><input type="checkbox" id="c-vis" name="visible"> <span>{% translate "Visible to the owner" %}</span></label></div>
+        <div class="form-actions"><button type="submit" class="btn">{% translate "Add comment" %}</button></div>
+      </form>
+    </div></section>
+  </div>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="v-h"><div class="card-h"><h2 id="v-h">{% translate "Votes" %}</h2>
+      <span class="count" data-testid="votes-in">{% blocktranslate with n=tally.in of=tally.of %}{{ n }} of {{ of }} votes in{% endblocktranslate %}</span></div>
+      <div class="card-b">
+        <ul class="list">{% for v in tally.votes %}<li><b>{{ v.reviewer }}</b>: {{ v.get_vote_display }}{% if v.note %}<div class="muted">{{ v.note }}</div>{% endif %}</li>{% endfor %}</ul>
+        <p class="muted" data-testid="majority">{% if tally.majority %}{% blocktranslate with m=tally.majority %}Majority of votes cast: {{ m }}{% endblocktranslate %}{% elif tally.in %}{% translate "No majority among votes cast." %}{% endif %}</p>
+        {% if me and req.is_open %}
+        <form method="post" action="{% url 'arc:act' req.pk %}" class="form-grid">
+          {% csrf_token %}<input type="hidden" name="action" value="vote">
+          <div class="field full"><label class="field-l" for="v-vote">{% if my_vote %}{% translate "Change your vote" %}{% else %}{% translate "Your vote" %}{% endif %}</label>
+            <select id="v-vote" name="vote" required>{% for val, label in vote_choices %}<option value="{{ val }}"{% if my_vote.vote == val %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+          <div class="field full"><label class="field-l" for="v-note">{% translate "Note" %}</label><textarea id="v-note" name="note" rows="2">{{ my_vote.note|default:'' }}</textarea></div>
+          <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Record vote" %}</button></div>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if can_decide and req.is_open %}
+    <section class="card" aria-labelledby="d-h"><div class="card-h"><h2 id="d-h">{% translate "Decision" %}</h2></div><div class="card-b">
+      <p class="muted">{% translate "The decision is yours to record; votes never decide on their own." %}</p>
+      <form method="post" action="{% url 'arc:act' req.pk %}" class="form-grid">
+        {% csrf_token %}<input type="hidden" name="action" value="decide">
+        <div class="field full"><label class="field-l" for="d-out">{% translate "Decision" %}</label>
+          <select id="d-out" name="outcome" required>{% for val, label in decisions %}<option value="{{ val }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="field full"><label class="field-l" for="d-cond">{% translate "Conditions (for approval with conditions)" %}</label><textarea id="d-cond" name="conditions" rows="3"></textarea></div>
+        <div class="field full"><label class="field-l" for="d-cit">{% translate "Citations (declaration or rules sections)" %}</label><textarea id="d-cit" name="citations" rows="2"></textarea></div>
+        <div class="field full"><label class="field-l" for="d-note">{% translate "Note to the owner" %}</label><textarea id="d-note" name="note" rows="2"></textarea></div>
+        <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Record decision" %}</button></div>
+      </form>
+      <hr>
+      <form method="post" action="{% url 'arc:act' req.pk %}" class="form-grid">
+        {% csrf_token %}<input type="hidden" name="action" value="request_info">
+        <div class="field full"><label class="field-l" for="i-body">{% translate "Request more information" %}</label><textarea id="i-body" name="body" rows="2" required></textarea></div>
+        <div class="form-actions"><button type="submit" class="btn">{% translate "Ask the owner" %}</button></div>
+      </form>
+      <form method="post" action="{% url 'arc:act' req.pk %}">
+        {% csrf_token %}<input type="hidden" name="action" value="withdraw">
+        <button type="submit" class="btn btn-ghost btn-sm">{% translate "Mark withdrawn" %}</button>
+      </form>
+    </div></section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Special assessments" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Special assessments" %}</h1>
+    <p class="muted">{% translate "One-time or installment assessments, split by allocated interest or equally." %}</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="{% url 'billing:special_new' %}">{% translate "New special assessment" %}</a>
+  </div>
+</div>
+<section class="card" aria-labelledby="sa-h">
+  <div class="card-h"><h2 id="sa-h">{% translate "All special assessments" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Special assessments" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Name" %}</th>
+          <th scope="col">{% translate "Designated for" %}</th>
+          <th scope="col" class="num">{% translate "Installments" %}</th>
+          <th scope="col" class="num">{% translate "Total" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in specials %}
+        <tr>
+          <td><a href="{% url 'billing:special_detail' s.pk %}">{{ s.name }}</a></td>
+          <td>{% if s.for_reserves %}{% translate "Reserves" %}{% else %}{% translate "Operating" %}{% endif %}</td>
+          <td class="num">{{ s.installments.all|length }}</td>
+          <td class="num">{{ s.total|money }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="empty-row">{% translate "No special assessments." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

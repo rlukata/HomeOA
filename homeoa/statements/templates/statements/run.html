@@ -1,0 +1,81 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% blocktranslate with month=run.period_start|date:"F Y" %}Statements · {{ month }}{% endblocktranslate %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% blocktranslate with month=run.period_start|date:"F Y" %}Statements · {{ month }}{% endblocktranslate %}</h1>
+    <p class="muted">{% blocktranslate with s=run.period_start|date:"M j" e=run.period_end|date:"M j, Y" %}{{ s }} – {{ e }}{% endblocktranslate %}{% if run.generated_at %} · {% blocktranslate with d=run.generated_at|date:"M j, Y" %}generated {{ d }}{% endblocktranslate %}{% endif %}</p>
+  </div>
+  <div class="hero-actions">
+    {% if can_manage %}
+    <form class="inline-form" method="post" action="{% url 'statements:generate' %}">
+      {% csrf_token %}
+      <input type="hidden" name="month" value="{{ run.period_start|date:'Y-m' }}">
+      <button type="submit" class="btn">{% translate "Regenerate" %}</button>
+    </form>
+    <form class="inline-form" method="post" action="{% url 'statements:send_run' run.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary" data-testid="send-statements"{% if not residents_on or not unsent %} disabled title="{% if not residents_on %}{% translate 'Residents are not switched on yet.' %}{% else %}{% translate 'Every statement was already sent.' %}{% endif %}"{% endif %}>{% translate "Send statements" %}</button>
+    </form>
+    {% endif %}
+    <a class="btn btn-ghost" href="{% url 'statements:index' %}">{% translate "All months" %}</a>
+  </div>
+</div>
+{% if not residents_on %}
+<div class="callout warn" role="note" data-testid="preview-mode">{% translate "Preview mode: nothing has been emailed or mailed. Each statement below is a preview you can open." %}</div>
+{% endif %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="t" data-testid="statements">
+      <caption class="sr">{% translate "Statements in this run" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Owner" %}</th>
+          <th scope="col" class="num">{% translate "Opening" %}</th>
+          <th scope="col" class="num">{% translate "Charges" %}</th>
+          <th scope="col" class="num">{% translate "Payments" %}</th>
+          <th scope="col" class="num">{% translate "Closing" %}</th>
+          <th scope="col">{% translate "Channel" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+          <th scope="col"><span class="sr">{% translate "PDF" %}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in statements %}
+        <tr data-unit="{{ s.unit.number }}">
+          <td>{{ s.unit.number }}</td>
+          <td>{{ s.owner_names }}{% if s.period_start != run.period_start or s.period_end != run.period_end %}<br><span class="muted">{{ s.period_start|date:"M j" }} – {{ s.period_end|date:"M j" }}</span>{% endif %}</td>
+          <td class="num">{{ s.opening|money }}</td>
+          <td class="num">{{ s.charges|money }}</td>
+          <td class="num">{{ s.payments|money }}</td>
+          <td class="num">{{ s.closing|money }}{% if s.autopay_debit_on %}<br><span class="muted" data-testid="autopay-line">{% blocktranslate with amount=s.autopay_amount|money date=s.autopay_debit_on|date:"M j" %}Autopay up to {{ amount }} on {{ date }}{% endblocktranslate %}</span>{% endif %}</td>
+          <td data-testid="channel">{% if s.channel == "email" %}{% badge "info" s.get_channel_display %}{% else %}{% badge "violet" s.get_channel_display %}{% endif %}</td>
+          <td data-testid="status">{% if s.status == "sent" %}{% badge "ok" s.get_status_display %}{% else %}{% badge "" s.get_status_display %}{% endif %}</td>
+          <td class="num"><a href="{% url 'statements:pdf' s.pk %}" target="_blank" rel="noopener">{% translate "PDF" %}<span class="sr"> {% blocktranslate with unit=s.unit.number %}statement for unit {{ unit }}{% endblocktranslate %}</span></a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="empty-row">{% translate "No statements in this run." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card mt-16" aria-labelledby="mail-h">
+  <div class="card-b card-pad-t">
+    <h2 id="mail-h">{% translate "Mail" %}</h2>
+    <p class="muted">{% blocktranslate %}Statements going by mail are collected in a print batch. Sent through: {{ provider }}.{% endblocktranslate %}</p>
+    {% for b in mail_batches %}
+    <p data-testid="mail-batch">
+      <strong>{{ b.name }}</strong> · {% blocktranslate count n=b.n %}{{ n }} letter{% plural %}{{ n }} letters{% endblocktranslate %} ·
+      {% include "letters/_batch_status.html" with status=b.status label=b.get_status_display %}
+      · <a href="{% url 'statements:batch_pdf' run.pk b.pk %}" target="_blank" rel="noopener">{% translate "Print file (PDF)" %}</a>
+      {% if can_letters %} · <a href="{% url 'letters:batch' b.pk %}">{% translate "Open batch" %}</a>{% endif %}
+    </p>
+    {% empty %}
+    <p class="muted">{% translate "No statements go by mail this month." %}</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

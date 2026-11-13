@@ -1,0 +1,31 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Messages" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Messages" %}</h1>
+  <p class="muted">{% translate "What residents and members sent to the board and committees. Each was also emailed to its recipients; reply by email." %}</p></div></div>
+<section class="card">
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="t" data-testid="inbox">
+      <thead><tr>
+        <th scope="col">{% translate "Sent" %}</th>
+        <th scope="col">{% translate "From" %}</th>
+        <th scope="col">{% translate "To" %}</th>
+        <th scope="col">{% translate "Message" %}</th>
+      </tr></thead>
+      <tbody>
+      {% for m in rows %}
+        <tr>
+          <td class="nowrap">{{ m.sent_at|date:"M j, Y" }}</td>
+          <td>{{ m.sender.full_name|default:m.sender.email }}<br><a href="mailto:{{ m.sender.email }}">{{ m.sender.email }}</a></td>
+          <td>{{ m.to_label }}</td>
+          <td><strong>{{ m.subject }}</strong><br>{{ m.body|linebreaksbr }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<div class="card-b"><p class="muted">{% translate "No messages yet." %}</p></div>{% endif %}
+</section>
+{% endblock %}

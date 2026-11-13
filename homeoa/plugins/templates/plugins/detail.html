@@ -1,0 +1,19 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{{ manifest.name }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p class="muted"><a href="{% url 'plugins:index' %}">{% translate "Plugins" %}</a></p>
+    <h1>{{ manifest.name }}</h1>
+    <p class="muted">{% blocktranslate with version=manifest.version %}Version {{ version }}{% endblocktranslate %}{% if manifest.description %} · {{ manifest.description }}{% endif %}</p>
+  </div>
+</div>
+<section class="card">
+  <form method="post" class="form-stack" novalidate>
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save" %}</button></div>
+  </form>
+</section>
+{% endblock %}

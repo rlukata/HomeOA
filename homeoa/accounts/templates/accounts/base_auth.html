@@ -1,0 +1,26 @@
+{% load static i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{% translate "Sign in" %}{% endblock %} · {% if association %}{{ association.name }}{% else %}{% translate "HomeOA" %}{% endif %}</title>
+<script src="{% static 'homeoa/theme.js' %}"></script>
+<link rel="stylesheet" href="{% static 'homeoa/base.css' %}">
+<link rel="stylesheet" href="{% static 'accounts/auth.css' %}">
+<link rel="manifest" href="{% url 'ui:manifest' %}">
+<meta name="theme-color" content="#1d6b57">
+{% block scripts %}{% endblock %}
+</head>
+<body>
+<main class="auth" id="main">
+  <div class="card auth-card">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">{% if association %}{{ association.short_name }}{% else %}{% translate "HO" %}{% endif %}</span>
+      <span>{% if association %}{{ association.name }}{% else %}{% translate "HomeOA" %}{% endif %}</span>
+    </div>
+    {% block content %}{% endblock %}
+  </div>
+</main>
+</body>
+</html>

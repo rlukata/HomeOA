@@ -1,0 +1,117 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Roles" %}{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+  .acc-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 16px; padding: 14px 16px; }
+  .acc-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .acc-form input, .acc-form select { min-height: 34px; padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; }
+  .acc-form input[type=checkbox] { min-height: 0; width: 16px; height: 16px; }
+  .acc-form .full { grid-column: 1 / -1; }
+  .acc-form .errorlist { margin: 2px 0 0; padding: 0; list-style: none; color: var(--danger); font-size: 12px; font-weight: 500; }
+  .acc-form .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 16px; list-style: none; margin: 0; padding: 0; }
+  .acc-form .checks label { flex-direction: row; align-items: center; gap: 8px; font-weight: 500; color: var(--text); }
+  .acc-check { flex-direction: row !important; align-items: center; gap: 8px !important; font-size: 13.5px !important; color: var(--text) !important; }
+  .acc-actions { display: flex; gap: 8px; align-items: center; grid-column: 1 / -1; }
+  .acc-stack { display: flex; flex-direction: column; gap: 16px; }
+  .acc-row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+</style>
+<div class="hero"><div><h1>{% translate "Roles" %}</h1>
+  <p class="muted">{% translate "Board, committee and CPA roles are assigned here. Owner and tenant access comes from the unit registry." %}</p></div></div>
+<div class="acc-stack">
+<section class="card" aria-labelledby="sec-h">
+  <div class="card-h"><h2 id="sec-h">{% translate "Security" %}</h2></div>
+  <form method="post" action="{% url 'access:security' %}" class="acc-form">
+    {% csrf_token %}
+    <label class="acc-check full">{{ security_form.require_mfa_for_board }} {{ security_form.require_mfa_for_board.label }}</label>
+    <div class="acc-actions"><button type="submit" class="btn btn-primary">{% translate "Save" %}</button></div>
+  </form>
+</section>
+
+<section class="card" aria-labelledby="money-h">
+  <div class="card-h"><h2 id="money-h">{% translate "Money access" %}</h2></div>
+  <div class="card-b">
+    <p class="muted">{% translate "Only the Treasurer imports statements, records payments, posts dues and reconciles directly. Other board members can propose these changes for another board member to approve." %}</p>
+    {% if not finance.treasurers %}<p class="callout warn" role="alert">{% translate "No Treasurer is assigned. Give a board member the Treasurer officer title so someone can make money changes." %}</p>{% endif %}
+    <ul class="rows" data-testid="money-access">
+      {% for a in finance.treasurers %}<li>{{ a.user.email }} · {% translate "Treasurer" %}</li>{% endfor %}
+      {% if not finance.treasurers %}<li class="muted">{% translate "Nobody has money access." %}</li>{% endif %}
+    </ul>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="asg-h">
+  <div class="card-h"><h2 id="asg-h">{% translate "Role assignments" %}</h2></div>
+  <div class="card-b"><p class="muted">{% translate "Role changes take effect once another board member approves them (two approvals when the person asking is not on the board)." %}</p>
+  {% if pending_changes %}
+    <p><strong>{% translate "Waiting for approval" %}</strong></p>
+    <ul class="rows" data-testid="pending-role-changes">{% for c in pending_changes %}<li><a href="{% url 'changes:detail' c.pk %}">{{ c.summary }}</a></li>{% endfor %}</ul>
+  {% endif %}</div>
+  <div class="table-wrap">
+    <table class="t">
+      <thead><tr>
+        <th scope="col">{% translate "User" %}</th>
+        <th scope="col">{% translate "Role" %}</th>
+        <th scope="col">{% translate "Officer title" %}</th>
+        <th scope="col">{% translate "From" %}</th>
+        <th scope="col">{% translate "To" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+        <th scope="col"><span class="sr">{% translate "Actions" %}</span></th>
+      </tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.a.user.email }}</td>
+          <td>{{ row.a.role }}</td>
+          <td>{{ row.a.get_title_display|default:"—" }}</td>
+          <td class="nowrap">{{ row.a.start }}</td>
+          <td class="nowrap">{{ row.a.end|default:"—" }}</td>
+          <td>{% if row.active %}<span class="badge ok">{% translate "Active" %}</span>{% elif row.future %}<span class="badge info">{% translate "Starts later" %}</span>{% else %}<span class="badge">{% translate "Ended" %}</span>{% endif %}</td>
+          <td><div class="acc-row-actions"><a class="btn btn-ghost btn-sm" href="{% url 'access:edit' row.a.pk %}">{% translate "Edit" %}<span class="sr"> {{ row.a.user.email }} · {{ row.a.role }}</span></a>{% if row.active or row.future %}<form method="post" action="{% url 'access:end' row.a.pk %}">{% csrf_token %}<button type="submit" class="btn btn-ghost btn-sm">{% translate "End role" %}</button></form>{% endif %}</div></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">{% translate "No roles assigned yet." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="post" action="{% url 'access:assign' %}" class="acc-form">
+    {% csrf_token %}
+    {{ assign_form.non_field_errors }}
+    {% for field in assign_form %}
+      <label>{{ field.label }}{{ field }}{{ field.errors }}</label>
+    {% endfor %}
+    <div class="acc-actions"><button type="submit" class="btn btn-primary">{% translate "Propose role" %}</button></div>
+  </form>
+</section>
+
+<section class="card" aria-labelledby="roles-h">
+  <div class="card-h"><h2 id="roles-h">{% translate "Roles and permissions" %}</h2></div>
+  {% if not residents_enabled %}<div class="card-b"><p class="muted">{% translate "Resident access is closed (association not live yet, or paused): owner and tenant roles grant nothing." %}</p></div>{% endif %}
+  <div class="table-wrap">
+    <table class="t">
+      <thead><tr><th scope="col">{% translate "Role" %}</th><th scope="col">{% translate "Permissions" %}</th></tr></thead>
+      <tbody>
+      {% for r in roles %}
+        <tr>
+          <td><b>{{ r.role }}</b>{% if r.derived %} <span class="badge">{% translate "From registry" %}</span>{% elif not r.role.is_system %} <span class="badge accent">{% translate "Custom" %}</span>{% endif %}</td>
+          <td class="muted">{{ r.labels|join:", " }}{% if r.role.limit %} · {% blocktranslate count limit=r.role.limit %}at most {{ limit }} member{% plural %}at most {{ limit }} members{% endblocktranslate %}{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="post" action="{% url 'access:add_role' %}" class="acc-form">
+    {% csrf_token %}
+    <label>{{ role_form.name.label }}{{ role_form.name }}{{ role_form.name.errors }}</label>
+    <label>{{ role_form.member_limit.label }}{{ role_form.member_limit }}{{ role_form.member_limit.errors }}</label>
+    <fieldset class="full plain p-0">
+      <legend class="legend-label">{{ role_form.permissions.label }}</legend>
+      <div class="checks">{% for box in role_form.permissions %}<label>{{ box.tag }} {{ box.choice_label }}</label>{% endfor %}</div>
+      {{ role_form.permissions.errors }}
+    </fieldset>
+    <div class="acc-actions"><button type="submit" class="btn">{% translate "Create custom role" %}</button></div>
+  </form>
+</section>
+</div>
+{% endblock %}

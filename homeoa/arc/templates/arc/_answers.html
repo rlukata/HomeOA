@@ -1,0 +1,8 @@
+{% load i18n %}
+<dl class="kv" data-testid="answers">
+  {% for label, value in req.answer_rows %}
+  <dt>{{ label }}</dt>
+  <dd>{% if value is True %}{% translate "Yes" %}{% elif value is False %}{% translate "No" %}{% else %}{{ value|default:"—"|linebreaksbr }}{% endif %}</dd>
+  {% endfor %}
+</dl>
+{% if req.conditions %}<h3>{% translate "Conditions of approval" %}</h3><div class="letter-body" data-testid="conditions">{{ req.conditions|linebreaksbr }}</div>{% endif %}

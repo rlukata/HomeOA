@@ -1,0 +1,29 @@
+{% load i18n %}
+{% if rows %}
+<section class="card" aria-labelledby="provider-choices-h">
+  <div class="card-b card-pad-t">
+    <h2 id="provider-choices-h">{% translate "Which plugin to use" %}</h2>
+    {% for w in warnings %}
+    <p class="badge warn" role="status" data-testid="provider-warning">
+      {% if w.reason == "ambiguous" %}{% blocktranslate with label=w.label %}Several plugins provide {{ label }}. HomeOA uses the built-in default until you pick one.{% endblocktranslate %}
+      {% else %}{% blocktranslate with label=w.label %}The plugin chosen for {{ label }} is turned off. HomeOA uses the built-in default.{% endblocktranslate %}{% endif %}
+    </p>
+    {% endfor %}
+    {% for row in rows %}
+    <form method="post" action="{% url 'provider_settings:choose' %}" class="provider-choice">
+      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+      <input type="hidden" name="kind" value="{{ row.kind }}">
+      <label for="use-{{ row.kind }}">{% blocktranslate with label=row.label %}Use for: {{ label }}{% endblocktranslate %}</label>
+      <select id="use-{{ row.kind }}" name="plugin_id">
+        {% if not row.explicit %}<option value=""{% if not row.choice %} selected{% endif %}>{% translate "Automatic (the only enabled plugin)" %}</option>{% endif %}
+        <option value="{% if row.explicit %}{% else %}default{% endif %}"{% if row.choice == "default" or row.explicit and not row.choice %} selected{% endif %}>{% translate "Built-in default" %}</option>
+        {% for opt in row.options %}
+        <option value="{{ opt.id }}"{% if row.choice == opt.id %} selected{% endif %}>{{ opt.name }}{% if not opt.enabled %} ({% translate "off" %}){% endif %}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm" type="submit">{% translate "Save" %}</button>
+    </form>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

@@ -1,0 +1,71 @@
+{% extends "ui/base.html" %}
+{% load i18n rule_tags %}
+{% block title %}{% translate "Rules" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Rules" %}</h1>
+    <p class="muted">{% blocktranslate with name=pack.name %}Active rule pack: {{ name }}{% endblocktranslate %}</p>
+    {% if pack.description %}<p class="muted">{{ pack.description }}</p>{% endif %}
+  </div>
+</div>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Rule values" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Rule" %}</th>
+          <th scope="col">{% translate "Value" %}</th>
+          <th scope="col">{% translate "Source" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr data-rule-key="{{ row.key }}">
+          <td><strong>{{ row.label }}</strong><div class="muted"><code>{{ row.key }}</code></div></td>
+          <td>
+            {{ row|rule_display }}
+            {% if row.clamped %}<div class="muted">{% blocktranslate with requested=row|rule_requested_display %}Set to {{ requested }}; the legal maximum applies.{% endblocktranslate %}{% if row.cap_citation %} {% if row.cap_source_url %}<a href="{{ row.cap_source_url }}" rel="noopener noreferrer" target="_blank">{{ row.cap_citation }}</a>{% else %}{{ row.cap_citation }}{% endif %}{% endif %}</div>{% endif %}
+            {% if row.next_rule %}<div class="muted" data-next-value>{% blocktranslate with date=row.next_rule.effective_from|date:"M j, Y" value=row|rule_next_display %}From {{ date }}: {{ value }}{% endblocktranslate %}{% if row.source == "override" %} {% translate "(pack value; your setting still applies)" %}{% endif %}</div>{% endif %}
+          </td>
+          <td>
+            {% if row.source == "override" %}{% translate "Association setting" %}
+            {% elif row.source == "generic" and pack.id != "generic" %}<span data-source="generic">{% translate "Generic default" %}</span>
+            {% elif row.basis == "policy" %}{% translate "Association policy default" %}
+            {% elif row.basis == "statute" %}{% translate "Statute" %}
+            {% else %}{% translate "Board decides" %}{% endif %}
+            {% if row.citation %}<div class="muted">{% if row.source_url %}<a href="{{ row.source_url }}" rel="noopener noreferrer" target="_blank">{{ row.citation }}</a>{% else %}{{ row.citation }}{% endif %}</div>{% endif %}
+            {% if row.quote %}<details><summary class="muted">{% translate "Statute text" %}</summary><blockquote>{{ row.quote }}</blockquote></details>{% endif %}
+            {% if row.checked_on %}<div class="muted">{% blocktranslate with date=row.checked_on|date:"M j, Y" %}Checked {{ date }}{% endblocktranslate %}</div>{% endif %}
+            {% if row.note %}<div class="muted">{{ row.note }}</div>{% endif %}
+          </td>
+          <td>{% rule_badge row %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card" aria-labelledby="override-h">
+  <div class="card-b card-pad-t">
+    <h2 id="override-h">{% translate "Change a rule for this association" %}</h2>
+    <p class="muted">{% translate "Board decisions override the rule pack. Every change needs a reason and is recorded in the audit log." %}</p>
+    <form method="post" action="{% url 'rules:override' %}">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}{% if field.name != "action" %}
+      <p>
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="muted" id="{{ field.auto_id }}-help">{{ field.help_text }}</span>{% endif %}
+        {% for err in field.errors %}<span class="badge danger" role="alert">{{ err }}</span>{% endfor %}
+      </p>
+      {% endif %}{% endfor %}
+      <button class="btn" type="submit" name="action" value="set">{% translate "Save override" %}</button>
+      <button class="btn" type="submit" name="action" value="clear">{% translate "Clear override" %}</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

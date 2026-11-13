@@ -1,0 +1,81 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Budget" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% blocktranslate %}Budget {{ year }}{% endblocktranslate %}</h1>
+    <p class="muted">{% translate "The adopted budget and the latest draft side by side. Only the adopted budget sets dues." %}</p>
+  </div>
+  <div class="hero-actions">
+    {% if years|length > 1 %}
+    <form method="get">
+      <label for="year-pick" class="sr">{% translate "Fiscal year" %}</label>
+      <select id="year-pick" name="year">
+        {% for y in years %}<option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-sm" type="submit">{% translate "Show" %}</button>
+    </form>
+    {% endif %}
+    {% if adopted %}<a class="btn" href="{% url 'budget:actual' adopted.pk %}">{% translate "Budget vs actual" %}</a>{% endif %}
+    {% if can_manage %}<a class="btn btn-primary" href="{% url 'budget:new' %}">{% translate "New budget" %}</a>{% endif %}
+  </div>
+</div>
+
+<section class="card" aria-labelledby="cmp-h" data-testid="budget-compare">
+  <div class="card-h">
+    <h2 id="cmp-h">{% translate "Adopted and draft" %}</h2>
+    <span class="inline-link">
+      {% if adopted %}<a href="{% url 'budget:detail' adopted.pk %}">{{ adopted.name }}</a>{% endif %}
+      {% if draft %} · <a href="{% url 'budget:detail' draft.pk %}">{{ draft.name }}</a>{% endif %}
+    </span>
+  </div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Adopted and draft budget" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Line" %}</th>
+          <th scope="col" class="num">{% translate "Adopted" %}</th>
+          <th scope="col" class="num">{% translate "Draft" %}</th>
+          <th scope="col" class="num">{% translate "Change" %}</th>
+          <th scope="col" class="num">{% translate "Change %" %}</th>
+          <th scope="col">{% translate "Note" %}</th>
+        </tr>
+      </thead>
+      {% for g in groups %}
+      <tbody>
+        <tr class="group-row"><th scope="rowgroup" colspan="6">{{ g.name }}</th></tr>
+        {% for r in g.rows %}
+        <tr>
+          <td>{{ r.label }}</td>
+          <td class="num">{{ r.left|money }}</td>
+          <td class="num">{{ r.right|money }}</td>
+          <td class="num">{{ r.change|money }}</td>
+          <td class="num">{% if r.change_pct is not None %}{{ r.change_pct }}%{% endif %}</td>
+          <td>{{ r.note }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="subtotal"><td>{% blocktranslate with name=g.name %}Total {{ name }}{% endblocktranslate %}</td>
+          <td class="num">{{ g.left|money }}</td><td class="num">{{ g.right|money }}</td><td colspan="3"></td></tr>
+      </tbody>
+      {% empty %}
+      <tbody><tr><td colspan="6" class="empty-row">{% translate "No budget for this year yet." %}</td></tr></tbody>
+      {% endfor %}
+      {% if groups %}
+      <tfoot>
+        <tr><th scope="row">{% translate "Total income" %}</th><td class="num">{{ adopted_totals.income|money }}</td><td class="num">{{ draft_totals.income|money }}</td><td colspan="3"></td></tr>
+        <tr><th scope="row">{% translate "Total expense" %}</th><td class="num">{{ adopted_totals.expense|money }}</td><td class="num">{{ draft_totals.expense|money }}</td><td colspan="3"></td></tr>
+        <tr><th scope="row">{% translate "Net" %}</th><td class="num">{{ adopted_totals.net|money }}</td><td class="num">{{ draft_totals.net|money }}</td><td colspan="3"></td></tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</section>
+{% if others %}
+<section class="card card-pad" aria-labelledby="oth-h">
+  <h2 id="oth-h">{% translate "Other budgets this year" %}</h2>
+  <ul class="inline-link">{% for b in others %}<li><a href="{% url 'budget:detail' b.pk %}">{{ b.name }}</a> · {{ b.get_status_display }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

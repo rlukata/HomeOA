@@ -1,0 +1,56 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Parallel run difference" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% if line.kind == "unit" %}{% blocktranslate with n=line.key %}Unit {{ n }}{% endblocktranslate %}{% else %}{{ line.key }} {{ line.label }}{% endif %}</h1>
+  <p class="muted">{% blocktranslate with h=line.homeoa|money e=line.appfolio|money d=line.difference|money %}HomeOA {{ h }} · management company {{ e }} · difference {{ d }}{% endblocktranslate %}</p>
+</div></div>
+<p class="muted">{% blocktranslate with s=drill.start|date:"M j, Y" e=drill.end|date:"M j, Y" %}Activity from {{ s }} (HomeOA through {{ e }}; the management company's lines dated later are shown too, to spot timing differences).{% endblocktranslate %}</p>
+<div class="grid2">
+<section class="card" aria-labelledby="h-h">
+  <div class="card-h"><h2 id="h-h">{% translate "HomeOA transactions" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "HomeOA transactions" %}</caption>
+      <thead><tr><th scope="col">{% translate "Date" %}</th><th scope="col">{% translate "Description" %}</th><th scope="col" class="num">{% translate "Amount" %}</th></tr></thead>
+      <tbody>
+        {% for r in drill.homeoa %}
+        <tr><td class="nowrap">{{ r.date|date:"M j, Y" }}</td><td>{{ r.description }}</td><td class="num">{{ r.amount|money }}</td></tr>
+        {% empty %}<tr><td colspan="3" class="empty-row">{% translate "None in this period." %}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card" aria-labelledby="e-h">
+  <div class="card-h"><h2 id="e-h">{% translate "Management company ledger lines" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Management company ledger lines" %}</caption>
+      <thead><tr><th scope="col">{% translate "Date" %}</th><th scope="col">{% translate "Description" %}</th><th scope="col" class="num">{% translate "Amount" %}</th></tr></thead>
+      <tbody>
+        {% for r in drill.appfolio %}
+        <tr><td class="nowrap">{{ r.date|date:"M j, Y" }}</td><td>{{ r.type }} · {{ r.description }}</td><td class="num">{{ r.amount|money }}</td></tr>
+        {% empty %}<tr><td colspan="3" class="empty-row">{% translate "None in this period." %}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+</div>
+<section class="card" aria-labelledby="x-h">
+  <div class="card-h"><h2 id="x-h">{% translate "Explanation" %}</h2></div>
+  {% if line.explained %}<p><span class="badge ok">{% translate "Explained" %}</span> {{ line.note }} <span class="muted">— {{ line.explained_by.email|default:"" }}, {{ line.explained_at|date:"M j, Y" }}</span></p>{% endif %}
+  {% if can_manage %}
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Mark explained" %}</button>
+      <a class="btn btn-ghost" href="{% url 'imports:parallel_run_detail' line.run_id %}">{% translate "Back" %}</a>
+    </div>
+  </form>
+  {% else %}
+  <p><a href="{% url 'imports:parallel_run_detail' line.run_id %}">{% translate "Back" %}</a></p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags homeoa_ui %}
+{% block title %}{% translate "Dues & ledger" %}{% endblock %}
+{% block content %}
+<div data-testid="ledger-home">
+<div class="hero">
+  <div>
+    <h1>{% translate "Dues & ledger" %}</h1>
+    <p class="muted">{% translate "What each unit owes, from the books." %}</p>
+  </div>
+  {% if can_manage %}
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="{% url 'payments:new' %}" data-testid="ledger-record-payment">{% translate "Record payment" %}</a>
+    <a class="btn" href="{% url 'payments:adjustments' %}" data-testid="ledger-adjustment">{% translate "Adjustment" %}</a>
+  </div>
+  {% endif %}
+</div>
+<div class="g">
+  <section class="card span2" aria-labelledby="balances-h">
+    <div class="card-h"><h2 id="balances-h">{% translate "Unit balances" %}</h2></div>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% translate "Unit balances" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Owners" %}</th>
+          <th scope="col" class="num">{% translate "Balance owed" %}</th>
+          <th scope="col" class="num">{% translate "Prepaid credit" %}</th>
+          <th scope="col">{% translate "Oldest unpaid due date" %}</th>
+        </tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr data-testid="ledger-row-{{ r.unit.number }}">
+            <td><a href="{% url 'registry:unit' r.unit.number %}#ledger-h">{{ r.unit }}</a></td>
+            <td>{% for p in r.owners %}{% if not forloop.first %}, {% endif %}{{ p }}{% empty %}<span class="muted">—</span>{% endfor %}</td>
+            <td class="{{ r.balance_css }}">{{ r.balance|money }}</td>
+            <td class="num">{{ r.credit|money }}</td>
+            <td class="nowrap">{{ r.oldest_due|date:"M j, Y"|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty-row">{% translate "No units yet." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card" aria-labelledby="ledger-links-h">
+    <div class="card-h"><h2 id="ledger-links-h">{% translate "In this section" %}</h2></div>
+    <ul class="list">
+      <li class="att"><div class="att-ic">{% icon "money" %}</div><div class="att-main"><div class="att-t"><a href="{% url 'billing:index' %}">{% translate "Assessments" %}</a></div><div class="att-s">{% translate "Dues schedules and runs" %}</div></div></li>
+      <li class="att"><div class="att-ic">{% icon "clock" %}</div><div class="att-main"><div class="att-t"><a href="{% url 'billing:late_fees' %}">{% translate "Late fees" %}</a></div><div class="att-s">{% translate "Policies and waivers" %}</div></div></li>
+      <li class="att"><div class="att-ic">{% icon "zap" %}</div><div class="att-main"><div class="att-t"><a href="{% url 'billing:specials' %}">{% translate "Special assessments" %}</a></div><div class="att-s">{% translate "One-time and installment charges" %}</div></div></li>
+      <li class="att"><div class="att-ic">{% icon "receipt" %}</div><div class="att-main"><div class="att-t"><a href="{% url 'payments:index' %}">{% translate "Payments" %}</a></div><div class="att-s">{% translate "Checks and other payments received" %}</div></div></li>
+      <li class="att"><div class="att-ic">{% icon "bell" %}</div><div class="att-main"><div class="att-t"><a href="{% url 'statements:index' %}">{% translate "Statements" %}</a></div><div class="att-s">{% translate "Owner statements" %}</div></div></li>
+    </ul>
+  </section>
+</div>
+</div>
+{% endblock %}

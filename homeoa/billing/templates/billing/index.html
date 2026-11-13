@@ -1,0 +1,89 @@
+{% extends "ui/base.html" %}
+{% load i18n ui ledger_tags %}
+{% block title %}{% translate "Assessments" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Assessments" %}</h1>
+    <p class="muted">{% translate "Monthly dues by schedule. Each charge posts to the owner of record and the ledger." %}</p>
+  </div>
+  <div class="hero-actions">
+    <a class="btn" href="{% url 'billing:late_fees' %}">{% translate "Late fees" %}</a>
+    <a class="btn" href="{% url 'billing:specials' %}">{% translate "Special assessments" %}</a>
+    {% if schedules %}
+    <form method="get" action="{% url 'billing:run' %}">
+      <button type="submit" class="btn btn-primary">{% translate "Run assessment" %}</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<section class="card" aria-labelledby="sched-h">
+  <div class="card-h">
+    <h2 id="sched-h">{% translate "Schedules" %}</h2>
+    <a class="btn btn-sm" href="{% url 'billing:schedule_new' %}">{% translate "New schedule" %}</a>
+  </div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Assessment schedules" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Name" %}</th>
+          <th scope="col">{% translate "Method" %}</th>
+          <th scope="col" class="num">{% translate "Annual" %}</th>
+          <th scope="col" class="num">{% translate "Monthly" %}</th>
+          <th scope="col" class="num">{% translate "Reserve per year" %}</th>
+          <th scope="col">{% translate "Effective" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in schedules %}
+        <tr>
+          <td><a href="{% url 'billing:schedule_edit' s.pk %}">{{ s.name }}</a></td>
+          <td>{{ s.get_method_display }}</td>
+          <td class="num">{{ s.annual_amount|money }}</td>
+          <td class="num">{{ s.period_amount|money }}</td>
+          <td class="num">{{ s.reserve_annual_amount|money }}</td>
+          <td>{{ s.effective_start|date:"M j, Y" }}{% if s.effective_end %} – {{ s.effective_end|date:"M j, Y" }}{% endif %}</td>
+          <td>{% if s.active %}{% badge "ok" _("Active") %}{% else %}{% badge "" _("Inactive") %}{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="empty-row">{% translate "No assessment schedule yet. Add one to start billing dues." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="hist-h">
+  <div class="card-h"><h2 id="hist-h">{% translate "Posting history" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Posted assessment runs" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Month" %}</th>
+          <th scope="col">{% translate "Schedule" %}</th>
+          <th scope="col">{% translate "Posted" %}</th>
+          <th scope="col" class="num">{% translate "Units" %}</th>
+          <th scope="col" class="num">{% translate "Total" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in runs %}
+        <tr>
+          <td><a href="{% url 'billing:run_detail' r.pk %}">{{ r.period|date:"F Y" }}</a></td>
+          <td>{{ r.schedule.name }}</td>
+          <td>{{ r.posted_at|date:"M j, Y" }} · {% if r.source == "scheduled" %}{% translate "automatic" %}{% else %}{% translate "manual" %}{% endif %}</td>
+          <td class="num">{{ r.charge_count }}</td>
+          <td class="num">{{ r.total|money }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "Nothing posted yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

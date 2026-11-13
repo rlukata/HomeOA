@@ -1,0 +1,122 @@
+{% extends "ui/base.html" %}
+{% load i18n rule_tags %}
+{% block title %}{% translate "Delinquency" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Delinquency" %}</h1>
+    <p class="muted">{% translate "Units with past-due charges move through a payment reminder, a late notice and a demand letter. Step offsets count days from the due date of the oldest unpaid charge." %}</p>
+  </div>
+  <a class="btn" href="{% url 'statements:settings' %}">{% translate "Step settings" %}</a>
+</div>
+{% if not residents_on %}
+<div class="callout warn" role="note">{% translate "Residents are not switched on yet. Letters are generated as previews and postal letters stay in draft batches; nothing is sent." %}</div>
+{% endif %}
+<section class="card" aria-labelledby="offsets-h">
+  <div class="card-b card-pad-t">
+    <h2 id="offsets-h">{% translate "Steps" %}</h2>
+    <ul data-testid="delinquency-offsets">
+      {% for step, r in offsets.items %}
+      <li data-step="{{ step }}"><strong>{{ r.label }}</strong>: {% if r.value is None %}{% translate "Off (not set)" %}{% else %}{% blocktranslate count days=r.value %}{{ days }} day{% plural %}{{ days }} days{% endblocktranslate %}{% endif %} {% rule_badge r %}</li>
+      {% endfor %}
+    </ul>
+    <p class="muted">{% translate "The demand letter is only drafted: it becomes a to-do for the board and is never sent automatically." %}</p>
+    {% if statutory %}
+    <p class="muted" data-testid="statutory-mode">{% translate "The rule pack requires statutory notices of delinquency: the first notice replaces the late notice, then a standstill, then a second notice. Each goes by first-class mail to every owner address and by email when known. HomeOA never starts collection or foreclosure; that is a board decision with an attorney." %}</p>
+    {% if contacts_missing %}<div class="callout warn" role="note">{% translate "The foreclosure-assistance contacts are not filled in yet; notices print a placeholder." %} <a class="inline-link" href="{% url 'statements:settings' %}">{% translate "Fill them in" %}</a></div>{% endif %}
+    {% endif %}
+    <form method="post" action="{% url 'statements:run' %}">
+      {% csrf_token %}
+      <button class="btn" type="submit">{% blocktranslate with date=as_of|date:"M j, Y" %}Check the ladder now ({{ date }}){% endblocktranslate %}</button>
+    </form>
+  </div>
+</section>
+<section class="card mt-16">
+  <div class="table-wrap">
+    <table class="t" data-testid="delinquency-cases">
+      <caption class="sr">{% translate "Open delinquency cases" %}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col" class="num">{% translate "Past due" %}</th>
+          <th scope="col">{% translate "Oldest due date" %}</th>
+          <th scope="col">{% translate "Steps taken" %}</th>
+          <th scope="col">{% translate "Next step" %}</th>
+          <th scope="col">{% translate "Board" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr data-unit="{{ row.case.unit.number }}">
+          <td><a href="{% url 'notify:unit_comms' row.case.unit.number %}">{{ row.case.unit.number }}</a></td>
+          <td class="num">{% if row.balance is not None %}${{ row.balance|floatformat:"2g" }}{% endif %}</td>
+          <td>{{ row.oldest|date:"M j, Y" }} <span class="muted">{% blocktranslate count days=row.days_late %}{{ days }} day late{% plural %}{{ days }} days late{% endblocktranslate %}</span></td>
+          <td>
+            {% for a in row.actions %}
+            <div data-step="{{ a.step }}">{{ a.get_step_display }} · {{ a.as_of|date:"M j" }}
+              {% if a.outcome == "skipped" %}<span class="badge">{% translate "Skipped" %}</span>
+              {% else %}{% if a.letter %}<a class="inline-link" href="{% url 'letters:download' a.letter.pk %}">{% translate "Letter" %}</a>{% endif %}
+              {% if a.batch_id %} · <a class="inline-link" href="{% url 'letters:batch' a.batch_id %}">{% translate "Mail batch" %}</a>{% endif %}
+              {% if a.statutory_text %}
+              {% if a.contacts_missing %}<span class="badge warn">{% translate "Assistance contacts missing" %}</span>{% endif %}
+              <ul class="muted" data-testid="preforeclosure-records">
+                {% for r in a.records.all %}<li>{{ r.get_channel_display }}: {% if r.email %}{{ r.email }}{% else %}{{ r.address_lines|join:", " }}{% endif %} · <a class="inline-link" href="{% url 'letters:download' r.letter_id %}">{% translate "PDF" %}</a></li>{% endfor %}
+              </ul>
+              {% if a.email_copy %}
+              {% if a.email_copy.pending %}
+              <form class="inline-form" method="post" action="{% url 'statements:send_email_copy' a.pk %}">
+                {% csrf_token %}
+                <button class="btn" type="submit" data-testid="send-email-copy"{% if not residents_on %} disabled aria-describedby="email-copy-off-{{ a.pk }}"{% endif %}>{% translate "Send email copy" %}</button>
+                {% if not residents_on %}<span class="muted" id="email-copy-off-{{ a.pk }}">{% translate "Residents are off, so owners get no email yet." %}</span>{% endif %}
+              </form>
+              {% else %}
+              <span class="badge" data-testid="email-copy-sent">{% if a.email_copy.sent_on %}{% blocktranslate with date=a.email_copy.sent_on|date:"M j, Y" %}Email sent {{ date }}{% endblocktranslate %}{% else %}{% translate "Email queued" %}{% endif %}</span>
+              {% endif %}
+              {% endif %}
+              {% endif %}
+              {% if a.step == "demand" %}<span class="badge warn">{% if a.reviewed_at %}{% translate "Reviewed" %}{% else %}{% translate "Draft, board to review" %}{% endif %}</span>{% endif %}
+              {% endif %}
+            </div>
+            {% empty %}<span class="muted">{% translate "None yet" %}</span>{% endfor %}
+          </td>
+          <td>
+            {% if row.case.on_hold %}<span class="badge warn">{% translate "On hold" %}</span> <span class="muted">{{ row.case.hold_reason }}</span>
+            {% elif row.waiting_translation %}<span class="badge warn" data-testid="waiting-translation">{% translate "Waiting for translation" %}</span> <span class="muted">{{ row.waiting_translation|join:", " }}</span>
+            {% elif row.next_label %}{{ row.next_label }} · {{ row.next_on|date:"M j, Y" }}
+            {% else %}<span class="muted">{% translate "No further steps" %}</span>{% endif %}
+            {% if row.first_deadline %}<div class="muted" data-testid="first-notice-deadline">{% blocktranslate with date=row.first_deadline|date:"M j, Y" %}First notice due by {{ date }}{% endblocktranslate %}</div>{% endif %}
+            {% if row.standstill_until %}<div><span class="badge warn" data-testid="standstill">{% blocktranslate with date=row.standstill_until|date:"M j, Y" %}Standstill until {{ date }}{% endblocktranslate %}</span></div>{% endif %}
+            {% if row.foreclosure_ready %}<div><span class="badge warn" data-testid="foreclosure-threshold">{% translate "Foreclosure threshold reached: needs a board vote and an attorney" %}</span></div>{% endif %}
+          </td>
+          <td>
+            <form method="post" action="{% url 'statements:hold' row.case.pk %}">
+              {% csrf_token %}
+              <label class="sr" for="hold-reason-{{ row.case.pk }}">{% translate "Reason" %}</label>
+              <input id="hold-reason-{{ row.case.pk }}" name="reason" required maxlength="300" placeholder="{% translate 'Reason' %}">
+              {% if row.case.on_hold %}
+              <button class="btn" type="submit" name="on_hold" value="0">{% translate "Release hold" %}</button>
+              {% else %}
+              <button class="btn" type="submit" name="on_hold" value="1">{% translate "Hold" %}</button>
+              <button class="btn" type="submit" formaction="{% url 'statements:skip' row.case.pk %}">{% translate "Skip next step" %}</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="empty-row">{% translate "No unit is past due." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if closed %}
+<section class="card mt-16" aria-labelledby="closed-h">
+  <div class="card-b card-pad-t">
+    <h2 id="closed-h">{% translate "Recently closed" %}</h2>
+    <ul>
+      {% for c in closed %}<li>{{ c.unit.number }} · {{ c.closed_on|date:"M j, Y" }} · {{ c.closed_reason }}</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

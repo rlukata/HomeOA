@@ -1,0 +1,13 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Link not valid" %}{% endblock %}
+{% block content %}
+<h1>{% translate "This link can't be used" %}</h1>
+<p class="auth-msg err" role="alert">
+{% if reason == "used" %}{% translate "This sign-in link has already been used. Each link works only once." %}
+{% elif reason == "expired" %}{% translate "This sign-in link has expired. Links last 15 minutes." %}
+{% elif reason == "mfa" %}{% translate "Too many wrong codes. Start again with a new sign-in link." %}
+{% else %}{% translate "This sign-in link is no longer valid." %}{% endif %}
+</p>
+<a class="btn btn-primary btn-lg" href="{% url 'accounts:login' %}">{% translate "Get a new link" %}</a>
+{% endblock %}

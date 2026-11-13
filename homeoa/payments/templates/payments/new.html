@@ -1,0 +1,31 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Record payment" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Record payment" %}</h1>
+    <p class="muted">{% translate "Record a check or other payment that already arrived. It pays open charges in the board's allocation order; any extra becomes a credit." %}</p>
+  </div>
+</div>
+<div id="payment-slot">
+<section class="card card-pad" aria-labelledby="pay-h">
+  <h2 id="pay-h" class="sr">{% translate "Payment details" %}</h2>
+  <form method="post" action="{% url 'payments:new' %}" class="form-grid"
+        hx-post="{% url 'payments:new' %}" hx-target="#payment-slot" hx-select="#payment-slot" hx-swap="outerHTML">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Record payment" %}</button>
+      <a class="btn btn-ghost" href="{% url 'payments:index' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+<section class="card" aria-labelledby="sum-h" id="unit-summary-card">
+  <div class="card-h"><h2 id="sum-h">{% translate "Unit balance" %}</h2></div>
+  <div id="unit-summary" hx-get="{% url 'payments:unit_summary' %}" hx-trigger="change from:#id_unit" hx-include="#id_unit" aria-live="polite">
+    {% include "payments/_unit_summary.html" %}
+  </div>
+</section>
+</div>
+{% endblock %}

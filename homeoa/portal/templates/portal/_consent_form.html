@@ -1,0 +1,23 @@
+{% load i18n %}{# E-notice consent form. Context: person, consent_text, consent_version, consent_review, consent_context ("portal" or "invite"). #}
+{% if consent_review and consent_context == "invite" %}<p class="callout small" data-testid="consent-draft">{% translate "Draft wording, pending attorney review. Not legal advice." %}</p>{% endif %}
+{% if person.email %}
+<form method="post" action="{% url 'portal:consent' %}" class="form-stack">{% csrf_token %}
+  <input type="hidden" name="action" value="give">
+  <input type="hidden" name="context" value="{{ consent_context }}">
+  <input type="hidden" name="email" value="{{ person.email }}">
+  <input type="hidden" name="version" value="{{ consent_version }}">
+  <ul class="small" data-testid="consent-text">{% for p in consent_text %}<li>{{ p }}</li>{% endfor %}</ul>
+  <p class="faint small">{% blocktranslate with v=consent_version %}Consent text version {{ v }}{% endblocktranslate %}</p>
+  <div class="field check"><label for="{{ agree_id|default:'agree' }}"><input type="checkbox" id="{{ agree_id|default:'agree' }}" name="agree" value="yes" required>
+    <span>{% blocktranslate with email=person.email %}I agree to receive official association notices electronically at {{ email }} instead of by postal mail. I can withdraw this consent at any time.{% endblocktranslate %}</span></label></div>
+  <div class="form-actions"><button type="submit" class="btn btn-primary" data-testid="consent-give">{% translate "Get notices by email" %}</button></div>
+</form>
+{% if consent_context == "invite" %}
+<form method="post" action="{% url 'portal:consent' %}">{% csrf_token %}
+  <input type="hidden" name="action" value="keep_mail"><input type="hidden" name="context" value="invite">
+  <button type="submit" class="btn btn-sm" data-testid="consent-keep-mail">{% translate "Keep getting notices by postal mail" %}</button>
+</form>
+{% endif %}
+{% else %}
+<p>{% translate "Add an email address on your profile before choosing email notices." %}</p>
+{% endif %}

@@ -1,0 +1,39 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% translate "Association setup" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Association setup" %}</h1>
+  <p class="muted">{% blocktranslate with pack=pack.name %}The board's policy questions for {{ pack }}, with a suggested answer and where it comes from. Each section becomes a draft board resolution; its settings apply when the board adopts it.{% endblocktranslate %}</p>
+</div></div>
+{% if states %}
+<p data-testid="setup-progress">{% blocktranslate with done=done total=states|length %}{{ done }} of {{ total }} sections adopted.{% endblocktranslate %}</p>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Setup sections" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Section" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+        <th scope="col"><span class="sr">{% translate "Actions" %}</span></th>
+      </tr></thead>
+      <tbody>
+        {% for st in states %}
+        <tr data-testid="setup-section" data-key="{{ st.section.key }}">
+          <td><a href="{% url 'setup:section' st.section.key %}">{{ st.section.title }}</a><div class="muted">{{ st.section.intro }}</div></td>
+          <td>
+            {% if st.pending %}{% translate "Waiting for adoption" as waiting %}{% badge "warn" waiting %} <a href="{% url 'governance:resolution' st.pending.resolution_id %}">{% blocktranslate with n=st.pending.resolution.number %}Resolution {{ n }}{% endblocktranslate %}</a>
+            {% elif st.adopted %}{% translate "Adopted" as adopted %}{% badge "ok" adopted %} <a href="{% url 'governance:resolution' st.adopted.resolution_id %}">{% blocktranslate with n=st.adopted.resolution.number d=st.adopted.resolution.adopted_on|date:"M j, Y" %}Resolution {{ n }}, {{ d }}{% endblocktranslate %}</a>
+            {% else %}{% translate "Not started" as todo %}{% badge "" todo %}{% endif %}
+          </td>
+          <td class="nowrap"><a href="{% url 'setup:section' st.section.key %}">{% if st.adopted and not st.pending %}{% translate "Change" %}{% elif st.pending %}{% translate "View" %}{% else %}{% translate "Answer" %}{% endif %}</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% else %}
+<p class="callout info" role="status">{% translate "Your rule pack has no setup questions." %}</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,28 @@
+{% load i18n ledger_tags %}{% if summary %}
+<div class="card-pad">
+  <p><strong>{% blocktranslate with n=summary.unit.number %}Unit {{ n }} balance{% endblocktranslate %}:</strong>
+    <span data-testid="unit-balance">{{ summary.balance|money }}</span>
+    {% if summary.credit %}<span class="muted">{% blocktranslate with c=summary.credit|money %}(includes {{ c }} unapplied credit){% endblocktranslate %}</span>{% endif %}
+  </p>
+  {% if summary.charges %}
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Open charges" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Charge" %}</th>
+        <th scope="col">{% translate "Type" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+        <th scope="col" class="num">{% translate "Open" %}</th>
+      </tr></thead>
+      <tbody>
+        {% for c in summary.charges %}
+        <tr><td>{{ c.description }}</td><td>{{ c.get_kind_display }}</td><td>{{ c.due_date|date:"M j, Y" }}</td><td class="num">{{ c.open_balance|money }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">{% translate "No open charges." %}</p>
+  {% endif %}
+</div>
+{% endif %}

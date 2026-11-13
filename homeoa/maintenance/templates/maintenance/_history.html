@@ -1,0 +1,8 @@
+{% load i18n %}<section class="card card-pad" aria-labelledby="hist-h">
+  <h2 id="hist-h">{% translate "History" %}</h2>
+  <ol class="mt" data-testid="status-history">
+  {% for h in history %}
+    <li><span class="muted">{{ h.changed_at|date:"Y-m-d H:i" }}</span> · {% if h.old_status %}{% blocktranslate with old=h.old_label new=h.new_label %}{{ old }} → {{ new }}{% endblocktranslate %}{% else %}{% blocktranslate with new=h.new_label %}Created as {{ new }}{% endblocktranslate %}{% endif %}{% if show_actor and h.changed_by %} <span class="muted">· {{ h.changed_by.full_name|default:h.changed_by.email }}</span>{% endif %}{% if h.note %} · {{ h.note }}{% endif %}</li>
+  {% endfor %}
+  </ol>
+</section>

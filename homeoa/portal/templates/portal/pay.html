@@ -1,0 +1,77 @@
+{% extends "portal/base.html" %}
+{% load i18n ledger_tags homeoa_ui portal_parts %}
+{% block title %}{% translate "Pay" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+{% include "portal/_pay_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Pay" %}</h1>
+{% include "portal/_money_tabs.html" with current="pay" %}
+{% if not pay %}
+  <section class="card"><div class="card-b card-pad-t"><p class="muted">{% translate "You are not listed as a current owner of any unit." %}</p></div></section>
+{% else %}
+  {% if switch_units|length > 1 %}
+  <nav class="subnav" aria-label="{% translate 'Units' %}">
+    {% for u in switch_units %}<a class="btn btn-sm {% if u == pay.unit %}btn-primary{% else %}btn-ghost{% endif %}" href="?unit={{ u.number }}">{% blocktranslate with n=u.number %}Unit {{ n }}{% endblocktranslate %}</a>{% endfor %}
+  </nav>
+  {% endif %}
+  <section class="bal" aria-labelledby="pay-label">
+    <div class="l" id="pay-label">{% blocktranslate with n=pay.unit.number %}Unit {{ n }} · amount due{% endblocktranslate %}</div>
+    <div class="v" data-testid="amount-due">{{ pay.due|money }}</div>
+    <div class="s">{% if pay.pending %}{% translate "Payments still processing are already subtracted." %}{% elif pay.balance < 0 %}{% translate "You have a credit on your account." %}{% elif pay.due == 0 %}{% translate "You're all paid up." %}{% elif pay.fee %}{% blocktranslate with fee=pay.fee|money %}Bank transfer (ACH) · {{ fee }} fee{% endblocktranslate %}{% else %}{% translate "Bank transfer (ACH) · no fee" %}{% endif %}</div>
+    {% if pay.online %}
+      {% if pay.chargeable %}
+        {% if pay.due > 0 %}
+        <form method="get" action="{% url 'portal:pay_confirm' %}">
+          <input type="hidden" name="unit" value="{{ pay.unit.number }}">
+          <input type="hidden" name="amount" value="{{ pay.due }}">
+          <button class="btn" type="submit">{% blocktranslate with amount=pay.due|money %}Pay {{ amount }}{% endblocktranslate %}</button>
+        </form>
+        {% endif %}
+      {% else %}
+        <a class="btn" href="{{ pay.setup_url }}">{% translate "Link a bank account to pay" %}</a>
+      {% endif %}
+      {% portal_parts "pay_balance" %}
+    {% endif %}
+  </section>
+
+  {% if pay.online and pay.fee and pay.free_method_required %}
+  <section class="card"><div class="li" data-testid="free-alternative">{% icon "receipt" %}<div class="grow"><div>{% blocktranslate with fee=pay.fee|money %}Paying online adds a {{ fee }} bank fee.{% endblocktranslate %}</div><div class="s">{% translate "No-fee option: pay by check, or by a bank transfer you send yourself (Zelle or your bank's bill pay). The board records it." %}</div></div></div></section>
+  {% endif %}
+
+  {% if not pay.online %}
+  <section class="card"><div class="card-b card-pad-t" data-testid="offline-note"><p class="muted">{% translate "Online payments are not set up yet. Pay the way you do today (check, Zelle or bank transfer); the board records it." %}</p></div></section>
+  {% else %}
+  {% if pay.chargeable and pay.due > 0 %}
+  <section class="card"><form class="li" method="get" action="{% url 'portal:pay_confirm' %}">
+    <input type="hidden" name="unit" value="{{ pay.unit.number }}">
+    <label class="grow" for="other-amount">{% translate "Another amount" %}<div class="s">{% blocktranslate with max=pay.due|money %}Up to your balance of {{ max }}.{% endblocktranslate %}</div></label>
+    <input id="other-amount" name="amount" inputmode="decimal" class="input w-sm" placeholder="0.00" required>
+    <button class="btn btn-sm" type="submit">{% translate "Pay this" %}</button>
+  </form></section>
+  {% endif %}
+
+  {% if pay.pending %}
+  <div class="sec-t">{% translate "Processing" %}</div>
+  <section class="card" data-testid="pending-payments">
+    {% for p in pay.pending %}
+      <div class="li">{% icon "clock" %}<div class="grow"><div>{{ p.amount|money }}</div><div class="s">{% if p.created %}{{ p.created|date:"M j" }} · {% endif %}{% translate "clears in about 4 business days" %}</div></div>
+        <span class="badge info" data-testid="payment-status">{% translate "Processing" %}</span></div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <div class="sec-t">{% translate "How you pay" %}</div>
+  <section class="card" data-testid="bank-accounts">
+    {% for m in pay.methods %}
+      <div class="li">{% icon "bank" %}<div class="grow"><div>{{ m.label }}</div><div class="s">{% if pay.fee %}{% translate "Bank transfer (ACH) · fee applies" %}{% else %}{% translate "Bank transfer (ACH) · no fee" %}{% endif %}</div></div>{% if not m.chargeable %}<a href="{{ pay.setup_url }}">{% translate "Verify" %}</a>{% endif %}</div>
+    {% empty %}
+      <div class="li"><div class="grow muted">{% translate "No bank account linked yet." %}</div></div>
+    {% endfor %}
+    <a class="li" href="{{ pay.setup_url }}">{% icon "plus" %}<div class="grow">{% if pay.methods %}{% translate "Link another bank account" %}{% else %}{% translate "Link a bank account" %}{% endif %}</div>{% icon "right" %}</a>
+    {% portal_parts "pay_methods" %}
+  </section>
+  {% endif %}
+{% endif %}
+</div>
+{% endblock %}

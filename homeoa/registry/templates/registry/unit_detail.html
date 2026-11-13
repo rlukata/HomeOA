@@ -1,0 +1,140 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags ui %}
+{% block title %}{{ unit }}{% endblock %}
+{% block content %}
+<a href="{% url 'registry:index' %}" class="btn btn-ghost btn-sm btn-back">{% translate "All units" %}</a>
+<div class="stack">
+  <section class="card card-pad" aria-labelledby="unit-h">
+    <div class="between wrap-ok">
+      <div class="row gap-12">
+        {% if owners %}<span class="av lg" aria-hidden="true">{{ owners.0.initials }}</span>{% endif %}
+        <div>
+          <h1 id="unit-h">{% blocktranslate with n=unit.number %}Unit {{ n }}{% endblocktranslate %}</h1>
+          <div class="muted">
+            <span data-testid="current-owner">{% for o in owners %}{% if not forloop.first %} &amp; {% endif %}{{ o.full_name }}{% empty %}{% translate "No owner recorded" %}{% endfor %}</span>
+            {% if unit.building %} · {% blocktranslate with b=unit.building %}Building {{ b }}{% endblocktranslate %}{% endif %}
+            · {% if tenants %}{% translate "Rented to" %} {% for t in tenants %}{% if not forloop.first %}, {% endif %}{{ t.person.full_name }}{% endfor %}{% else %}{% translate "Owner-occupied" %}{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="row wrap-ok">
+        <a class="btn" href="{% url 'registry:unit_edit' unit.number %}">{% translate "Edit unit" %}</a>
+      </div>
+    </div>
+    <div class="unit-facts">
+      {% if show_money %}<div><div class="stat-l">{% translate "Balance" %}</div><div class="stat-v sm{% if past_due %} danger{% endif %}" data-testid="unit-balance">{{ balance|money }}</div></div>{% endif %}
+      <div><div class="stat-l">{% translate "Allocated interest" %}</div><div class="stat-v sm">{{ unit.allocated_interest|floatformat:2 }}%</div></div>
+      <div><div class="stat-l">{% translate "Vote weight" %}</div><div class="stat-v sm">{{ vote_weight|floatformat:"-4" }}</div></div>
+      <div><div class="stat-l">{% translate "Parcel ID" %}</div><div class="stat-t">{{ unit.parcel_id|default:"—" }}</div></div>
+      <div><div class="stat-l">{% translate "Address" %}</div><div class="stat-t">{% for line in unit.address_lines %}{{ line }}<br>{% empty %}—{% endfor %}</div></div>
+    </div>
+  </section>
+
+  {% if show_money %}
+  <section class="card" aria-labelledby="ledger-h">
+    <div class="card-h"><h2 id="ledger-h">{% translate "Ledger" %}</h2>{% export_links "btn-sm btn-ghost" %}</div>
+    <div class="table-wrap">
+      <table class="t">
+        <caption class="sr">{% blocktranslate with n=unit.number %}Unit {{ n }} ledger, newest first{% endblocktranslate %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "Date" %}</th><th scope="col">{% translate "Description" %}</th>
+          <th scope="col" class="num">{% translate "Charge" %}</th><th scope="col" class="num">{% translate "Payment" %}</th><th scope="col" class="num">{% translate "Balance" %}</th>
+        </tr></thead>
+        <tbody>
+        {% for r in ledger_rows %}
+          <tr><td class="nowrap">{{ r.date|date:"M j, Y" }}</td><td>{{ r.description }}</td><td class="num">{{ r.charge|money_or_blank }}</td><td class="num pay">{% if r.payment %}−{{ r.payment|money }}{% endif %}</td><td class="num">{{ r.balance|money }}</td></tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty-row">{% translate "No charges or payments yet." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="card" aria-labelledby="owners-h">
+    <div class="card-h"><h2 id="owners-h">{% translate "Owners" %}</h2></div>
+    <div class="card-b">
+      {% if period %}
+        <p class="muted">{% blocktranslate with d=period.start|date:"Y-m-d" %}Since {{ d }}{% endblocktranslate %}</p>
+        <ul class="rows">
+        {% for share in period.shares.all %}
+          <li><a href="{% url 'registry:person' share.person.pk %}"><b>{{ share.person.full_name }}</b></a>
+            <span class="faint">· {{ share.percent|floatformat:"-2" }}%{% if share.person.email %} · {{ share.person.email }}{% endif %}</span></li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">{% translate "No owner recorded." %}</p>
+      {% endif %}
+    </div>
+    <div class="card-f" id="transfer-slot">
+      {% if transfer_form %}
+        {% include "registry/_transfer_form.html" with form=transfer_form %}
+      {% else %}
+        <form method="get" action="{% url 'registry:unit' unit.number %}">
+          <input type="hidden" name="transfer" value="1">
+          <button type="submit" class="btn" hx-get="{% url 'registry:unit_transfer' unit.number %}" hx-target="#transfer-slot">{% if period %}{% translate "Transfer ownership" %}{% else %}{% translate "Record owner (transfer)" %}{% endif %}</button>
+        </form>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="occ-h">
+    <div class="card-h"><h2 id="occ-h">{% translate "Tenants and residents" %}</h2></div>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr>
+          <th scope="col">{% translate "Name" %}</th><th scope="col">{% translate "Kind" %}</th>
+          <th scope="col">{% translate "Start" %}</th><th scope="col">{% translate "End" %}</th><th scope="col"><span class="sr">{% translate "Actions" %}</span></th>
+        </tr></thead>
+        <tbody>
+        {% for occ in occupants %}
+          <tr>
+            <td><a href="{% url 'registry:person' occ.person.pk %}">{{ occ.person.full_name }}</a>{% if occ.lease_key %} <a class="faint" href="{% url 'registry:lease' unit.number occ.pk %}">{% translate "lease" %}</a>{% endif %}</td>
+            <td>{{ occ.get_kind_display }}</td>
+            <td class="nowrap">{{ occ.start|date:"Y-m-d" }}</td>
+            <td class="nowrap">{{ occ.end|date:"Y-m-d"|default:"—" }}</td>
+            <td>{% if not occ.end %}
+              <form method="post" action="{% url 'registry:occupant_end' unit.number occ.pk %}" class="row">
+                {% csrf_token %}
+                <label class="sr" for="end-{{ occ.pk }}">{% translate "End date" %}</label>
+                <input id="end-{{ occ.pk }}" class="input" type="date" name="end" required>
+                <button type="submit" class="btn btn-sm">{% translate "End" %}</button>
+              </form>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="muted">{% translate "No tenants or other residents." %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-f" id="occupant-slot">
+      {% if occupancy_form %}
+        {% include "registry/_occupant_form.html" with form=occupancy_form %}
+      {% else %}
+        <form method="get" action="{% url 'registry:unit' unit.number %}">
+          <input type="hidden" name="occupant" value="1">
+          <button type="submit" class="btn" hx-get="{% url 'registry:occupant_add' unit.number %}" hx-target="#occupant-slot">{% translate "Add tenant or resident" %}</button>
+        </form>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="history-h">
+    <div class="card-h"><h2 id="history-h">{% translate "Ownership history" %}</h2></div>
+    <ul class="rows">
+      {% for p in periods %}
+      <li>
+        <b>{% for s in p.shares.all %}{% if not forloop.first %} &amp; {% endif %}{{ s.person.full_name }}{% endfor %}</b>
+        <span class="muted">· {{ p.start|date:"Y-m-d" }} – {% if p.end %}{{ p.end|date:"Y-m-d" }}{% else %}{% translate "present" %}{% endif %}</span>
+        {% if p.notes %}<div class="faint">{{ p.notes }}</div>{% endif %}
+      </li>
+      {% empty %}
+      <li class="muted">{% translate "No ownership recorded yet." %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {% for section in unit_sections %}{% include section %}{% endfor %}
+</div>
+{% endblock %}

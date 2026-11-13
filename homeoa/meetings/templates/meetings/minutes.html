@@ -1,0 +1,104 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Minutes" %} · {{ meeting.display_title }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p><a href="{% url 'meetings:detail' meeting.pk %}">{{ meeting.display_title }}</a></p>
+    <h1>{% translate "Minutes" %}</h1>
+    <p class="muted">{{ meeting.date|date:"l, F j, Y" }}
+      · <span class="badge {% if minutes.status == 'published' or minutes.status == 'approved' %}ok{% else %}warn{% endif %}" data-testid="minutes-status">{% if minutes %}{{ minutes.get_status_display }}{% else %}{% translate "Not started" %}{% endif %}</span></p>
+  </div>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="text-h">
+      <div class="card-h"><h2 id="text-h">{% translate "Text" %}</h2></div>
+      <div class="card-b">
+        {% if can_manage and not minutes or can_manage and minutes.is_draft %}
+        <form method="post" action="{% url 'meetings:minutes_action' meeting.pk 'save' %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Draft minutes" %}
+            <textarea name="body" rows="16" data-testid="minutes-body">{{ minutes.body }}</textarea></label>
+          <div class="form-actions"><button type="submit" class="btn">{% translate "Save draft" %}</button></div>
+        </form>
+        {% elif minutes.body %}
+        <div data-testid="minutes-text">{{ minutes.body|linebreaks }}</div>
+        {% else %}
+        <p class="muted">{% translate "No minutes yet." %}</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    {% if minutes and not minutes.is_draft %}
+    <section class="card" aria-labelledby="approved-h">
+      <div class="card-h"><h2 id="approved-h">{% translate "Approval" %}</h2></div>
+      <div class="card-b">
+        <p>{% blocktranslate with m=minutes.approved_at.display_title d=minutes.approved_on|date:"M j, Y" %}Approved at {{ m }} on {{ d }}.{% endblocktranslate %}</p>
+        {% if minutes.document %}
+        <p><a href="{% url 'documents:detail' minutes.document.public_id %}" data-testid="minutes-document">{% translate "Published PDF" %}</a>
+          · {{ minutes.document.get_visibility_display }}</p>
+        {% endif %}
+        {% if minutes.envelope %}
+        <p>{% translate "Signature" %}: <a href="{% url 'esign:detail' minutes.envelope.pk %}">{{ minutes.envelope.get_status_display }}</a></p>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if can_manage and minutes.is_draft and minutes.body %}
+    <section class="card" aria-labelledby="approve-h">
+      <div class="card-h"><h2 id="approve-h">{% translate "Approve" %}</h2></div>
+      <div class="card-b">
+        {% if later_meetings %}
+        <form method="post" action="{% url 'meetings:minutes_action' meeting.pk 'approve' %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Approved at" %}
+            <select name="approved_at" required>
+              {% for m in later_meetings %}<option value="{{ m.pk }}">{{ m.display_title }} · {{ m.date|date:"M j, Y" }}</option>{% endfor %}
+            </select></label>
+          <label>{% translate "Approved on" %} <input type="date" name="approved_on" required value="{{ later_meetings.0.date|date:'Y-m-d' }}"></label>
+          <p class="muted">{% translate "Once approved, the minutes cannot be changed." %}</p>
+          <div class="form-actions"><button type="submit" class="btn primary">{% translate "Approve minutes" %}</button></div>
+        </form>
+        {% else %}
+        <p class="muted">{% translate "Minutes are approved at a later meeting. Schedule it first." %}</p>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if can_manage and minutes.status == 'approved' %}
+    <section class="card" aria-labelledby="publish-h">
+      <div class="card-h"><h2 id="publish-h">{% translate "Publish" %}</h2></div>
+      <div class="card-b">
+        <form method="post" action="{% url 'meetings:minutes_action' meeting.pk 'publish' %}" class="form-grid">
+          {% csrf_token %}
+          <label>{% translate "Who can see it" %}
+            <select name="visibility">
+              {% for v, label in visibilities %}<option value="{{ v }}"{% if v == 'owners' %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select></label>
+          <div class="form-actions"><button type="submit" class="btn primary">{% translate "Publish as PDF" %}</button></div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+
+    {% if can_manage and minutes.status == 'published' %}
+    {% if not minutes.envelope or not minutes.envelope.is_open %}
+    <section class="card" aria-labelledby="sign-h">
+      <div class="card-h"><h2 id="sign-h">{% translate "Signature" %}</h2></div>
+      <div class="card-b">
+        <form method="post" action="{% url 'meetings:minutes_action' meeting.pk 'sign' %}">{% csrf_token %}
+          <button type="submit" class="btn">{% translate "Send to the secretary for signature" %}</button>
+          <p class="muted">{% translate "Optional. The signed copy is filed as a new version of the published PDF." %}</p>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

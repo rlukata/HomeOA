@@ -1,0 +1,11 @@
+{% load i18n %}{% if kind == "group" %}<fieldset class="field{% if full %} full{% endif %}{% if f.errors %} has-error{% endif %}">
+  <legend class="field-l{% if hide_label %} sr{% endif %}">{{ label }}{% if required %} <span class="req" aria-hidden="true">*</span><span class="sr">{% translate "(required)" %}</span>{% endif %}</legend>
+  <div class="choices">{{ widget_html }}</div>
+{% elif kind == "check" %}<div class="field check{% if full %} full{% endif %}{% if f.errors %} has-error{% endif %}">
+  <label for="{{ f.id_for_label }}">{{ widget_html }} <span>{{ label }}</span></label>
+{% else %}<div class="field{% if full %} full{% endif %}{% if f.errors %} has-error{% endif %}">
+  <label class="field-l{% if hide_label %} sr{% endif %}" for="{{ f.id_for_label }}">{{ label }}{% if required %} <span class="req" aria-hidden="true">*</span><span class="sr">{% translate "(required)" %}</span>{% endif %}</label>
+  {{ widget_html }}
+{% endif %}  {% if f.help_text %}<p class="field-help" id="{{ help_id }}">{{ f.help_text }}</p>{% endif %}
+  {% if f.errors %}<ul class="field-err" id="{{ error_id }}">{% for e in f.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+{% if kind == "group" %}</fieldset>{% else %}</div>{% endif %}

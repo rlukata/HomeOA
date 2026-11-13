@@ -1,0 +1,14 @@
+{% load i18n ui homeoa_ui %}
+<section aria-labelledby="req-vio-h">
+  <h2 class="sec-t" id="req-vio-h">{% translate "Violations at your unit" %}</h2>
+  <div class="card" data-testid="violations-list">
+    {% for v in violations %}
+    <a class="li" href="{% url 'violations_portal:detail' v.pk %}" data-kind="violation">
+      {% icon "alert" %}
+      <div class="grow"><div><b>{{ v.category }}</b></div><div class="s">{{ v.unit }} · {{ v.observed_on|date:"M j, Y" }}</div></div>
+      {% if v.status == "open" %}{% badge "warn" v.get_status_display %}{% else %}{% badge "ok" v.get_status_display %}{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</section>
+

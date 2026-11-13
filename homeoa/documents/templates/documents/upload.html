@@ -1,0 +1,19 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Upload documents" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Upload documents" %}</h1>
+  <p class="muted">{% translate "Choose one or more files. They share the category and visibility you pick here." %}</p>
+</div></div>
+<section class="card">
+  <form method="post" class="form-grid" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% include "ui/components/form.html" %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Upload" %}</button>
+      <a class="btn btn-ghost" href="{% url 'documents:index' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Announcements" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Community" %}</h1>
+    <p class="muted">{% translate "Announcements and calendar for owners and tenants" %}</p>
+  </div>
+  <div class="row wrap-ok"><a class="btn btn-primary" href="{% url 'community:announcement_new' %}" data-testid="new-announcement">{% translate "New announcement" %}</a></div>
+</div>
+<section class="card" aria-labelledby="ann-h">
+  <div class="card-h"><h2 id="ann-h">{% translate "Announcements" %}</h2></div>
+  <div class="list" data-testid="announcement-list">
+    {% for a in rows %}
+    <div class="att">
+      <div class="att-ic gov" aria-hidden="true">{% if a.pinned %}&#9733;{% else %}&#9679;{% endif %}</div>
+      <div class="att-main">
+        <div class="att-t"><a href="{% url 'community:announcement_edit' a.pk %}">{{ a.title }}</a></div>
+        <div class="att-s">{{ a.get_audience_display }} · {% blocktranslate with d=a.publish_on|date:"M j, Y" %}From {{ d }}{% endblocktranslate %}{% if a.expires_on %} · {% blocktranslate with d=a.expires_on|date:"M j, Y" %}until {{ d }}{% endblocktranslate %}{% endif %}{% if a.notified_on %} · {% blocktranslate with d=a.notified_on|date:"M j" %}sent {{ d }}{% endblocktranslate %}{% elif a.also_notify %} · {% translate "will be sent on publish" %}{% endif %}</div>
+      </div>
+      {% if a.current_state == "live" %}<span class="badge ok">{% translate "Live" %}</span>
+      {% elif a.current_state == "scheduled" %}<span class="badge">{% translate "Scheduled" %}</span>
+      {% else %}<span class="badge">{% translate "Expired" %}</span>{% endif %}
+    </div>
+    {% empty %}
+    <p class="card-b muted">{% translate "No announcements yet." %}</p>
+    {% endfor %}
+  </div>
+  <div class="card-gap"></div>
+</section>
+{% endblock %}

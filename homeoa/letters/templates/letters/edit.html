@@ -1,0 +1,112 @@
+{% extends "ui/base.html" %}
+{% load i18n ui %}
+{% block title %}{% if template %}{{ template.name }}{% else %}{% translate "New letter template" %}{% endif %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p><a href="{% url 'letters:index' %}">{% translate "Letter templates" %}</a></p>
+    <h1>{% if template %}{{ template.name }}{% else %}{% translate "New letter template" %}{% endif %}</h1>
+    {% if template.draft_wording %}<p>{% translate "Draft wording, not legal advice" as lbl %}{% badge "warn" lbl %}</p>{% endif %}
+  </div>
+</div>
+<div class="g">
+  <section class="card span2" aria-labelledby="ed-h">
+    <div class="card-b card-pad-t">
+      <h2 id="ed-h">{% translate "Wording" %}{% if template.current_version %} · {% blocktranslate with n=template.current_version.number %}version {{ n }}{% endblocktranslate %}{% endif %}</h2>
+      <form method="post" id="letter-form" class="form-grid">
+        {% csrf_token %}
+        {% include "ui/components/form.html" %}
+        <label class="span2">{% translate "Preview with unit" %}
+          <select name="unit" class="input">
+            <option value="">{% translate "Sample values" %}</option>
+            {% for u in units %}<option value="{{ u.pk }}">{{ u.number }}</option>{% endfor %}
+          </select>
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+          <a class="btn btn-ghost" href="{% url 'letters:index' %}">{% translate "Cancel" %}</a>
+        </div>
+      </form>
+    </div>
+  </section>
+  <div class="stack">
+    <section class="card" aria-labelledby="pv-h">
+      <div class="card-b card-pad-t">
+        <h2 id="pv-h">{% translate "Live preview" %}</h2>
+        <div id="preview" aria-live="polite"
+             hx-post="{% url 'letters:preview' %}" hx-include="#letter-form" hx-swap="innerHTML"
+             hx-trigger="load, input changed delay:400ms from:#letter-form, change from:#letter-form"></div>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="mf-h">
+      <div class="card-b card-pad-t">
+        <h2 id="mf-h">{% translate "Merge fields" %}</h2>
+        <ul class="link-list">
+          {% for f in fields %}<li><code>{% templatetag openvariable %} {{ f.key }} {% templatetag closevariable %}</code> <span class="muted small">{{ f.label }}</span></li>{% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+{% if template %}
+<section class="card mt-16" aria-labelledby="gen-h">
+  <div class="card-b card-pad-t">
+    <h2 id="gen-h">{% translate "Generate a letter" %}</h2>
+    <p class="muted">{% translate "Uses the saved version. The PDF is stored, linked to the unit, and the generation is audited." %}</p>
+    <form method="post" action="{% url 'letters:generate' template.pk %}" class="form-row">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=generate_form %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Generate PDF" %}</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Generated letters" %}</caption>
+      <thead><tr><th scope="col">{% translate "Date" %}</th><th scope="col">{% translate "Unit" %}</th><th scope="col">{% translate "Recipient" %}</th><th scope="col" class="num">{% translate "Version" %}</th><th scope="col">{% translate "PDF" %}</th></tr></thead>
+      <tbody>
+        {% for l in letters %}
+        <tr><td>{{ l.as_of }}</td><td>{{ l.unit.number }}</td><td>{{ l.recipient_name }}</td><td class="num">{{ l.template_version.number }}</td><td><a href="{% url 'letters:download' l.pk %}">{% translate "Open" %}</a></td></tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "No letters generated yet." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card mt-16" aria-labelledby="tr-h" id="translations">
+  <div class="card-b card-pad-t">
+    <h2 id="tr-h">{% translate "Translations" %}</h2>
+    <p class="muted">{% translate "Owners who prefer another language get the notice in English plus the approved translation you upload here. HomeOA never translates notices itself." %}</p>
+    <form method="post" action="{% url 'letters:translation_upload' template.pk %}" enctype="multipart/form-data" class="form-grid">
+      {% csrf_token %}
+      {% include "ui/components/form.html" with form=translation_form %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save translation" %}</button></div>
+    </form>
+  </div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Uploaded translations" %}</caption>
+      <thead><tr><th scope="col">{% translate "Language" %}</th><th scope="col">{% translate "Uploaded" %}</th><th scope="col">{% translate "By" %}</th><th scope="col">{% translate "Note" %}</th><th scope="col">{% translate "Translation" %}</th></tr></thead>
+      <tbody>
+        {% for t in translations %}
+        <tr><td>{{ t.language }}</td><td>{{ t.uploaded_at }}</td><td>{{ t.uploaded_by|default:"–" }}</td><td>{{ t.note }}</td><td>{% if t.is_pdf %}<a href="{% url 'letters:translation_file' t.pk %}">{{ t.filename }}</a>{% else %}{{ t.text|truncatechars:80 }}{% endif %}</td></tr>
+        {% empty %}
+        <tr><td colspan="5" class="empty-row">{% translate "No translations uploaded." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section class="card mt-16">
+  <div class="table-wrap">
+    <table class="t">
+      <caption>{% translate "Version history" %}</caption>
+      <thead><tr><th scope="col" class="num">{% translate "Version" %}</th><th scope="col">{% translate "Saved" %}</th><th scope="col">{% translate "By" %}</th><th scope="col">{% translate "Note" %}</th></tr></thead>
+      <tbody>
+        {% for v in versions %}<tr><td class="num">{{ v.number }}</td><td>{{ v.created_at }}</td><td>{{ v.created_by|default:"–" }}</td><td>{{ v.note }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "ui/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Not set up yet" %}{% endblock %}
+{% block content %}
+<div class="hero"><div><h1>{% translate "Not set up yet" %}</h1>
+  <p class="muted" data-testid="not-set-up">{% translate "The System admin has not added the association yet. Try again once they have." %}</p></div></div>
+{% endblock %}

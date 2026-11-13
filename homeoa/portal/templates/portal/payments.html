@@ -1,0 +1,32 @@
+{% extends "portal/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Payment history" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Payment history" %}</h1>
+{% include "portal/_money_tabs.html" with current="payments" %}
+{% for s in sections %}
+  <div class="sec-t">{% blocktranslate with number=s.unit.number start=s.period.start|date:"M j, Y" %}Unit {{ number }} · owned since {{ start }}{% endblocktranslate %}{% if s.period.end %} – {{ s.period.end|date:"M j, Y" }}{% endif %}</div>
+  <section class="card" data-testid="payments-list">
+    {% for r in s.receipts %}
+      <div class="li"><div class="grow"><div>{{ r.amount|money }} · {{ r.get_method_display }}</div><div class="s">{{ r.received_date|date:"M j, Y" }}{% if r.reference %} · {{ r.reference }}{% endif %}</div></div>
+        <span class="badge {% if r.status == 'void' %}danger{% else %}ok{% endif %}" data-testid="payment-status">{% if r.status == 'void' %}{% translate "Returned / void" %}{% else %}{% translate "Received" %}{% endif %}</span></div>
+    {% empty %}
+      <div class="li"><div class="grow muted">{% translate "No payments recorded yet." %}</div></div>
+    {% endfor %}
+  </section>
+  <div class="sec-t">{% translate "Account activity" %}</div>
+  <section class="card" data-testid="ledger">
+    {% for row in s.rows %}
+      <div class="li"><div class="grow"><div>{{ row.description }}</div><div class="s">{{ row.date|date:"M j, Y" }} · {% blocktranslate with bal=row.balance|money %}balance {{ bal }}{% endblocktranslate %}</div></div>
+        <span class="num">{% if row.charge %}{{ row.charge|money }}{% else %}−{{ row.payment|money }}{% endif %}</span></div>
+    {% empty %}
+      <div class="li"><div class="grow muted">{% translate "No activity yet." %}</div></div>
+    {% endfor %}
+  </section>
+{% empty %}
+  <section class="card"><div class="card-b card-pad-t"><p class="muted">{% translate "You are not listed as an owner of any unit." %}</p></div></section>
+{% endfor %}
+</div>
+{% endblock %}

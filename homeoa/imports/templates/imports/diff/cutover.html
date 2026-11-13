@@ -1,0 +1,86 @@
+{% extends "ui/base.html" %}
+{% load i18n homeoa_access %}
+{% block title %}{% translate "Cutover readiness" %}{% endblock %}
+{% block content %}
+<div class="hero"><div>
+  <h1>{% translate "Cutover readiness" %}</h1>
+  <p class="muted">{% translate "What must be true before the board gives the management company notice. Host, backups and email are checked by hand: see the deployment runbook." %}</p>
+</div></div>
+{% include "reports/_nav.html" with report="cutover" %}
+{% has_perm "settings.manage" as can_settings %}{% if can_settings and not live %}<p class="callout" data-testid="go-live-link">{% translate "When the checks are done, the System admin starts the association on the Go live page." %} <a href="{% url 'access:go_live' %}">{% translate "Go live" %}</a></p>{% endif %}
+<section class="card" aria-labelledby="ready-h">
+  <div class="card-h"><h2 id="ready-h">{% translate "Checks" %}</h2>
+    {% if r.ready %}<span class="badge ok">{% translate "Ready" %}</span>{% else %}<span class="badge warn">{% translate "Not ready" %}</span>{% endif %}
+  </div>
+  <ul class="list">
+    {% for c in r.checks %}
+    <li class="att" id="check-{{ c.key }}">
+      <span class="att-main">
+        <span class="att-t">{% if c.ok %}<span class="badge ok">{% translate "Done" %}</span>{% else %}<span class="badge warn">{% translate "To do" %}</span>{% endif %} {{ c.label }}</span>
+        <span class="muted">{{ c.detail }}</span>
+        {% if c.items %}<ul>{% for i in c.items %}<li>{{ i }}</li>{% endfor %}</ul>{% endif %}
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+<section class="card" aria-labelledby="months-h">
+  <div class="card-h"><h2 id="months-h">{% translate "Parallel run by month" %}</h2>
+    <span class="muted">{% blocktranslate with n=r.clean_months m=r.required_months %}{{ n }} of {{ m }} clean months{% endblocktranslate %}</span>
+  </div>
+  {% if r.months %}
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Diff status per month" %}</caption>
+      <thead><tr><th scope="col">{% translate "Month" %}</th><th scope="col">{% translate "Result" %}</th></tr></thead>
+      <tbody>
+        {% for m in r.months %}
+        <tr><td>{{ m.month|date:"F Y" }}</td>
+          <td>{% if m.status == "clean" %}<a href="{% url 'imports:parallel_run_detail' m.run.pk %}"><span class="badge ok">{% translate "Clean" %}</span></a>{% elif m.status == "differences" %}<a href="{% url 'imports:parallel_run_detail' m.run.pk %}"><span class="badge warn">{% translate "Differences" %}</span></a>{% else %}<span class="badge">{% translate "Missing" %}</span>{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="muted">{% translate "No months to show yet." %}</p>{% endif %}
+  {% if can_manage %}
+  <form method="post" class="form-grid">
+    {% csrf_token %}<input type="hidden" name="action" value="months">
+    {% include "ui/components/form.html" with form=months_form %}
+    <div class="form-actions"><button type="submit" class="btn btn-sm">{% translate "Save" %}</button></div>
+  </form>
+  {% endif %}
+</section>
+<section class="card" aria-labelledby="stats-h">
+  <div class="card-h"><h2 id="stats-h">{% translate "At a glance" %}</h2></div>
+  <ul class="list">
+    <li>{% blocktranslate count n=r.open_todos %}{{ n }} open to-do{% plural %}{{ n }} open to-dos{% endblocktranslate %}</li>
+    <li>{% blocktranslate with t=r.owners.total i=r.owners.invited a=r.owners.accepted c=r.owners.consent %}Owners: {{ t }} · invited {{ i }} · accepted {{ a }} · e-notice consent {{ c }}{% endblocktranslate %}</li>
+    <li>{% blocktranslate count n=r.unverified_rules %}{{ n }} unverified rule-pack item{% plural %}{{ n }} unverified rule-pack items{% endblocktranslate %}</li>
+  </ul>
+</section>
+<section class="card" aria-labelledby="rec-h">
+  <div class="card-h"><h2 id="rec-h">{% translate "Records from the management company" %}</h2></div>
+  <p>{% blocktranslate %}The board asks the management company to deliver the association's records ({{ citation }}, unverified).{% endblocktranslate %}
+  {% if r.records %}{% blocktranslate with d=r.records.on by=r.records.by %}Marked requested on {{ d }} by {{ by }}.{% endblocktranslate %}{% endif %}</p>
+  {% if can_manage %}
+  <form method="post">
+    {% csrf_token %}<input type="hidden" name="action" value="records">
+    <label><input type="checkbox" name="requested" value="1"{% if r.records %} checked{% endif %}> {% translate "Records delivery requested" %}</label>
+    <button type="submit" class="btn btn-sm">{% translate "Save" %}</button>
+  </form>
+  {% endif %}
+</section>
+<section class="card" aria-labelledby="final-h">
+  <div class="card-h"><h2 id="final-h">{% translate "Final diff report" %}</h2></div>
+  {% if r.latest_diff %}
+  <p>{% blocktranslate with d=r.latest_diff.as_of|date:"M j, Y" s=r.latest_diff.status_label n=r.clean_months %}Latest comparison as of {{ d }}: {{ s }}. Clean months so far: {{ n }}.{% endblocktranslate %}
+    <a href="{% url 'imports:parallel_run_detail' r.latest_diff.pk %}">{% translate "Open the report" %}</a></p>
+  {% else %}
+  <p class="muted">{% translate "No comparison yet. Load a management company snapshot on the Parallel run page." %}</p>
+  {% endif %}
+</section>
+<section class="card" aria-labelledby="res-h">
+  <div class="card-h"><h2 id="res-h">{% translate "Resident access" %}</h2></div>
+  <p>{% if r.residents_on %}{% translate "Owners and tenants can log in." %}{% else %}{% translate "Off until cutover. Reminders to office holders without a login are held as previews." %}{% endif %}</p>
+</section>
+{% endblock %}

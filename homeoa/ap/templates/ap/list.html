@@ -1,0 +1,66 @@
+{% extends "ui/base.html" %}
+{% load i18n ledger_tags %}
+{% block title %}{% translate "Bills" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{% translate "Bills" %}</h1>
+    <p class="muted">{% translate "Vendor invoices, booked to accounts payable when received · paid at the bank" %}</p>
+  </div>
+  <div class="row wrap-ok">
+    {% if can_rules %}<a class="btn" href="{% url 'ap:rules' %}" data-testid="approval-rules">{% translate "Approval rules" %}</a>{% endif %}
+    {% if can_manage %}<a class="btn btn-primary" href="{% url 'ap:add' %}" data-testid="bill-add">{% translate "Add bill" %}</a>{% endif %}
+  </div>
+</div>
+{% if waiting %}
+<section class="card mb" aria-labelledby="waiting-h" data-testid="bills-waiting">
+  <div class="card-h"><h2 id="waiting-h">{% translate "Waiting for approval" %}</h2></div>
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Bills waiting for approval" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Vendor" %}</th>
+        <th scope="col" class="num">{% translate "Amount" %}</th>
+        <th scope="col">{% translate "Approvals" %}</th>
+        <th scope="col"><span class="sr">{% translate "Action" %}</span></th>
+      </tr></thead>
+      <tbody>
+      {% for b in waiting %}
+        <tr data-testid="waiting-row-{{ b.pk }}">
+          <td><a href="{% url 'ap:detail' b.pk %}"><b>{{ b.vendor.name }}</b></a> <span class="muted">{{ b.invoice_number }}</span></td>
+          <td class="num">{{ b.total|money }}</td>
+          <td>{% blocktranslate with done=b.done required=b.required %}{{ done }} of {{ required }} approvals{% endblocktranslate %}</td>
+          <td>{% if b.mine %}<a class="btn btn-sm" href="{% url 'ap:detail' b.pk %}">{% translate "Review" %}</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+<form method="get" class="row wrap-ok mb" aria-label="{% translate 'Filter bills' %}"
+      hx-get="{% url 'ap:index' %}" hx-target="#bill-rows" hx-swap="outerHTML" hx-trigger="change">
+  <div class="chips" role="radiogroup" aria-label="{% translate 'Status' %}">
+    {% for value, label in statuses %}
+    <label class="chip{% if value == status %} on{% endif %}"><input class="sr" type="radio" name="status" value="{{ value }}"{% if value == status %} checked{% endif %}>{{ label }}</label>
+    {% endfor %}
+  </div>
+  <noscript><button type="submit" class="btn">{% translate "Filter" %}</button></noscript>
+</form>
+<section class="card">
+  <div class="table-wrap">
+    <table class="t">
+      <caption class="sr">{% translate "Bills" %}</caption>
+      <thead><tr>
+        <th scope="col">{% translate "Vendor" %}</th>
+        <th scope="col">{% translate "Invoice" %}</th>
+        <th scope="col">{% translate "Description" %}</th>
+        <th scope="col" class="num">{% translate "Amount" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr></thead>
+      {% include "ap/_rows.html" %}
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "portal/base.html" %}
+{% load i18n ui homeoa_ui %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<div class="between wrap-ok">
+  <h1 class="h-page">{% translate "Maintenance requests" %}</h1>
+  <a class="btn btn-primary" href="{% url 'maintenance:my_add' %}" data-testid="me-maint-add">{% translate "New request" %}</a>
+</div>
+<section class="card" data-testid="me-maint-list">
+  {% for r in requests %}
+  <a class="li" href="{% url 'maintenance:my_detail' r.pk %}"><div class="grow"><b>{{ r.title }}</b> <span class="muted">· {{ r.created_at|date:"M j" }}</span></div>{% badge r.badge r.get_status_display %}{% icon "right" %}</a>
+  {% empty %}
+  <div class="card-pad"><p class="muted">{% translate "You have not submitted any requests." %}</p></div>
+  {% endfor %}
+</section>
+</div>
+{% endblock %}

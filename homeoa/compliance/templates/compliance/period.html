@@ -1,0 +1,104 @@
+{% extends "ui/base.html" %}
+{% load i18n rule_tags %}
+{% block title %}{{ period.title }} {{ period.year }}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <h1>{{ period.title }} <span class="muted">{{ period.year }}</span></h1>
+    <p class="muted">{% blocktranslate with due=period.due_date|date:"M j, Y" %}Due {{ due }}{% endblocktranslate %}
+      {% if obligation %}· {% if obligation.source_url %}<a href="{{ obligation.source_url }}" rel="noopener">{{ obligation.citation }}</a>{% else %}{{ obligation.citation }}{% endif %} {% rule_badge obligation %}{% endif %}</p>
+  </div>
+  <a class="btn" href="{% url 'compliance:index' %}">{% translate "Compliance calendar" %}</a>
+</div>
+{% if period.missed and period.is_open %}<div class="callout warn" role="note" data-testid="missed">{% translate "The due date has passed and this obligation is not recorded as met." %}</div>{% endif %}
+<section class="card" aria-labelledby="about-h">
+  <div class="card-b card-pad-t">
+    <h2 id="about-h">{% translate "What is required" %}</h2>
+    {% if obligation %}<p>{{ obligation.description }}</p>{% if obligation.note %}<p class="muted">{{ obligation.note }}</p>{% endif %}
+    {% else %}<p class="muted">{% translate "The active rule pack no longer defines this obligation." %}</p>{% endif %}
+    <p>{% translate "Status" %}: <strong data-testid="period-status">{{ period.get_status_display }}</strong>{% if period.exemption_id %} ({% translate "exempt" %}){% endif %}</p>
+  </div>
+</section>
+{% if exemptions %}
+<section class="card mt-16" aria-labelledby="ex-h">
+  <div class="card-b card-pad-t">
+    <h2 id="ex-h">{% translate "Exemptions" %}</h2>
+    <p class="muted">{% translate "Answer yes only if it applies this period; a yes closes the period as exempt." %}</p>
+    <ul class="list" data-testid="exemptions">
+      {% for row in exemptions %}
+      <li>
+        <p>{{ row.e.question }} <span class="muted">{{ row.e.citation }}</span> {% rule_badge row.e %}</p>
+        {% if row.answer is True %}<span class="badge ok">{% translate "Yes" %}</span>{% elif row.answer is False %}<span class="badge">{% translate "No" %}</span>{% endif %}
+        {% if can_manage %}
+        <form method="post" action="{% url 'compliance:act' period.pk %}" class="row">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="exemption">
+          <input type="hidden" name="exemption" value="{{ row.e.id }}">
+          <button type="submit" name="answer" value="yes" class="btn btn-sm">{% translate "Yes" %}</button>
+          <button type="submit" name="answer" value="no" class="btn btn-sm btn-ghost">{% translate "No" %}</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+<section class="card mt-16" aria-labelledby="path-h">
+  <div class="card-b card-pad-t">
+    <h2 id="path-h">{% translate "How the association meets it" %}</h2>
+    {% if can_manage %}
+    <form method="post" action="{% url 'compliance:act' period.pk %}" class="stack" data-testid="paths">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="path">
+      {% for pv in paths %}
+      <label>
+        <input type="radio" name="path" value="{{ pv.id }}"{% if pv.id == period.path_id %} checked{% endif %}>
+        <strong>{{ pv.label }}</strong> <span class="muted">{{ pv.citation }}</span>
+        {% if pv.threshold and pv.threshold.is_set %}<span class="badge info" data-testid="threshold-{{ pv.id }}">{{ pv.threshold.label }}: {{ pv.threshold.value }}</span>{% endif %}
+        <div class="muted">{{ pv.help }}</div>
+      </label>
+      {% endfor %}
+      <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Save path" %}</button></div>
+    </form>
+    {% else %}
+    <ul class="list" data-testid="paths">
+      {% for pv in paths %}
+      <li><strong>{{ pv.label }}</strong> <span class="muted">{{ pv.citation }}</span>{% if pv.id == period.path_id %} <span class="badge ok">{% translate "Chosen" %}</span>{% endif %}
+        {% if pv.threshold and pv.threshold.is_set %}<span class="badge info">{{ pv.threshold.label }}: {{ pv.threshold.value }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</section>
+<section class="card mt-16" aria-labelledby="ev-h">
+  <div class="card-b card-pad-t">
+    <h2 id="ev-h">{% translate "Evidence" %}</h2>
+    {% if evidence %}
+    <ul class="list" data-testid="evidence">
+      {% for ev in evidence %}
+      <li>{% if ev.file_key %}<a href="{% url 'compliance:evidence_file' ev.pk %}">{{ ev.filename }}</a>{% endif %}
+        {% if ev.url %}<a href="{{ ev.url }}" rel="noopener noreferrer">{{ ev.url }}</a>{% endif %}
+        {% if ev.note %}<span class="muted">{{ ev.note }}</span>{% endif %}
+        <span class="faint">{{ ev.added_at|date:"M j, Y" }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">{% translate "No evidence yet." %}</p>{% endif %}
+    {% if can_manage %}
+    <form method="post" enctype="multipart/form-data" action="{% url 'compliance:act' period.pk %}" class="form-grid">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="evidence">
+      <label>{% translate "Document" %} <input type="file" name="file"></label>
+      <label>{% translate "Or a link (e.g. to the owner vote)" %} <input type="text" name="url"></label>
+      <label>{% translate "Note" %} <input type="text" name="note" maxlength="500"></label>
+      <div class="form-actions"><button type="submit" class="btn">{% translate "Add evidence" %}</button></div>
+    </form>
+    <form method="post" action="{% url 'compliance:act' period.pk %}" class="mt-16">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="complete">
+      <button type="submit" class="btn btn-primary">{% translate "Mark as done" %}</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

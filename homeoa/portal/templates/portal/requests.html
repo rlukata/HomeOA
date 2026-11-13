@@ -1,0 +1,38 @@
+{% extends "portal/base.html" %}
+{% load i18n ui homeoa_ui portal_parts %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<style nonce="{{ csp_nonce }}">
+  .req-chooser { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+  .req-chooser .btn { justify-content: flex-start; gap: 8px; }
+  .req-tl { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+</style>
+<div class="me-page">
+<h1 class="h-page">{% translate "Requests" %}</h1>
+<section aria-labelledby="req-new-h">
+  <h2 class="sec-t" id="req-new-h">{% translate "New request" %}</h2>
+  <div class="req-chooser" data-testid="req-chooser">
+    {% for new in new_requests %}{% with k=new.kind %}{% if new.shown %}{% if read_only %}<span class="btn" aria-disabled="true">{% icon k.new_icon %}{{ k.new_label }}</span>{% else %}<a class="btn" href="{% url k.new_url_name %}" data-testid="{{ k.new_testid }}">{% icon k.new_icon %}{{ k.new_label }}</a>{% endif %}{% endif %}{% endwith %}{% if not forloop.last %}
+    {% endif %}{% endfor %}
+  </div>
+</section>
+{% portal_parts "requests" %}
+<section aria-labelledby="req-mine-h">
+  <h2 class="sec-t" id="req-mine-h">{% translate "Your requests" %}</h2>
+  <div class="card" data-testid="req-list">
+    {% for r in items %}
+    {% if r.url %}<a class="li" href="{{ r.url }}" data-kind="{{ r.kind }}">{% else %}<div class="li" data-kind="{{ r.kind }}">{% endif %}
+      {% icon r.icon %}
+      <div class="grow"><div><b>{{ r.title }}</b></div>
+        <div class="s">{{ r.kind_label }}</div>
+        <ul class="req-tl s" aria-label="{% translate 'Timeline' %}">{% for d, label in r.timeline %}<li>{{ d|date:"M j" }} · {{ label }}</li>{% endfor %}</ul>
+      </div>
+      {% badge r.badge r.status %}
+    {% if r.url %}</a>{% else %}</div>{% endif %}
+    {% empty %}
+    <div class="card-pad"><p class="muted">{% translate "You have no requests yet." %}</p></div>
+    {% endfor %}
+  </div>
+</section>
+</div>
+{% endblock %}

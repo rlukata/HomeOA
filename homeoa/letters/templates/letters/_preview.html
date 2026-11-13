@@ -1,0 +1,16 @@
+{% load i18n %}
+{% if result.errors %}
+<div class="callout" role="alert">
+  <div>
+    <strong>{% translate "This template can’t be saved yet:" %}</strong>
+    <ul>{% for e in result.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+</div>
+{% else %}
+<div class="paper letter-preview">
+  {% if result.recipient %}<p>{% for line in result.recipient %}{{ line }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>{% endif %}
+  {% if result.subject %}<p><strong>{{ result.subject }}</strong></p>{% endif %}
+  <div class="letter-body">{{ result.body }}</div>
+</div>
+{% if not unit %}<p class="muted small">{% translate "Showing sample values. Choose a unit to preview with real data." %}</p>{% endif %}
+{% endif %}

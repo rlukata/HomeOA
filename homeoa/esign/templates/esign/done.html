@@ -1,0 +1,12 @@
+{% extends "accounts/base_auth.html" %}
+{% load i18n %}
+{% block title %}{% translate "Thank you" %}{% endblock %}
+{% block content %}
+{% if declined %}
+<h1>{% translate "You declined to sign" %}</h1>
+<p>{% translate "The board can see that you declined. This link no longer works." %}</p>
+{% else %}
+<h1 data-testid="signed">{% translate "Signed" %}</h1>
+<p>{% translate "Thank you. Your signature was recorded. This link no longer works." %}</p>
+{% endif %}
+{% endblock %}

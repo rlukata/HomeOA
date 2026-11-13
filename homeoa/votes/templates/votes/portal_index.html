@@ -1,0 +1,33 @@
+{% extends "portal/base.html" %}
+{% load i18n homeoa_ui %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page">
+<h1 class="h-page">{% translate "Owner votes" %}</h1>
+<section class="card" data-testid="open-votes">
+  <div class="card-h"><h2>{% translate "Open now" %}</h2></div>
+  {% for r in open_rows %}
+  {% for u in r.units %}
+  <a class="li" href="{% url 'votes_portal:vote' r.vote.pk %}?unit={{ u.unit.pk }}">
+    <div class="grow">
+      <div class="strong">{{ r.vote.title }}</div>
+      <div class="muted small">{% blocktranslate with unit=u.unit.number date=r.vote.closes_at|date:"M j, Y" %}Unit {{ unit }} · closes {{ date }}{% endblocktranslate %}</div>
+    </div>
+    {% if u.ballot %}<span class="badge ok">{% translate "Voted" %}</span>{% else %}<span class="badge warn">{% translate "Vote" %}</span>{% endif %}
+    {% icon "right" %}
+  </a>
+  {% endfor %}
+  {% empty %}
+  <div class="card-b"><p class="muted">{% translate "No votes are open." %}</p></div>
+  {% endfor %}
+</section>
+{% if closed_rows %}
+<section class="card" data-testid="closed-votes">
+  <div class="card-h"><h2>{% translate "Closed" %}</h2></div>
+  {% for r in closed_rows %}
+  <div class="li"><div class="grow">{{ r.vote.title }}</div><span class="muted small">{{ r.vote.closed_at|date:"M j, Y" }}</span></div>
+  {% endfor %}
+</section>
+{% endif %}
+</div>
+{% endblock %}

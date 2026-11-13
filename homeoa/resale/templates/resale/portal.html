@@ -1,0 +1,32 @@
+{% extends "portal/base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Resale certificate" %} · {% endblock %}
+{% block content %}
+{% include "portal/_me_styles.html" %}
+<div class="me-page stack">
+<h1 class="h-page">{% translate "Resale certificate" %}</h1>
+<p class="muted">{% translate "Selling your unit? The buyer must get a resale certificate from the association. Refinancing? Your lender may ask for a statement of unpaid assessments. Ask here and the board prepares it, emails it to the address you give, and charges the fee to your account." %}</p>
+
+{% if requests %}
+<div class="sec-t">{% translate "Your requests" %}</div>
+<section class="card" data-testid="my-resale-requests">
+  {% for r in requests %}
+    <div class="li"><div class="grow"><div>{{ r.unit }} · {{ r.send_to }}</div>
+      <div class="s">{{ r.get_kind_display }} · {% blocktranslate with on=r.received_on|date:"M j, Y" %}Asked {{ on }}{% endblocktranslate %}{% if r.status == "open" and r.due_on %} · {% blocktranslate with due=r.due_on|date:"M j, Y" %}Due by {{ due }}{% endblocktranslate %}{% endif %}{% if r.pdf_key %} · <a href="{% url 'resale_portal:pdf' r.pk %}">{% translate "Download" %}</a>{% endif %}</div></div>
+      <span class="badge {% if r.status == 'issued' %}ok{% elif r.status == 'open' %}warn{% endif %}">{{ r.get_status_display }}</span>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<div class="sec-t">{% translate "Ask for a document" %}</div>
+<section class="card" data-testid="resale-request-form"><div class="card-b card-pad-t">
+  <form method="post" class="form-grid">{% csrf_token %}
+    {% if units|length > 1 %}<div class="field"><label class="field-l" for="rs-unit">{% translate "Unit" %}</label>
+      <select id="rs-unit" name="unit">{% for u in units %}<option value="{{ u.number }}">{{ u }}</option>{% endfor %}</select></div>{% endif %}
+    {% include "ui/components/form.html" with form=form %}
+    <div class="form-actions"><button type="submit" class="btn btn-primary">{% translate "Send request" %}</button></div>
+  </form>
+</div></section>
+</div>
+{% endblock %}

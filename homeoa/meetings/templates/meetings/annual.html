@@ -1,0 +1,95 @@
+{% extends "ui/base.html" %}
+{% load i18n rule_tags %}
+{% block title %}{% translate "Annual meeting workflow" %}{% endblock %}
+{% block content %}
+<div class="hero">
+  <div>
+    <p><a href="{% url 'meetings:detail' meeting.pk %}">{{ meeting.display_title }}</a></p>
+    <h1>{% translate "Annual meeting workflow" %}</h1>
+    <p class="muted">{{ meeting.date|date:"l, F j, Y" }} · {% translate "Budget ratification and audit waiver" %}</p>
+  </div>
+</div>
+<div class="g">
+  <div class="span2 stack">
+    <section class="card" aria-labelledby="steps-h">
+      <div class="card-h"><h2 id="steps-h">{% translate "Steps" %}</h2></div>
+      <div class="card-b">
+        <ol data-testid="annual-steps">
+          {% for step in steps %}
+          <li data-testid="step-{{ step.key }}">
+            <strong>{{ step.label }}</strong>
+            {% if step.done %}<span class="badge ok">{% translate "Done" %}{% if step.done_on %} {{ step.done_on|date:"M j, Y" }}{% endif %}</span>
+            {% elif step.due %}<span class="badge warn">{% blocktranslate with date=step.due|date:"M j, Y" %}By {{ date }}{% endblocktranslate %}</span>{% endif %}
+            {% if step.window and step.window.0 %}<div class="muted">{% blocktranslate with a=step.window.0|date:"M j, Y" b=step.window.1|date:"M j, Y" %}Allowed meeting dates: {{ a }} to {{ b }}{% endblocktranslate %}</div>{% endif %}
+            {% if step.problem %}<div class="muted" data-testid="step-problem">{{ step.problem }}</div>{% endif %}
+            {% for r in step.rules %}
+            <div class="muted">{{ r.label }}: <strong>{{ r|rule_display }}</strong> {% rule_badge r %}{% if r.citation %} {{ r.citation }}{% endif %}</div>
+            {% endfor %}
+            {% if can_manage and step.key == "send" and not step.done %}
+            <form method="post" action="{% url 'meetings:annual_action' meeting.pk %}" class="inline">{% csrf_token %}
+              <input type="hidden" name="action" value="sent">
+              <label>{% translate "Sent on" %} <input type="date" name="on" value="{{ today|date:'Y-m-d' }}"></label>
+              <button type="submit" class="btn sm">{% translate "Record as sent" %}</button>
+            </form>
+            {% endif %}
+            {% if step.key == "notice" and not step.done %}<div><a href="{% url 'meetings:detail' meeting.pk %}">{% translate "Send the notice from the meeting page" %}</a></div>{% endif %}
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="votes-h">
+      <div class="card-h"><h2 id="votes-h">{% translate "Owner votes at the meeting" %}</h2></div>
+      <div class="card-b">
+        <ul>
+          <li data-testid="ratification-vote">{% translate "Budget ratification" %}:
+            {% if wf.ratification_vote %}<a href="{% url 'votes:detail' wf.ratification_vote.pk %}">{{ wf.ratification_vote }}</a> · {{ wf.ratification_vote.get_status_display }}{% else %}<span class="muted">{% translate "Not created yet" %}</span>{% endif %}
+            {% if wf.ratification_outcome %}<span class="badge {% if wf.ratification_outcome == 'ratified' %}ok{% else %}danger{% endif %}" data-testid="ratification-outcome">{{ wf.get_ratification_outcome_display }}</span>{% endif %}
+            {% if wf.ratification_outcome == 'rejected' %}<p class="muted" data-testid="rejected-note">{% translate "Owners rejected this budget. It stays adopted, and the prior ratified budget continues; nothing changes automatically." %}</p>
+            {% if not wf.rejection_dismissed_at %}<form method="post" action="{% url 'meetings:annual_action' wf.meeting.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="action" value="dismiss_rejection"><button type="submit" class="btn btn-ghost">{% translate "Dismiss follow-up" %}</button></form>{% endif %}{% endif %}
+          </li>
+          <li data-testid="waiver-vote">{% translate "Audit waiver" %}:
+            {% if wf.waiver_vote %}<a href="{% url 'votes:detail' wf.waiver_vote.pk %}">{{ wf.waiver_vote }}</a> · {{ wf.waiver_vote.get_status_display }}{% else %}<span class="muted">{% translate "Not created yet" %}</span>{% endif %}
+            {% if wf.waiver_outcome %}<span class="badge {% if wf.waiver_outcome == 'waived' %}ok{% else %}warn{% endif %}" data-testid="waiver-outcome">{{ wf.get_waiver_outcome_display }}</span>{% endif %}
+          </li>
+        </ul>
+        <p class="muted">{% translate "The budget stands unless the rule pack's share of all votes rejects it; no quorum is needed unless the rule pack says so." %}</p>
+        {% if can_manage %}
+        <form method="post" action="{% url 'meetings:annual_action' meeting.pk %}" class="inline">{% csrf_token %}
+          {% if not wf.ratification_vote or not wf.waiver_vote %}
+          <button type="submit" name="action" value="votes" class="btn">{% translate "Add votes to the agenda" %}</button>
+          {% endif %}
+          <button type="submit" name="action" value="apply" class="btn">{% translate "Record vote results" %}</button>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="card" aria-labelledby="budget-h">
+      <div class="card-h"><h2 id="budget-h">{% translate "Budget" %}</h2></div>
+      <div class="card-b">
+        {% if wf.budget %}
+        <p data-testid="annual-budget"><a href="{% url 'budget:detail' wf.budget.pk %}">{{ wf.budget }}</a> · {{ wf.budget.get_status_display }}
+          {% if wf.budget.ratification %}· {{ wf.budget.get_ratification_display }}{% endif %}</p>
+        {% else %}
+        <p class="muted">{% translate "No budget chosen." %}</p>
+        {% endif %}
+        {% if can_manage and not wf.ratification_vote %}
+        <form method="post" action="{% url 'meetings:annual_action' meeting.pk %}">{% csrf_token %}
+          <input type="hidden" name="action" value="budget">
+          <label>{% translate "Budget to ratify" %}
+            <select name="budget">
+              {% for b in budgets %}<option value="{{ b.pk }}"{% if b.pk == wf.budget_id %} selected{% endif %}>{{ b }} ({{ b.get_status_display }})</option>{% endfor %}
+            </select>
+          </label>
+          <button type="submit" class="btn sm">{% translate "Use this budget" %}</button>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}
